@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets: never commit API keys. Copy .env.example to .env instead.
+.env
+
+# Data is reproducible from `make data`; keep the folders, not the files.
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+logs/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

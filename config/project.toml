@@ -1,0 +1,82 @@
+# =============================================================================
+# ppa-lab project configuration
+# -----------------------------------------------------------------------------
+# One place for every assumption the pipeline makes. Code reads this file via
+# ppa_lab.config.load_settings(); nothing below should be hard-coded elsewhere.
+# Dates are TOML dates (no quotes) and refer to LOCAL delivery days in
+# Europe/Berlin, which is how the market defines a "delivery day".
+# =============================================================================
+
+[project]
+timezone = "Europe/Berlin"
+
+[market]
+# German-Luxembourg bidding zone (one price area since the DE-AT split on 1 Oct 2018).
+bidding_zone = "DE-LU"
+# Country code used by the Energy-Charts generation endpoint.
+country = "de"
+# Inclusive range of delivery days to download and analyse.
+start = 2023-01-01
+end = 2026-09-30
+
+# SDAC harmonised clearing-price limits (EUR/MWh) used as hard sanity bounds.
+# A price outside the limit in force on that delivery day cannot be a real
+# auction result, so it signals a data or parsing error.
+# Source: NEMO Committee / EXAA notice: minimum lowered from -500 to -600 EUR/MWh
+# from trading day 28 May 2026 (delivery day 29 May 2026); maximum +4000 EUR/MWh.
+[[market.price_limits]]
+effective_from = 2023-01-01
+min_eur_mwh = -500.0
+max_eur_mwh = 4000.0
+
+[[market.price_limits]]
+effective_from = 2026-05-29
+min_eur_mwh = -600.0
+max_eur_mwh = 4000.0
+
+[sources.energy_charts]
+base_url = "https://api.energy-charts.info"
+timeout_s = 60
+max_retries = 6
+# Seconds to wait between requests: be a polite API citizen.
+pause_s = 1.5
+license = "CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE)"
+
+[paths]
+# Relative to the repository root.
+raw = "data/raw"
+processed = "data/processed"
+reports = "reports"
+
+# -----------------------------------------------------------------------------
+# Published reference values we "tie out" against (reconciliation).
+# tolerance = the absolute difference we accept, because publishers use slightly
+# different conventions (e.g. hourly vs quarter-hourly counting).
+# -----------------------------------------------------------------------------
+[[reconciliation]]
+metric = "mean_price_eur_mwh"
+year = 2025
+value = 89.32
+tolerance = 0.5
+source = "netztransparenz.de annual spot market value 2025 = 8.932 ct/kWh (DGS evaluation, Jan 2026)"
+
+[[reconciliation]]
+metric = "negative_hours"
+year = 2025
+value = 575
+tolerance = 5
+source = "DGS evaluation of 2025 market values: 575 h with negative prices (pv magazine reports 573 h)"
+
+[[reconciliation]]
+metric = "negative_hours"
+year = 2024
+value = 459
+tolerance = 5
+source = "DGS evaluation: 459 h in 2024 (other sources report 457 h)"
+
+[[reconciliation]]
+metric = "negative_hours"
+year = 2023
+value = 301
+tolerance = 5
+source = "DGS evaluation: 301 h in 2023"
