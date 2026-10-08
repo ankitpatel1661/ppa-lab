@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- ENTSO-E Transparency Platform client (`ppa_lab.data.entsoe`): token from `.env` (never
+  printed or included in errors), curve type A03 forward-fill, selection of the auction
+  sequence (default 1 = SDAC).
+- `scripts/check_entsoe_token.py`: verifies the token and reconciles ENTSO-E with
+  Energy-Charts. Result: identical prices to the cent on 1 Jun 2025 (24 hourly) and
+  1 Oct 2025 (96 quarter-hourly).
+- Real ENTSO-E response saved as a test fixture (contains no token).
+
+### Fixed
+- ENTSO-E returns two day-ahead series for DE-LU (`classificationSequence` 1 and 2);
+  merging them doubled the rows. The client now keeps sequence 1 by default.
+
 ## [0.1.0] - 2026-10-07 (Day 1, ticket PPA-1)
 
 ### Added

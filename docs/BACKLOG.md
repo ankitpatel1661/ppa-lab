@@ -30,8 +30,15 @@ solar and wind, so I can see how much of the baseload price each technology earn
 - [ ] Chart: capture rate by month and technology; short written interpretation.
 - [ ] Learning-track page `docs/learning_track/day02_*.md`.
 
+## Open questions
+
+- **ENTSO-E auction sequence 2 for DE-LU:** a second day-ahead series with different prices
+  (1 Oct 2025: daily mean 146.40 vs 116.57 EUR/MWh for the SDAC auction). EXAA is a
+  candidate but unconfirmed; check against EXAA published results before using it.
+
 ## Later ideas (not scheduled)
 
-- ENTSO-E client as a second price source; automatic cross-check report.
+- Secret scanning in CI (e.g. gitleaks) after the `.env.example` near-miss on 8 Oct 2026.
+- ENTSO-E cross-check over the full 2023-2026 range as a report (client and one-day check done).
 - DuckDB views over the processed Parquet files (Day 13 in the guide).
 - Pre-commit hooks (ruff) once the repository is on GitHub.
