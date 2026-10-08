@@ -4,7 +4,8 @@
     ppa-lab build    build the processed Parquet datasets from the raw cache
     ppa-lab check    run data-quality checks (exit code 1 if any check fails)
     ppa-lab report   write the Day 1 report and charts to reports/
-    ppa-lab all      fetch + build + check + report
+    ppa-lab capture  write the Day 2 capture-price report and charts to reports/
+    ppa-lab all      fetch + build + check + report + capture
 """
 
 from __future__ import annotations
@@ -67,8 +68,16 @@ def cmd_report(args, settings) -> int:
     return 0
 
 
+def cmd_capture(args, settings) -> int:
+    from ppa_lab.analysis.day02_report import write_day02_report  # heavy import, load lazily
+
+    paths = write_day02_report(settings)
+    log.info("Report written to %s", paths["report"])
+    return 0
+
+
 def cmd_all(args, settings) -> int:
-    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report):
+    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture):
         code = step(args, settings)
         if code:
             return code
@@ -87,7 +96,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("build", cmd_build, "build processed datasets"),
         ("check", cmd_check, "run data-quality checks"),
         ("report", cmd_report, "write the Day 1 report"),
-        ("all", cmd_all, "fetch, build, check and report"),
+        ("capture", cmd_capture, "write the Day 2 capture-price report"),
+        ("all", cmd_all, "fetch, build, check, report and capture"),
     ):
         p = sub.add_parser(name, help=help_text)
         p.set_defaults(func=func)

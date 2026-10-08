@@ -1,6 +1,6 @@
 # Data-quality report
 
-Generated 2026-10-07 12:43 UTC by `ppa-lab check`. Result: **23 pass, 1 warn, 0 fail**.
+Generated 2026-10-08 09:59 UTC by `ppa-lab check`. Result: **23 pass, 1 warn, 0 fail**.
 
 | Dataset | Check | Status | Detail |
 |---|---|---|---|

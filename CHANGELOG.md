@@ -6,7 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-08 (Day 2, ticket PPA-2)
+
 ### Added
+- Capture prices and capture rates (`ppa_lab.analysis.capture`): the legal quarter-hour
+  formula, hourly prices mapped onto the 15-minute generation grid without filling gaps,
+  monthly and annual tables per technology with energy and share at negative prices.
+- Official monthly market values 2023-01 to 2026-08 (`data/reference/`) and a monthly
+  comparison; 15 new reconciliation references (annual market values 2023-2025 for solar,
+  wind onshore and offshore; 2023/2024 spot; Vermarktungsmenge).
+- `Reference.note` and the status "explained difference": a documented cause for a
+  difference beyond tolerance (known-breaks register).
+- Day 2 report (`ppa-lab capture`, `make capture`, part of `make all`) with three charts.
+- Day 2 exercises with automatic checks; learning-track page and PDF.
+- `notebooks/ppa_lab_playground.ipynb`: living playground notebook (Day 1 and Day 2
+  sections, play cells, open ideas, and a "My solutions" block per day that imports the
+  exercise files, runs their checks and extends the results); `make notebook`,
+  `make notebook-run`; optional dependency group `notebook`.
+- `docs/data_dictionary.md`: every dataset, column, unit and sign convention.
 - ENTSO-E Transparency Platform client (`ppa_lab.data.entsoe`): token from `.env` (never
   printed or included in errors), curve type A03 forward-fill, selection of the auction
   sequence (default 1 = SDAC).
@@ -15,7 +32,17 @@ All notable changes to this project are documented here. The format follows
   1 Oct 2025 (96 quarter-hourly).
 - Real ENTSO-E response saved as a test fixture (contains no token).
 
+### Changed
+- Chart style moved to `ppa_lab.analysis.plotting`, shared by both reports.
+- The Day 1 report only shows the references it computes and lists documented causes.
+
+### Found
+- 2024 spot difference (−0.95 EUR/MWh) is the SDAC partial decoupling of 26 June 2024.
+- Wind capture prices are systematically above the official values (open, PPA-2b).
+
 ### Fixed
+- Day 2 report crashed on real data (`Period` with an f-string date format); covered
+  by a new test.
 - ENTSO-E returns two day-ahead series for DE-LU (`classificationSequence` 1 and 2);
   merging them doubled the rows. The client now keeps sequence 1 by default.
 

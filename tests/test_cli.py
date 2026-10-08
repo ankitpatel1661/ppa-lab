@@ -27,6 +27,14 @@ def test_parser_defaults():
 def test_all_runs_the_whole_pipeline(two_day_settings):
     assert cli.main(["all"]) == 0
     assert (two_day_settings.reports_dir / "day01_market_data.md").exists()
+    assert (two_day_settings.reports_dir / "day02_capture_prices.md").exists()
+
+
+def test_capture_command_writes_the_day02_report(two_day_settings):
+    assert cli.main(["fetch"]) == 0
+    assert cli.main(["build"]) == 0
+    assert cli.main(["capture"]) == 0
+    assert (two_day_settings.reports_dir / "day02_capture_prices.md").exists()
 
 
 def test_check_fails_with_exit_code_1_on_bad_data(two_day_settings):

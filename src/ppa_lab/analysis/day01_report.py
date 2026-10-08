@@ -12,45 +12,21 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-import matplotlib
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import pandas as pd
 
-matplotlib.use("Agg")  # render to files, no window needed (also works on CI servers)
-import matplotlib.pyplot as plt  # noqa: E402
-import pandas as pd  # noqa: E402
-
-from ppa_lab.analysis.reconcile import (  # noqa: E402
+from ppa_lab.analysis.plotting import BLUE, GREEN, INK, INK_2, ORANGE, save, style
+from ppa_lab.analysis.reconcile import (
     annual_price_stats,
     hourly_profile,
     monthly_mean_price,
     reconcile,
 )
-from ppa_lab.config import Settings  # noqa: E402
-from ppa_lab.data.quality import QualityReport, run_all  # noqa: E402
+from ppa_lab.config import Settings
+from ppa_lab.data.quality import QualityReport, run_all
 
 log = logging.getLogger(__name__)
-
-# Validated categorical palette (slots 1-3) and neutral inks.
-BLUE, ORANGE, GREEN = "#2a78d6", "#eb6834", "#1baf7a"
-INK, INK_2, GRID = "#0b0b0b", "#52514e", "#e2e2de"
-
-
-def _style(ax: plt.Axes, title: str, ylabel: str) -> None:
-    ax.set_title(title, loc="left", fontsize=11, fontweight="bold", color=INK)
-    ax.set_ylabel(ylabel, color=INK_2, fontsize=9)
-    ax.tick_params(colors=INK_2, labelsize=8.5, length=0)
-    ax.grid(axis="y", color=GRID, linewidth=0.8)
-    ax.set_axisbelow(True)
-    for side in ("top", "right", "left"):
-        ax.spines[side].set_visible(False)
-    ax.spines["bottom"].set_color(GRID)
-
-
-def _save(fig: plt.Figure, path: Path) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(path, dpi=160)
-    plt.close(fig)
-    return path
 
 
 def fig_monthly_price(monthly: pd.Series, path: Path) -> Path:
@@ -69,8 +45,8 @@ def fig_monthly_price(monthly: pd.Series, path: Path) -> Path:
             ha="right" if right_edge else "left", fontsize=8.5, color=INK,
         )
         ax.plot(idx.to_timestamp(), monthly[idx], "o", color=BLUE, markersize=5)
-    _style(ax, "German day-ahead price, monthly time-weighted mean (DE-LU)", "EUR/MWh")
-    return _save(fig, path)
+    style(ax, "German day-ahead price, monthly time-weighted mean (DE-LU)", "EUR/MWh")
+    return save(fig, path)
 
 
 def fig_negative_hours(stats: pd.DataFrame, recon: pd.DataFrame, path: Path) -> Path:
@@ -89,8 +65,8 @@ def fig_negative_hours(stats: pd.DataFrame, recon: pd.DataFrame, path: Path) -> 
             label="Published (DGS evaluation)", linestyle="none")
     ax.set_xticks(range(len(years)), labels)
     ax.legend(frameon=False, fontsize=8.5, loc="upper left")
-    _style(ax, "Hours with negative day-ahead prices, Germany", "hours")
-    return _save(fig, path)
+    style(ax, "Hours with negative day-ahead prices, Germany", "hours")
+    return save(fig, path)
 
 
 def fig_resolution_switch(prices: pd.DataFrame, tz: str, path: Path) -> Path | None:
@@ -105,10 +81,10 @@ def fig_resolution_switch(prices: pd.DataFrame, tz: str, path: Path) -> Path | N
     ax.text(switch, ax.get_ylim()[1], "  1 Oct 2025: 15-minute products go live",
             color=INK, fontsize=8.5, va="top")
     ax.set_xlim(window.index.min(), window.index.max())
-    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%d %b %H:%M", tz=tz))
-    _style(ax, "Day-ahead price: hourly on 30 Sep 2025, quarter-hourly from 1 Oct 2025",
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b %H:%M", tz=tz))
+    style(ax, "Day-ahead price: hourly on 30 Sep 2025, quarter-hourly from 1 Oct 2025",
            "EUR/MWh")
-    return _save(fig, path)
+    return save(fig, path)
 
 
 def fig_hourly_profile(profile: pd.DataFrame, path: Path) -> Path | None:
@@ -129,8 +105,8 @@ def fig_hourly_profile(profile: pd.DataFrame, path: Path) -> Path | None:
     ax.set_xlim(0, 24.5)
     ax.set_xlabel("Hour of day (local time, interval start)", color=INK_2, fontsize=9)
     ax.legend(frameon=False, fontsize=8.5, loc="lower left", ncols=3)
-    _style(ax, "Average day-ahead price by hour of day: the midday 'solar dip'", "EUR/MWh")
-    return _save(fig, path)
+    style(ax, "Average day-ahead price by hour of day: the midday 'solar dip'", "EUR/MWh")
+    return save(fig, path)
 
 
 def _fmt_stats(stats: pd.DataFrame) -> str:
@@ -149,6 +125,12 @@ def _fmt_stats(stats: pd.DataFrame) -> str:
     return table.to_markdown(index=False, floatfmt=".2f")
 
 
+def _notes(references) -> str:
+    """Bullet list of the documented causes of differences beyond tolerance."""
+    lines = [f"- **{r.year} {r.metric}:** {r.note}" for r in references if r.note]
+    return ("\nExplained differences:\n\n" + "\n".join(lines) + "\n") if lines else ""
+
+
 def write_day01_report(settings: Settings) -> dict[str, Path | None]:
     proc = settings.processed_dir
     prices = pd.read_parquet(proc / "prices_native.parquet")
@@ -157,7 +139,9 @@ def write_day01_report(settings: Settings) -> dict[str, Path | None]:
 
     quality: QualityReport = run_all(prices, power, settings)
     stats = annual_price_stats(prices, settings.timezone)
-    recon = reconcile(stats, settings.references)
+    # Only the references this report computes (capture prices are in the Day 2 report).
+    references = tuple(r for r in settings.references if r.metric in stats.columns)
+    recon = reconcile(stats, references)
     monthly = monthly_mean_price(prices, settings.timezone)
     full_years = [int(y) for y in stats.index if stats.loc[y, "hours"] >= 8700][-3:]
     profile = hourly_profile(prices_hourly, settings.timezone, full_years)
@@ -209,7 +193,8 @@ Full details: [data_quality.md](data_quality.md).
 {recon_view[["metric", "year", "ours", "published", "difference", "tolerance", "status"]]
  .to_markdown(index=False)}
 
-Sources: {"; ".join(f"{r.year} {r.metric}: {r.source}" for r in settings.references)}.
+Sources: {"; ".join(f"{r.year} {r.metric}: {r.source}" for r in references)}.
+{_notes(references)}
 
 ## 3. Annual statistics
 

@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report all docs clean
+.PHONY: help setup test test-network lint format data build check report capture all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -37,11 +37,21 @@ check:  ## run data-quality checks (fails on any FAIL)
 report:  ## write reports/day01_market_data.md and figures
 	$(PY) -m ppa_lab report
 
-all: data build check report  ## the whole Day 1 pipeline
+capture:  ## write reports/day02_capture_prices.md and figures
+	$(PY) -m ppa_lab capture
+
+all: data build check report capture  ## the whole pipeline (Day 1 + Day 2)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"
 	$(PY) scripts/build_docs.py
+
+notebook:  ## open the playground notebook in JupyterLab (installs Jupyter into .venv once)
+	$(PY) -m pip install --quiet -e ".[notebook]"
+	$(PY) -m jupyterlab notebooks/ppa_lab_playground.ipynb
+
+notebook-run:  ## run every notebook cell headless and save the outputs (fails on any error)
+	$(PY) -m nbconvert --to notebook --execute --inplace notebooks/ppa_lab_playground.ipynb
 
 clean:  ## remove processed data and caches (keeps the raw downloads)
 	rm -rf data/processed/* .pytest_cache .ruff_cache .coverage htmlcov

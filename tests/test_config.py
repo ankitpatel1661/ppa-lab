@@ -1,8 +1,14 @@
 from datetime import date
 
+import pandas as pd
 import pytest
 
+from conftest import make_power_frame
+from ppa_lab.analysis.capture import capture_table, reconciliation_metrics
+from ppa_lab.analysis.reconcile import annual_price_stats
 from ppa_lab.config import DEFAULT_CONFIG, load_settings
+
+TZ = "Europe/Berlin"
 
 
 def test_project_config_loads():
@@ -29,3 +35,19 @@ def test_inverted_date_range_is_rejected(tmp_path):
     path.write_text(bad)
     with pytest.raises(ValueError, match="after"):
         load_settings(path)
+
+
+def test_reference_dir_holds_the_official_market_values():
+    s = load_settings()
+    assert (s.reference_dir / "netztransparenz_market_values_monthly.csv").exists()
+
+
+def test_every_reference_metric_is_computed_by_the_pipeline():
+    # A typo in a metric name would turn a reference into a silent "not available".
+    power = make_power_frame(date(2025, 6, 2), date(2025, 6, 2))
+    prices = pd.DataFrame({"price_eur_mwh": 50.0, "interval_min": 15.0}, index=power.index)
+    produced = set(annual_price_stats(prices, TZ).columns) | set(
+        reconciliation_metrics(capture_table(prices, power, TZ, freq="Y")).columns
+    )
+    unknown = {r.metric for r in load_settings().references} - produced
+    assert not unknown, f"reference metrics nobody computes: {unknown}"

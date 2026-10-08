@@ -7,7 +7,8 @@ tests pass and the learning-track page for that day is written.
 | Ticket | Day | Title | Status |
 |---|---|---|---|
 | PPA-1 | 1 | Market-data foundation: repo, API client, raw cache, DQ checks, reconciliation | **Done** |
-| PPA-2 | 2 | Capture prices and capture rates for German solar and wind | To do |
+| PPA-2 | 2 | Capture prices and capture rates for German solar and wind | **Done** |
+| PPA-2b | later | Test the wind curtailment hypothesis with the TSOs' online extrapolation | To do |
 | PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | To do |
 | PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | To do |
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | To do |
@@ -22,13 +23,32 @@ tests pass and the learning-track page for that day is written.
 solar and wind, so I can see how much of the baseload price each technology earns.
 
 **Acceptance criteria**
-- [ ] Function `capture_price(prices, generation)` = volume-weighted price, with tests
+- [x] Function `capture_price(prices, generation)` = volume-weighted price, with tests
       (flat profile gives capture rate 1; generation only in negative hours gives a negative capture price).
-- [ ] Monthly and annual capture prices and capture rates for solar, wind onshore, wind offshore, 2023 to 2026.
-- [ ] Reconcile the 2025 annual solar capture price with the official
+- [x] Monthly and annual capture prices and capture rates for solar, wind onshore, wind offshore, 2023 to 2026.
+- [x] Reconcile the 2025 annual solar capture price with the official
       "Jahresmarktwert Solar" 4.508 ct/kWh (netztransparenz.de) and explain any difference.
-- [ ] Chart: capture rate by month and technology; short written interpretation.
-- [ ] Learning-track page `docs/learning_track/day02_*.md`.
+      Result: 4.595 ct/kWh, inside the ±0.10 tolerance; the gap grows with negative-price
+      curtailment (learning track Day 2, section 4.3).
+- [x] Chart: capture rate by month and technology; short written interpretation.
+- [x] Learning-track page `docs/learning_track/day02_capture_prices.md`.
+
+## PPA-2b: Wind capture prices vs official market values (open investigation)
+
+**Finding (8 Oct 2026):** our wind capture prices are above the official
+Jahresmarktwerte in every year (onshore +0.16 to +0.29, offshore +0.36 to +0.49 ct/kWh)
+and in 43 of 44 months. Spot prices match, so the volumes differ.
+
+**Hypothesis:** Energy-Charts generation is measured feed-in after curtailment
+(redispatch and negative prices); the official values use the TSOs' online
+extrapolation, which keeps more energy in cheap hours.
+
+**Acceptance criteria**
+- [ ] Download the TSOs' online extrapolation (netztransparenz.de API, free registration)
+      for wind onshore and offshore, at least 3 months including April 2026.
+- [ ] Recompute the monthly capture prices with it and compare with the official values.
+- [ ] If the gap vanishes: add a `note` to the wind references; otherwise record the
+      next hypothesis.
 
 ## Open questions
 

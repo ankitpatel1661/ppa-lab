@@ -47,6 +47,8 @@ license = "CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhof
 raw = "data/raw"
 processed = "data/processed"
 reports = "reports"
+# Small published reference datasets that are committed to the repository.
+reference = "data/reference"
 
 # -----------------------------------------------------------------------------
 # Published reference values we "tie out" against (reconciliation).
@@ -59,6 +61,24 @@ year = 2025
 value = 89.32
 tolerance = 0.5
 source = "netztransparenz.de annual spot market value 2025 = 8.932 ct/kWh (DGS evaluation, Jan 2026)"
+
+[[reconciliation]]
+metric = "mean_price_eur_mwh"
+year = 2024
+value = 79.46
+tolerance = 0.5
+source = "netztransparenz.de Jahresmarktwert JW 2024 = 7.946 ct/kWh"
+note = """All of the difference comes from June 2024 (every other month matches to 0.000 ct/kWh). \
+On 26 Jun 2024 SDAC was partially decoupled; EEG section 3 no. 42a then prescribes the \
+volume-weighted average of all exchanges (EPEX cleared about 492 EUR/MWh, Nord Pool about 103), \
+while our source carries about 103 EUR/MWh for that day."""
+
+[[reconciliation]]
+metric = "mean_price_eur_mwh"
+year = 2023
+value = 95.18
+tolerance = 0.5
+source = "netztransparenz.de Jahresmarktwert JW 2023 = 9.518 ct/kWh"
 
 [[reconciliation]]
 metric = "negative_hours"
@@ -80,3 +100,105 @@ year = 2023
 value = 301
 tolerance = 5
 source = "DGS evaluation: 301 h in 2023"
+
+# -----------------------------------------------------------------------------
+# Day 2: official annual market values ("Jahresmarktwerte", JW) published by the
+# German TSOs on netztransparenz.de, retrieved 8 Oct 2026. Legal formula (EEG 2023
+# Anlage 1 Nr. 4.3): sum over all quarter-hours of spot price x generation from the
+# TSOs' online extrapolation, divided by total generation, i.e. a capture price.
+# Tolerance 0.10 ct/kWh (= 1 EUR/MWh) was fixed BEFORE comparing; differences in the
+# generation data source are expected to stay below it.
+# -----------------------------------------------------------------------------
+[[reconciliation]]
+metric = "capture_price_solar_ct_kwh"
+year = 2025
+value = 4.508
+tolerance = 0.10
+source = "netztransparenz.de JW Solar 2025"
+
+[[reconciliation]]
+metric = "capture_price_solar_ct_kwh"
+year = 2024
+value = 4.624
+tolerance = 0.10
+source = "netztransparenz.de JW Solar 2024"
+
+[[reconciliation]]
+metric = "capture_price_solar_ct_kwh"
+year = 2023
+value = 7.200
+tolerance = 0.10
+source = "netztransparenz.de JW Solar 2023"
+
+[[reconciliation]]
+metric = "capture_price_wind_onshore_ct_kwh"
+year = 2025
+value = 7.441
+tolerance = 0.10
+source = "netztransparenz.de JW Wind an Land 2025"
+
+[[reconciliation]]
+metric = "capture_price_wind_onshore_ct_kwh"
+year = 2024
+value = 6.293
+tolerance = 0.10
+source = "netztransparenz.de JW Wind an Land 2024"
+
+[[reconciliation]]
+metric = "capture_price_wind_onshore_ct_kwh"
+year = 2023
+value = 7.621
+tolerance = 0.10
+source = "netztransparenz.de JW Wind an Land 2023"
+
+[[reconciliation]]
+metric = "capture_price_wind_offshore_ct_kwh"
+year = 2025
+value = 8.059
+tolerance = 0.10
+source = "netztransparenz.de JW Wind auf See 2025"
+
+[[reconciliation]]
+metric = "capture_price_wind_offshore_ct_kwh"
+year = 2024
+value = 6.777
+tolerance = 0.10
+source = "netztransparenz.de JW Wind auf See 2024"
+
+[[reconciliation]]
+metric = "capture_price_wind_offshore_ct_kwh"
+year = 2023
+value = 8.187
+tolerance = 0.10
+source = "netztransparenz.de JW Wind auf See 2023"
+
+# Share of energy produced at non-negative prices ("Vermarktungsmenge"). Secondary
+# source (Roedl & Partner, Feb 2026, based on netztransparenz.de data), published as
+# whole percentages; tolerance 1 point = rounding plus hourly vs quarter-hourly definition.
+[[reconciliation]]
+metric = "nonnegative_share_solar_pct"
+year = 2025
+value = 75
+tolerance = 1.0
+source = "Roedl & Partner, Wind + Sonne = Strom, Feb 2026: PV-Vermarktungsmenge 2025 = 75 %"
+
+[[reconciliation]]
+metric = "nonnegative_share_solar_pct"
+year = 2024
+value = 81
+tolerance = 1.0
+source = "Roedl & Partner, Feb 2026: PV-Vermarktungsmenge 2024 = 81 %"
+
+[[reconciliation]]
+metric = "nonnegative_share_wind_onshore_pct"
+year = 2025
+value = 90
+tolerance = 1.0
+source = "Roedl & Partner, Feb 2026: Wind-an-Land-Vermarktungsmenge 2025 = 90 %"
+
+[[reconciliation]]
+metric = "nonnegative_share_wind_onshore_pct"
+year = 2024
+value = 92
+tolerance = 1.0
+source = "Roedl & Partner, Feb 2026: Wind-an-Land-Vermarktungsmenge 2024 = 92 %"

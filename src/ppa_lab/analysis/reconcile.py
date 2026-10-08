@@ -103,6 +103,8 @@ def reconcile(stats: pd.DataFrame, references: tuple[Reference, ...]) -> pd.Data
             status = "not available"  # year not in our data range
         elif abs(diff) <= ref.tolerance:
             status = "within tolerance"
+        elif ref.note:
+            status = "explained difference"  # cause found and documented in the note
         else:
             status = "OUTSIDE tolerance"
         rows.append(
@@ -115,6 +117,7 @@ def reconcile(stats: pd.DataFrame, references: tuple[Reference, ...]) -> pd.Data
                 "tolerance": ref.tolerance,
                 "status": status,
                 "source": ref.source,
+                "note": ref.note,
             }
         )
     return pd.DataFrame(rows)

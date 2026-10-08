@@ -56,3 +56,19 @@ def test_reconcile_flags_differences_beyond_tolerance():
     assert out.loc[2023, "status"] == "OUTSIDE tolerance"
     assert math.isnan(out.loc[2019, "ours"])
     assert out.loc[2019, "status"] == "not available"
+
+
+def test_difference_with_a_documented_cause_is_marked_explained():
+    stats = pd.DataFrame({"mean_price_eur_mwh": [78.51]}, index=pd.Index([2024], name="year"))
+    refs = (
+        Reference("mean_price_eur_mwh", 2024, 79.46, 0.5, "a", note="26 Jun 2024 decoupling"),
+    )
+    out = reconcile(stats, refs).set_index("year")
+    assert out.loc[2024, "status"] == "explained difference"
+    assert out.loc[2024, "note"] == "26 Jun 2024 decoupling"
+
+
+def test_a_note_does_not_hide_a_difference_within_tolerance():
+    stats = pd.DataFrame({"mean_price_eur_mwh": [89.32]}, index=pd.Index([2025], name="year"))
+    refs = (Reference("mean_price_eur_mwh", 2025, 89.32, 0.5, "a", note="irrelevant"),)
+    assert reconcile(stats, refs).loc[0, "status"] == "within tolerance"

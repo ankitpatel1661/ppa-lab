@@ -34,6 +34,8 @@ class Reference:
     value: float
     tolerance: float
     source: str
+    # Known cause of a difference beyond tolerance, found and documented by us.
+    note: str = ""
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,7 @@ class Settings:
     raw_dir: Path
     processed_dir: Path
     reports_dir: Path
+    reference_dir: Path
     references: tuple[Reference, ...]
 
     def price_limit_on(self, day: date) -> PriceLimit:
@@ -102,6 +105,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         raw_dir=root / paths["raw"],
         processed_dir=root / paths["processed"],
         reports_dir=root / paths["reports"],
+        reference_dir=root / paths["reference"],
         references=tuple(Reference(**ref) for ref in raw.get("reconciliation", [])),
     )
     _validate(settings)

@@ -17,6 +17,7 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 logs/
+.ipynb_checkpoints/
 
 # OS / editors
 .DS_Store
