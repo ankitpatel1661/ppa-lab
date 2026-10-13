@@ -30,10 +30,12 @@ Update this page whenever a dataset or column is added (part of the definition o
 | Layer | Path | In git? | Built by | Content |
 |---|---|---|---|---|
 | Raw | `data/raw/energy_charts/<dataset>/<YYYY-MM>.parquet` + `.json` manifest | No | `ppa-lab fetch` | Exactly what the API returned, one file per month, with checksum, parameters and licence |
-| Processed | `data/processed/*.parquet` | No | `ppa-lab build` | Cleaned, de-duplicated, restricted to the configured range (the four files below) |
+| Raw (weather) | `data/raw/open_meteo/weather_<park>/<YYYY>.parquet` + `.json` manifest | No | `ppa-lab weather` | ERA5 weather per site and year exactly as Open-Meteo labels it, with the ERA5 grid point used |
+| Processed | `data/processed/*.parquet` | No | `ppa-lab build`, `ppa-lab weather` | Cleaned, de-duplicated, restricted to the configured range (files below) |
 | Reference | `data/reference/*.csv` | **Yes** | by hand, with provenance in the file header | Small published datasets used for reconciliation |
 
-Rebuild everything with `make all` (first download 10-15 minutes, then seconds).
+Rebuild everything with `make all` (first download of prices about 10-15 minutes and of
+32 weather years per site about 5 minutes; afterwards seconds).
 
 ---
 
@@ -119,6 +121,46 @@ Notes:
   extrapolation instead; see learning track Day 2, section 4.2.
 - Physics check in `ppa-lab check`: no solar output at night (catches time-zone shifts).
 
+## `weather_<park>.parquet` (Day 4)
+
+ERA5 reanalysis weather at the park's site, hourly, **interval beginning** (converted from
+the API's labels). One file per park: `weather_solar_park.parquet`,
+`weather_wind_park.parquet`. **278,303 hours**, 1 Jan 1995 to 30 Sep 2026.
+
+| Column | Unit | Meaning | Converted from |
+|---|---|---|---|
+| `ghi_w_m2` | W/m² | Global horizontal irradiance, mean over the hour | API value labelled at the END of the hour, moved back 1 h |
+| `dni_w_m2` | W/m² | Direct normal irradiance, mean over the hour | as above |
+| `dhi_w_m2` | W/m² | Diffuse horizontal irradiance, mean over the hour | as above |
+| `temp_air_c` | °C | Air temperature at 2 m | mean of the instants at t and t + 1 h |
+| `wind_speed_10m_ms` | m/s | Wind speed at 10 m | mean of the instants at t and t + 1 h |
+| `wind_speed_100m_ms` | m/s | Wind speed at 100 m | mean of the instants at t and t + 1 h |
+
+Notes:
+- ERA5 is a ~0.25° grid (about 28 × 16 km here); Open-Meteo snaps to the nearest grid point,
+  recorded in the raw manifest (`grid`). Solar site: 51.75 N, 14.25 E, 68 m; wind site:
+  54.50 N, 9.25 E, 30 m.
+- Data-quality check on every build: irradiance must match the clear-sky sun at
+  **mid-interval** (+30 min); otherwise `ppa-lab weather` stops with an error.
+- Licence: CC BY 4.0 Open-Meteo.com; contains modified Copernicus Climate Change Service
+  information (ERA5).
+
+## `generation_<park>.parquet` (Day 4)
+
+Modelled output of each illustrative park, hourly, interval beginning, same index as the
+weather file.
+
+| Column | Unit | Meaning |
+|---|---|---|
+| `mw` | MW | Mean AC output over the hour = **MWh produced in that hour** |
+
+| Park | Site | Model (from `config/project.toml`) |
+|---|---|---|
+| `solar_park` | Lusatia, Brandenburg | pvlib: 50 MWp DC, fixed tilt 25° south, DC/AC 1.2 (41.7 MW AC), 10% losses, Faiman cell temperature, PVWatts DC/inverter |
+| `wind_park` | North Frisia, Schleswig-Holstein | windpowerlib: Vestas V126-3.45 power curve scaled to 30 MW, hub height 137 m (shear from 10/100 m), 12% losses |
+
+No grid curtailment, outages or degradation are modelled (potential output).
+
 ---
 
 ## Reference data
@@ -189,6 +231,16 @@ EUR/MWh; `discount_factors(times, valuation, rate)` returns one factor per times
 
 `park_energy(national_mw, capacity_mw, full_load_hours, tz, years)`: MWh per interval
 of an illustrative park with the national profile shape, scaled per local year.
+
+### Volume statistics (`ppa_lab.weather.yields`, `ppa_lab.analysis.generation`)
+
+| Function | Returns |
+|---|---|
+| `annual_energy(mw, tz)` | MWh per complete local year (years with at least 99.9% of their hours) |
+| `p_values(annual)` | `years`, `mean`, `p50`, `std`, `cov`, `p90_1y`, `p90_10y`, `min`/`min_year`, `max`/`max_year` |
+| `yield_trend(annual)` | `per_decade` (MWh), `per_decade_pct` (%) from a linear fit |
+| `monthly_shares(mw, tz, years)` | share of annual energy per calendar month (1-12) |
+| `site_vs_national(site, national, prices, tz, years)` | per year: `correlation`, `base_eur_mwh`, site and national capture price and rate |
 
 ### `annual_price_stats(prices, tz)` (`ppa_lab.analysis.reconcile`)
 

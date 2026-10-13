@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture ppa all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa weather all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -43,7 +43,10 @@ capture:  ## write reports/day02_capture_prices.md and figures
 ppa:  ## write reports/day03_ppa_structures.md and figures (PPA back-test)
 	$(PY) -m ppa_lab ppa
 
-all: data build check report capture ppa  ## the whole pipeline (Days 1-3)
+weather:  ## ERA5 weather per site -> park generation -> reports/day04_generation.md
+	$(PY) -m ppa_lab weather
+
+all: data build check report capture ppa weather  ## the whole pipeline (Days 1-4)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"

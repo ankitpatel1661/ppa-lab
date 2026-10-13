@@ -8,11 +8,36 @@ combines German power prices, generation and weather data, simulates them
 together, and prices power purchase agreements (PPAs) with their market, shape
 and volume risks.
 
-> **Status: Day 3 of 14 (ticket PPA-3, version 0.3.0).** Done so far: the
+> **Status: Day 4 of 14 (ticket PPA-4, version 0.4.0).** Done so far: the
 > market-data foundation (Day 1), capture prices reconciled against the official
-> German market values (Day 2), and the PPA structures with their pricing maths and a
-> 2024-2025 back-test (Day 3, [methodology](METHODOLOGY.md)).
+> German market values (Day 2), the PPA structures with their pricing maths and a
+> 2024-2025 back-test (Day 3, [methodology](METHODOLOGY.md)), and site generation from
+> 31 years of ERA5 weather with P50/P90 volumes (Day 4).
 > See the [backlog](docs/BACKLOG.md) for what comes next.
+
+## Day 4 results: how much the parks produce, and how much that varies
+
+Two illustrative parks at real locations, modelled hour by hour from ERA5 reanalysis
+weather (1995-2025) with pvlib and windpowerlib:
+
+| | Solar park, Lusatia (50 MWp) | Wind park, North Frisia (30 MW, V126-3.45) |
+|---|---|---|
+| P50 annual energy | 55.1 GWh = 1,102 kWh/kWp | 110.0 GWh = 3,668 full-load hours |
+| Year-to-year variability (CoV) | 5.0% | 5.5% |
+| P90, one year / 10-year average | −6.4% / −2.0% vs mean | −7.0% / −2.2% vs mean |
+| Worst / best weather year | 2001: −10.7% / 2018: +8.9% | 2003: −9.8% / 1998: +9.9% |
+| Trend 1995-2025 | +2.5% per decade (brightening) | +0.1% per decade |
+| Hourly correlation with the national fleet | 0.92 | 0.72-0.75 |
+
+- **Checks instead of a tie-out:** nobody publishes these parks' output, so the models are
+  checked against national generation (Day 1) and priced like Day 2: the site capture
+  rates are close to the national ones (solar 2025: 0.555 vs 0.516).
+- **Two traps found and fixed:** ERA5 radiation from Open-Meteo is labelled at the end of
+  its hour (shifted, and verified against the sun's position on every build), and the
+  first wind site sat in an ERA5 cell that is partly sea (0 m elevation, offshore-like
+  3,961 full-load hours); the park now sits 16 km inland.
+
+Full report: [`reports/day04_generation.md`](reports/day04_generation.md).
 
 ## Day 3 results: what each PPA structure would have earned
 
@@ -91,8 +116,8 @@ The full numbers, the data-quality report and four charts are in
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 115 offline tests, about 2 seconds
-make all       # download data, build datasets, check quality, write all reports
+make test      # 144 offline tests, about 5 seconds
+make all       # download data and weather, build datasets, check quality, write all reports
 ```
 
 Explore the data interactively in the playground notebook (one section per sprint day):
@@ -112,6 +137,7 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab report    # reports/day01_market_data.md + figures
 .venv/bin/ppa-lab capture   # reports/day02_capture_prices.md + figures
 .venv/bin/ppa-lab ppa       # reports/day03_ppa_structures.md + figures
+.venv/bin/ppa-lab weather   # ERA5 weather -> park generation -> reports/day04_generation.md
 ```
 
 The first download takes 10 to 15 minutes because the free API is rate limited;
@@ -136,6 +162,13 @@ src/ppa_lab/
   analysis/day03_report.py   Day 3 report and charts
   pricing/contracts.py       cash flows of every PPA structure, fair prices, discounting
   pricing/backtest.py        historical back-test: parks, prior-year strikes, plan and surprise
+  data/http.py               shared JSON client: timeouts, retries, Retry-After
+  data/open_meteo.py         ERA5 weather client; end-of-hour -> interval-beginning conversion
+  data/weather_pipeline.py   weather per site and year (raw cache) -> park generation
+  weather/pv.py, wind.py     pvlib solar park, windpowerlib wind park
+  weather/yields.py          annual energy per weather year, P50/P90
+  analysis/generation.py     trend and checks against national data
+  analysis/day04_report.py   Day 4 report and charts
   cli.py                     `ppa-lab` command
 tests/                       offline tests with real API fixtures
 notebooks/                   ppa_lab_playground.ipynb: interactive, one section per day
@@ -152,6 +185,9 @@ scripts/build_docs.py        learning-track Markdown -> PDF (`make docs`)
 
 - Day-ahead prices and generation: **CC BY 4.0, Bundesnetzagentur | SMARD.de, via
   [Energy-Charts](https://energy-charts.info) (Fraunhofer ISE)**.
+- Weather: **ERA5 reanalysis** (ECMWF / Copernicus Climate Change Service) via the
+  [Open-Meteo](https://open-meteo.com) archive API, CC BY 4.0 (contains modified Copernicus
+  Climate Change Service information).
 - Official market values (Marktwerte): the German TSOs, published on
   [netztransparenz.de](https://www.netztransparenz.de), stored in
   `data/reference/` for reconciliation.

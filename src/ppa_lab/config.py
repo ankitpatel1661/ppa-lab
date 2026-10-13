@@ -8,7 +8,7 @@ code gets autocompletion, type checking and a single source of truth.
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
@@ -45,7 +45,12 @@ class Park:
     name: str
     technology: str  # a key of ppa_lab.analysis.capture.TECHNOLOGIES
     capacity_mw: float
-    full_load_hours: float  # MWh per MW and year
+    full_load_hours: float  # MWh per MW and year (Day 3 national-profile back-test)
+    site: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+    # Technology-specific model parameters (pvlib / windpowerlib), e.g. tilt_deg.
+    model: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -74,6 +79,10 @@ class Settings:
     parks: tuple[Park, ...] = ()
     delivery_years: tuple[int, ...] = ()
     floor_eur_mwh: float = 0.0
+    weather_first_year: int = 1995
+    weather_base_url: str = "https://archive-api.open-meteo.com/v1"
+    weather_pause_s: float = 4.0
+    weather_license: str = ""
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -94,6 +103,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
     ec = raw["sources"]["energy_charts"]
     paths = raw["paths"]
     pricing = raw.get("pricing", {})
+    weather = raw.get("weather", {})
 
     settings = Settings(
         timezone=raw["project"]["timezone"],
@@ -121,15 +131,26 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         reports_dir=root / paths["reports"],
         reference_dir=root / paths["reference"],
         references=tuple(Reference(**ref) for ref in raw.get("reconciliation", [])),
-        parks=tuple(
-            Park(name=name, **park)
-            for name, park in pricing.get("parks", {}).items()
-        ),
+        parks=tuple(_park(name, park) for name, park in pricing.get("parks", {}).items()),
         delivery_years=tuple(pricing.get("delivery_years", ())),
         floor_eur_mwh=float(pricing.get("floor_eur_mwh", 0.0)),
+        weather_first_year=int(weather.get("first_year", 1995)),
+        weather_base_url=weather.get("base_url", "https://archive-api.open-meteo.com/v1"),
+        weather_pause_s=float(weather.get("pause_s", 4.0)),
+        weather_license=weather.get("license", ""),
     )
     _validate(settings)
     return settings
+
+
+PARK_FIELDS = ("technology", "capacity_mw", "full_load_hours", "site", "latitude", "longitude")
+
+
+def _park(name: str, table: dict) -> Park:
+    """Known keys become Park fields; the rest are model parameters."""
+    known = {k: v for k, v in table.items() if k in PARK_FIELDS}
+    model = {k: v for k, v in table.items() if k not in PARK_FIELDS}
+    return Park(name=name, **known, model=model)
 
 
 def _validate(s: Settings) -> None:
@@ -142,6 +163,8 @@ def _validate(s: Settings) -> None:
     for lim in s.price_limits:
         if lim.min_eur_mwh >= lim.max_eur_mwh:
             raise ValueError(f"Invalid price limit {lim}")
+    if s.weather_first_year > s.start.year:
+        raise ValueError("weather.first_year must not be after market.start")
     for y in s.delivery_years:
         # Strikes for delivery year Y are fixed from year Y-1: both must be complete years.
         if date(y - 1, 1, 1) < s.start or date(y, 12, 31) > s.end:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ppa-lab"
-version = "0.3.0"
+version = "0.4.0"
 description = "Renewable PPA pricing and risk engine for German wind and solar, built on public market and weather data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,6 +17,8 @@ dependencies = [
   "requests>=2.31",
   "matplotlib>=3.8",
   "tabulate>=0.9",
+  "pvlib>=0.11",          # solar position, irradiance transposition, PV model (Day 4)
+  "windpowerlib>=0.2.2",  # turbine power curves (Day 4); library data ships with the package
 ]
 
 [project.optional-dependencies]

@@ -34,6 +34,16 @@ effective_from = 2026-05-29
 min_eur_mwh = -600.0
 max_eur_mwh = 4000.0
 
+[weather]
+# ERA5 reanalysis (ECMWF / Copernicus) through the free Open-Meteo archive API.
+base_url = "https://archive-api.open-meteo.com/v1"
+# 31 complete weather years (1995-2025) for P50/P90 and the Day 6 simulation.
+first_year = 1995
+# Requests of a whole year count as many API calls; 4 s between requests keeps us
+# well inside the free limits (600 calls/min, 5,000/hour).
+pause_s = 4.0
+license = "CC BY 4.0 - Open-Meteo.com; contains modified Copernicus Climate Change Service information (ERA5)"
+
 [sources.energy_charts]
 base_url = "https://api.energy-charts.info"
 timeout_s = 60
@@ -64,15 +74,32 @@ floor_eur_mwh = 0.0
 
 [pricing.parks.solar_park]
 technology = "solar"
-capacity_mw = 50
+capacity_mw = 50          # DC peak capacity (MWp)
 # German ground-mounted PV yields roughly 950-1,050 MWh per MWp and year.
-full_load_hours = 1000
+full_load_hours = 1000    # Day 3 back-test only (national profile scaled)
+# Day 4 site model (pvlib). A real location in a large German PV region.
+site = "Lusatia, Brandenburg"
+latitude = 51.75
+longitude = 14.25
+tilt_deg = 25             # fixed tilt, south-facing
+azimuth_deg = 180
+dc_ac_ratio = 1.2         # 50 MWp DC on 41.7 MW of inverters
+losses_pct = 10           # soiling, mismatch, wiring, availability (before the inverter)
 
 [pricing.parks.wind_park]
 technology = "wind_onshore"
 capacity_mw = 30
 # Onshore fleet average is below 2,000 h; modern turbines reach 2,500 h and more.
-full_load_hours = 2000
+full_load_hours = 2000    # Day 3 back-test only (national profile scaled)
+# Day 4 site model (windpowerlib). Windy inland North Frisia (near Viol), on LAND:
+# the ERA5 cell at 54.50 N 9.00 E has 0 m elevation (partly Wadden Sea) and gave
+# offshore-like winds (3,961 full-load hours); 0.25 deg inland: 30 m, 5 % less wind.
+site = "North Frisia, Schleswig-Holstein"
+latitude = 54.50
+longitude = 9.25
+turbine_type = "V126/3450"  # Vestas V126-3.45 MW power curve (windpowerlib library)
+hub_height_m = 137
+losses_pct = 12             # wake ~7 %, availability ~3 %, electrical ~2 %
 
 # -----------------------------------------------------------------------------
 # Published reference values we "tie out" against (reconciliation).

@@ -3,9 +3,10 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 0** (8 Oct 2026, ticket PPA-3): cash flows and fair prices of the standard
-structures, applied to history. Later versions add simulated prices and weather
-(PPA-5, PPA-6), risk premia (PPA-7) and hedging (PPA-8).
+**Version 0.1** (ticket PPA-4): cash flows and fair prices of the standard structures,
+applied to history (PPA-3), and site volumes from weather with P50/P90 (PPA-4, section 7).
+Later versions add simulated prices and joint scenarios (PPA-5, PPA-6), risk premia
+(PPA-7) and hedging (PPA-8).
 
 ---
 
@@ -160,11 +161,56 @@ Implemented in `pricing/backtest.py`; report `reports/day03_ppa_structures.md`.
 
 ---
 
-## 7. Assumptions and limitations
+## 7. Volume: from weather to energy (PPA-4)
+
+**Weather.** ERA5 reanalysis (ECMWF / Copernicus) through the Open-Meteo archive API: hourly
+global, direct and diffuse irradiance, 2 m temperature and wind at 10 m and 100 m at the
+nearest ~0.25° grid point, 1995 onwards. Open-Meteo labels radiation at the end of its hour
+(mean of the preceding hour) and gives the other variables as instants. Converted to the
+project's interval-beginning convention:
+
+$$
+G_t = G^{API}_{t+1h}, \qquad x_t = 	frac12\,(x^{API}_t + x^{API}_{t+1h}).
+$$
+
+Every build checks that irradiance then matches the clear-sky sun at mid-interval ($t$ + 30 min).
+
+**Solar (pvlib).** Sun position at mid-interval; plane-of-array irradiance (Hay-Davies);
+cell temperature (Faiman); PVWatts DC with $\gamma = -0.35\%/K$; system losses
+$(1 - L)$; PVWatts inverter (96%) clipped at the AC capacity $P_{DC}/r$ (DC/AC ratio $r$).
+
+**Wind (windpowerlib).** Hourly shear exponent from the two heights, clipped to $[0, 0.6]$,
+and the power law to hub height $h$:
+
+$$
+lpha_t = rac{\ln(v_{100,t}/v_{10,t})}{\ln 10}, \qquad
+v_{hub,t} = v_{100,t}\left(rac{h}{100}ight)^{lpha_t},
+$$
+
+then the turbine power curve (no air-density correction) scaled to the park capacity, times
+$(1 - L)$ for wake, availability and electrical losses.
+
+**Volume statistics.** For annual energies $E_y$ over $N$ weather years (mean $\mu$, sample
+standard deviation $\sigma$):
+
+$$
+P50 = \operatorname{median}(E_y), \qquad
+P90_{1y} = \mu - 1.2816\,\sigma, \qquad
+P90_{10y} = \mu - 1.2816\,rac{\sigma}{\sqrt{10}},
+$$
+
+the last assuming independent years. Site models are checked against national generation of
+the same technology (hourly correlation, monthly shares, capture rate), because no official
+figure exists for an illustrative park.
+
+## 8. Assumptions and limitations
 
 | Assumption | Effect | Addressed in |
 |---|---|---|
-| National profile instead of a site profile | Smoother output, no site-specific volume risk | PPA-4 (weather-to-power) |
+| National profile instead of a site profile (Day 3 back-test) | Smoother output, no site-specific volume risk | PPA-4 site models; back-test re-run later |
+| Hourly ERA5 at a ~0.25° grid point | Smooths gusts and local terrain; coastal cells mix land and sea | site chosen on land; v2: downscaling or measured data |
+| Site models give potential output | No grid curtailment (heavy in Schleswig-Holstein), outages or degradation | v2 |
+| Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
 | Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5/PPA-8 (price model, futures) |
 | One history, no scenarios | No distribution, no risk premium | PPA-6/PPA-7 (Monte Carlo) |
 | Measured generation is after curtailment | Slightly higher capture prices than official market values (Day 2) | Backlog PPA-2b |
@@ -177,4 +223,5 @@ Implemented in `pricing/backtest.py`; report `reports/day03_ppa_structures.md`.
 
 ## Changelog of this note
 
-- **v0, 8 Oct 2026:** structures, fair prices, discounting, back-test design (PPA-3).
+- **v0, PPA-3:** structures, fair prices, discounting, back-test design.
+- **v0.1, PPA-4:** volume section (weather conversion, solar and wind models, P50/P90).

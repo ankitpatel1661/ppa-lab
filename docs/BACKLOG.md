@@ -10,7 +10,7 @@ tests pass and the learning-track page for that day is written.
 | PPA-2 | 2 | Capture prices and capture rates for German solar and wind | **Done** |
 | PPA-2b | later | Test the wind curtailment hypothesis with the TSOs' online extrapolation | To do |
 | PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | **Done** |
-| PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | To do |
+| PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | **Done** |
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | To do |
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | To do |
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | To do |
@@ -49,6 +49,19 @@ from the same, documented building blocks.
 - [x] Back-test 2024-2025 (50 MW solar, 30 MW wind) with prior-year strikes, plan and surprise.
 - [x] Learning-track page, notebook section, exercises.
 
+## PPA-4: Weather to power (Day 4)
+
+**Story:** As a pricing analyst I want hourly generation of our own parks over many weather
+years, so that volume risk (P50/P90) and the site's shape can enter the PPA price.
+
+**Acceptance criteria**
+- [x] ERA5 weather for two real sites, 1995 to date, cached with provenance (grid point, licence).
+- [x] Timestamp convention handled and verified against the sun's position (test + build check).
+- [x] pvlib solar park (50 MWp) and windpowerlib wind park (30 MW) from configuration.
+- [x] Annual energy per weather year, P50 / P90 (1 and 10 years), trend.
+- [x] Checks against national generation: hourly correlation, monthly shares, capture rate.
+- [x] Report, learning-track page, notebook section, exercises.
+
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 
 **Finding (8 Oct 2026):** our wind capture prices are above the official
@@ -75,6 +88,8 @@ extrapolation, which keeps more energy in cheap hours.
 ## Later ideas (not scheduled)
 
 - Secret scanning in CI (e.g. gitleaks) after the `.env.example` near-miss on 8 Oct 2026.
+- Day 3 back-test re-run with the Day 4 site profiles instead of scaled national profiles.
+- Grid curtailment (redispatch) and availability in the wind model; air-density correction.
 - ENTSO-E cross-check over the full 2023-2026 range as a report (client and one-day check done).
 - DuckDB views over the processed Parquet files (Day 13 in the guide).
 - Pre-commit hooks (ruff) once the repository is on GitHub.

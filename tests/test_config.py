@@ -66,3 +66,14 @@ def test_a_delivery_year_needs_the_previous_year_in_the_data_range(tmp_path):
     path.write_text(bad)
     with pytest.raises(ValueError, match="2022"):
         load_settings(path)
+
+
+def test_every_park_has_a_site_and_a_model():
+    s = load_settings()
+    assert s.weather_first_year <= s.start.year
+    for park in s.parks:
+        assert -90 <= park.latitude <= 90 and -180 <= park.longitude <= 180
+        assert park.site
+        needed = {"solar": {"tilt_deg", "azimuth_deg", "dc_ac_ratio", "losses_pct"},
+                  "wind_onshore": {"turbine_type", "hub_height_m", "losses_pct"}}[park.technology]
+        assert needed <= set(park.model)

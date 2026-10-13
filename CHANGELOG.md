@@ -6,6 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] (Day 4, ticket PPA-4)
+
+### Added
+- ERA5 weather through the Open-Meteo archive API (`ppa_lab.data.open_meteo`): pure
+  parser, conversion from end-of-hour radiation labels to interval-beginning hours, and a
+  sun-position check of the timestamps (`radiation_timing_offset`).
+- Weather pipeline (`ppa_lab.data.weather_pipeline`): one raw file per site and year with
+  manifest (ERA5 grid point, licence, completeness), processed weather and generation.
+- Site models: pvlib solar park (`ppa_lab.weather.pv`) and windpowerlib wind park with
+  hourly shear (`ppa_lab.weather.wind`); P50/P90 and trends (`ppa_lab.weather.yields`,
+  `ppa_lab.analysis.generation`).
+- Day 4 report (`ppa-lab weather`, `make weather`, part of `make all`) with two charts.
+- Sites and model specs in `[pricing.parks.*]`, `[weather]` settings; pvlib and
+  windpowerlib as dependencies.
+- Day 4 learning-track page, notebook section (4.1-4.6, "My solutions"), exercises;
+  METHODOLOGY v0.1 (volume section); data dictionary entries.
+
+### Changed
+- Retry and back-off logic moved from the Energy-Charts client into a shared
+  `JsonApiClient` (`ppa_lab.data.http`).
+
+### Found
+- Open-Meteo labels radiation at the end of its hour; without the shift solar output
+  would sit one hour late against prices.
+- The first wind site (54.50 N, 9.00 E) was an ERA5 cell with 0 m elevation (partly sea):
+  3,961 full-load hours. Moved 0.25° inland (30 m): 3,668.
+
 ## [0.3.0] - 2026-10-08 (Day 3, ticket PPA-3)
 
 ### Added

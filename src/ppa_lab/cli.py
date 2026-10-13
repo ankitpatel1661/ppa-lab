@@ -6,7 +6,8 @@
     ppa-lab report   write the Day 1 report and charts to reports/
     ppa-lab capture  write the Day 2 capture-price report and charts to reports/
     ppa-lab ppa      write the Day 3 PPA-structures back-test and charts to reports/
-    ppa-lab all      fetch + build + check + report + capture + ppa
+    ppa-lab weather  fetch ERA5 weather per site, build park generation, write the Day 4 report
+    ppa-lab all      fetch + build + check + report + capture + ppa + weather
 """
 
 from __future__ import annotations
@@ -23,9 +24,11 @@ import pandas as pd
 
 from ppa_lab.config import load_settings
 from ppa_lab.data.energy_charts import EnergyChartsClient
+from ppa_lab.data.open_meteo import OpenMeteoClient
 from ppa_lab.data.pipeline import DATASETS, build_processed, fetch
 from ppa_lab.data.quality import run_all
 from ppa_lab.data.store import RawStore
+from ppa_lab.data.weather_pipeline import build_generation, fetch_weather
 
 log = logging.getLogger("ppa_lab")
 
@@ -34,6 +37,10 @@ def _client(settings) -> EnergyChartsClient:
     ec = settings.energy_charts
     return EnergyChartsClient(base_url=ec.base_url, timeout_s=ec.timeout_s,
                               max_retries=ec.max_retries)
+
+
+def _weather_client(settings) -> OpenMeteoClient:
+    return OpenMeteoClient(base_url=settings.weather_base_url, max_retries=6)
 
 
 def cmd_fetch(args, settings) -> int:
@@ -96,8 +103,23 @@ def cmd_ppa(args, settings) -> int:
     return 0
 
 
+def cmd_weather(args, settings) -> int:
+    from ppa_lab.analysis.day04_report import write_day04_report  # heavy import, load lazily
+
+    store = RawStore(settings.raw_dir, source="open_meteo")
+    results = fetch_weather(settings, _weather_client(settings), store,
+                            refresh=getattr(args, "refresh", False))
+    summary = Counter((r.dataset, r.action) for r in results)
+    for (dataset, action), n in sorted(summary.items()):
+        log.info("%-22s %-10s %3d years", dataset, action, n)
+    build_generation(settings, store)
+    paths = write_day04_report(settings)
+    log.info("Report written to %s", paths["report"])
+    return 0
+
+
 def cmd_all(args, settings) -> int:
-    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa):
+    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa, cmd_weather):
         code = step(args, settings)
         if code:
             return code
@@ -118,10 +140,14 @@ def build_parser() -> argparse.ArgumentParser:
         ("report", cmd_report, "write the Day 1 report"),
         ("capture", cmd_capture, "write the Day 2 capture-price report"),
         ("ppa", cmd_ppa, "write the Day 3 PPA-structures back-test"),
-        ("all", cmd_all, "fetch, build, check, report, capture and ppa"),
+        ("weather", cmd_weather, "ERA5 weather -> park generation -> Day 4 report"),
+        ("all", cmd_all, "fetch, build, check, report, capture, ppa and weather"),
     ):
         p = sub.add_parser(name, help=help_text)
         p.set_defaults(func=func)
+        if name == "weather":
+            p.add_argument("--refresh", action="store_true",
+                           help="re-download weather years even if cached")
         if name in ("fetch", "all"):
             p.add_argument("--datasets", nargs="+", choices=DATASETS, default=list(DATASETS))
             p.add_argument("--refresh", action="store_true",

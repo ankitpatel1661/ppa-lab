@@ -18,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pvlib
 import pytest
 
 from ppa_lab.config import Settings, load_settings
@@ -79,6 +80,34 @@ def write_synthetic_market(settings) -> None:
     settings.processed_dir.mkdir(parents=True, exist_ok=True)
     prices.to_parquet(settings.processed_dir / "prices_native.parquet")
     power.to_parquet(settings.processed_dir / "power_15min.parquet")
+
+
+class FakeWeatherClient:
+    """Synthetic ERA5-like data with the API's real conventions: radiation labelled at the
+    END of its hour (clear sky 30 min before the label), wind and temperature as instants."""
+
+    base_url = "https://fake.open-meteo.test/v1"
+
+    def __init__(self):
+        self.calls = []
+
+    def hourly(self, latitude, longitude, start, end):
+        self.calls.append((latitude, longitude, start, end))
+        idx = pd.date_range(pd.Timestamp(start), pd.Timestamp(end) + pd.Timedelta(hours=23),
+                            freq="h", tz="UTC", name="ts_utc")
+        clear = pvlib.location.Location(latitude, longitude).get_clearsky(
+            idx - pd.Timedelta(minutes=30))
+        hour = idx.hour.to_numpy()
+        wind = 6.0 + 3.0 * np.sin(2 * np.pi * hour / 24)
+        frame = pd.DataFrame({
+            "ghi_w_m2": clear["ghi"].to_numpy(), "dni_w_m2": clear["dni"].to_numpy(),
+            "dhi_w_m2": clear["dhi"].to_numpy(), "temp_air_c": 15.0,
+            "wind_speed_10m_ms": wind * 0.7, "wind_speed_100m_ms": wind,
+        }, index=idx)
+        return frame, {"latitude": latitude, "longitude": longitude, "elevation_m": 50.0}
+
+    def sleep(self, seconds):
+        pass
 
 
 class FakeClient:
