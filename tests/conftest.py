@@ -76,6 +76,7 @@ def write_synthetic_market(settings) -> None:
     hourly = power.index[::4]  # synthetic power starts on a full hour
     hour = hourly.tz_convert(TZ).hour
     price = np.where((hour >= 10) & (hour < 16), -5.0, 90.0)
+    price = price + np.random.default_rng(2024).normal(0.0, 8.0, len(hourly))  # some randomness
     prices = pd.DataFrame({"price_eur_mwh": price, "interval_min": 60.0}, index=hourly)
     settings.processed_dir.mkdir(parents=True, exist_ok=True)
     prices.to_parquet(settings.processed_dir / "prices_native.parquet")

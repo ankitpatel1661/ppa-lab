@@ -54,6 +54,20 @@ class Park:
 
 
 @dataclass(frozen=True)
+class PriceModelSettings:
+    """Calibration window and simulation settings of the stochastic price model (Day 5)."""
+
+    calibration_start: date
+    calibration_end: date
+    scale_eur_mwh: float
+    n_paths: int
+    seed: int
+    delivery_year: int
+    forward_eur_mwh: float
+    level_volatility: float
+
+
+@dataclass(frozen=True)
 class EnergyChartsSettings:
     base_url: str
     timeout_s: float
@@ -83,6 +97,7 @@ class Settings:
     weather_base_url: str = "https://archive-api.open-meteo.com/v1"
     weather_pause_s: float = 4.0
     weather_license: str = ""
+    price_model: PriceModelSettings | None = None
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -138,6 +153,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         weather_base_url=weather.get("base_url", "https://archive-api.open-meteo.com/v1"),
         weather_pause_s=float(weather.get("pause_s", 4.0)),
         weather_license=weather.get("license", ""),
+        price_model=PriceModelSettings(**raw["price_model"]) if "price_model" in raw else None,
     )
     _validate(settings)
     return settings
@@ -163,6 +179,12 @@ def _validate(s: Settings) -> None:
     for lim in s.price_limits:
         if lim.min_eur_mwh >= lim.max_eur_mwh:
             raise ValueError(f"Invalid price limit {lim}")
+    pm = s.price_model
+    if pm is not None:
+        if not (s.start <= pm.calibration_start < pm.calibration_end <= s.end):
+            raise ValueError("price_model calibration window must lie inside market.start..end")
+        if pm.delivery_year <= pm.calibration_end.year:
+            raise ValueError("price_model.delivery_year must come after the calibration window")
     if s.weather_first_year > s.start.year:
         raise ValueError("weather.first_year must not be after market.start")
     for y in s.delivery_years:

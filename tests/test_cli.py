@@ -34,6 +34,20 @@ def test_all_runs_the_whole_pipeline(two_day_settings):
     assert not (two_day_settings.reports_dir / "day03_ppa_structures.md").exists()
     # Day 4 runs (weather is fetched for 2025) and says it lacks complete weather years.
     assert (two_day_settings.reports_dir / "day04_generation.md").exists()
+    # The price model's calibration window lies outside two days: Day 5 is skipped.
+    assert not (two_day_settings.reports_dir / "day05_price_model.md").exists()
+
+
+def test_prices_command_writes_the_day05_report(settings, monkeypatch):
+    import dataclasses as dc
+
+    from test_day05_report import small_settings
+    s = small_settings(settings)
+    write_synthetic_market(s)
+    monkeypatch.setattr(cli, "load_settings", lambda path=None: s)
+    assert cli.main(["prices"]) == 0
+    assert (s.reports_dir / "day05_price_model.md").exists()
+    assert dc.is_dataclass(s.price_model)
 
 
 def test_weather_command_builds_generation_and_the_day04_report(settings, monkeypatch):

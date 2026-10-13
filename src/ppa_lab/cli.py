@@ -7,7 +7,8 @@
     ppa-lab capture  write the Day 2 capture-price report and charts to reports/
     ppa-lab ppa      write the Day 3 PPA-structures back-test and charts to reports/
     ppa-lab weather  fetch ERA5 weather per site, build park generation, write the Day 4 report
-    ppa-lab all      fetch + build + check + report + capture + ppa + weather
+    ppa-lab prices   calibrate and validate the stochastic price model, write the Day 5 report
+    ppa-lab all      fetch + build + check + report + capture + ppa + weather + prices
 """
 
 from __future__ import annotations
@@ -118,8 +119,24 @@ def cmd_weather(args, settings) -> int:
     return 0
 
 
+def cmd_prices(args, settings) -> int:
+    from ppa_lab.analysis.day05_report import write_day05_report  # heavy import, load lazily
+
+    pm = settings.price_model
+    if pm is None or not (settings.start <= pm.calibration_start
+                          and pm.calibration_end <= settings.end):
+        log.warning("Day 5 report skipped: the price-model calibration window is not inside "
+                    "%s..%s", settings.start, settings.end)
+        return 0
+    paths = write_day05_report(settings)
+    log.info("Report written to %s", paths["report"])
+    return 0
+
+
 def cmd_all(args, settings) -> int:
-    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa, cmd_weather):
+    steps = (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa, cmd_weather,
+             cmd_prices)
+    for step in steps:
         code = step(args, settings)
         if code:
             return code
@@ -141,7 +158,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("capture", cmd_capture, "write the Day 2 capture-price report"),
         ("ppa", cmd_ppa, "write the Day 3 PPA-structures back-test"),
         ("weather", cmd_weather, "ERA5 weather -> park generation -> Day 4 report"),
-        ("all", cmd_all, "fetch, build, check, report, capture, ppa and weather"),
+        ("prices", cmd_prices, "calibrate and validate the price model -> Day 5 report"),
+        ("all", cmd_all, "fetch, build, check, report, capture, ppa, weather and prices"),
     ):
         p = sub.add_parser(name, help=help_text)
         p.set_defaults(func=func)

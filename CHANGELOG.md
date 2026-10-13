@@ -6,6 +6,41 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] (Day 5, ticket PPA-5)
+
+### Added
+- Price calendar (`ppa_lab.prices.calendar`): local hour, season and day type with the nine
+  nationwide German holidays (Easter computed).
+- Stochastic hourly price model (`ppa_lab.prices.model`): arcsinh transform, monthly levels
+  and daily shape (back-fitted), a daily AR(1) factor with seasonal shocks, intraday patterns
+  resampled as whole historical days; `calibrate_level` to a forward price by bisection with
+  common random numbers; optional level volatility; JSON save/load.
+- Validation against history (`ppa_lab.prices.validation`): quantiles, negative share and
+  autocorrelation with a 5-95% range across paths.
+- Day 5 report (`ppa-lab prices`, `make prices`, part of `make all`) with three charts and
+  `data/processed/price_model.json` for Day 6; `[price_model]` settings.
+- Day 5 learning-track page, notebook section (5.1-5.7, "My solutions"), exercises;
+  METHODOLOGY v0.2 (price model); data dictionary entries.
+
+### Changed
+- The arcsinh scale is 120 EUR/MWh, not 80: the first search (30-80) ended at its edge; over
+  30-300 the validation meets 7 of 11 statistics from 120 on (80: 5). Level volatility 0.12
+  (was 0.15) so that it keeps its meaning in EUR/MWh.
+
+### Fixed
+- METHODOLOGY section 7: four LaTeX commands (`\tfrac`, `\alpha`, `\frac`, `\right`) had
+  been written as control characters in 0.4.0 and did not render.
+
+### Found
+- A single hourly AR(1) (version 1) forgets yesterday within about ten hours: 24-hour
+  autocorrelation 0.38-0.54 vs 0.70 in history. Replaced by the two-factor model.
+- Monthly demeaning biases the daily AR(1) estimate down by about (1 + 3 phi) / 30 (Kendall);
+  correcting it did not improve validation, so the estimate is used as is.
+- Real negative prices cluster just below zero (4.6% of hours between -10 and 0 EUR/MWh);
+  the model has 1.5% there and too many deep ones.
+- Prices independent of weather overstate the solar capture rate: 0.612 simulated vs 0.555
+  real (2025 output); within a month, sunnier days have cheaper middays (correlation -0.30).
+
 ## [0.4.0] (Day 4, ticket PPA-4)
 
 ### Added

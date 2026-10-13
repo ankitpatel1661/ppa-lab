@@ -3,10 +3,11 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 0.1** (ticket PPA-4): cash flows and fair prices of the standard structures,
-applied to history (PPA-3), and site volumes from weather with P50/P90 (PPA-4, section 7).
-Later versions add simulated prices and joint scenarios (PPA-5, PPA-6), risk premia
-(PPA-7) and hedging (PPA-8).
+**Version 0.2** (ticket PPA-5): cash flows and fair prices of the standard structures,
+applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), and a
+stochastic hourly price model calibrated to a forward price (PPA-5, section 8). Later
+versions add joint weather and price scenarios (PPA-6), risk premia (PPA-7) and hedging
+(PPA-8).
 
 ---
 
@@ -21,7 +22,8 @@ Later versions add simulated prices and joint scenarios (PPA-5, PPA-6), risk pre
   basis between the plant's location and the settlement price.
 - **Code:** `src/ppa_lab/pricing/contracts.py` (cash flows, fair prices),
   `src/ppa_lab/pricing/backtest.py` (historical back-test),
-  `src/ppa_lab/analysis/capture.py` (capture prices).
+  `src/ppa_lab/analysis/capture.py` (capture prices), `src/ppa_lab/weather/` (volumes),
+  `src/ppa_lab/prices/` (price model).
 
 ### Notation
 
@@ -170,7 +172,7 @@ nearest ~0.25° grid point, 1995 onwards. Open-Meteo labels radiation at the end
 project's interval-beginning convention:
 
 $$
-G_t = G^{API}_{t+1h}, \qquad x_t = 	frac12\,(x^{API}_t + x^{API}_{t+1h}).
+G_t = G^{API}_{t+1h}, \qquad x_t = \tfrac12\,(x^{API}_t + x^{API}_{t+1h}).
 $$
 
 Every build checks that irradiance then matches the clear-sky sun at mid-interval ($t$ + 30 min).
@@ -183,8 +185,8 @@ $(1 - L)$; PVWatts inverter (96%) clipped at the AC capacity $P_{DC}/r$ (DC/AC r
 and the power law to hub height $h$:
 
 $$
-lpha_t = rac{\ln(v_{100,t}/v_{10,t})}{\ln 10}, \qquad
-v_{hub,t} = v_{100,t}\left(rac{h}{100}ight)^{lpha_t},
+\alpha_t = \frac{\ln(v_{100,t}/v_{10,t})}{\ln 10}, \qquad
+v_{hub,t} = v_{100,t}\left(\frac{h}{100}\right)^{\alpha_t},
 $$
 
 then the turbine power curve (no air-density correction) scaled to the park capacity, times
@@ -196,14 +198,83 @@ standard deviation $\sigma$):
 $$
 P50 = \operatorname{median}(E_y), \qquad
 P90_{1y} = \mu - 1.2816\,\sigma, \qquad
-P90_{10y} = \mu - 1.2816\,rac{\sigma}{\sqrt{10}},
+P90_{10y} = \mu - 1.2816\,\frac{\sigma}{\sqrt{10}},
 $$
 
 the last assuming independent years. Site models are checked against national generation of
 the same technology (hourly correlation, monthly shares, capture rate), because no official
 figure exists for an illustrative park.
 
-## 8. Assumptions and limitations
+---
+
+## 8. Prices: the stochastic model (PPA-5)
+
+Code: `src/ppa_lab/prices/` (`calendar.py`, `model.py`, `validation.py`); report
+`reports/day05_price_model.md`; parameters `data/processed/price_model.json`.
+
+**Transform.** Hourly day-ahead prices (quarter-hours averaged) in arcsinh space,
+
+$$
+y_t = \operatorname{arcsinh}(P_t / s), \qquad P_t = s \sinh(y_t),
+$$
+
+with scale $s$ = 120 EUR/MWh, chosen by the validation below over $s$ = 30 to 300.
+
+**Decomposition.** On the calibration window (2024-01-01 to 2026-09-30, local days):
+
+$$
+y_t = L_{m(t)} + S_{c(t),k(t),h(t)} + D_{d(t)} + u_t,
+$$
+
+with $m$ the calendar month, $c$ the season, $k$ the day type (working day, Saturday, Sunday
+or one of the nine nationwide holidays), $h$ the local hour and $d$ the local day. $L$ and $S$
+are group means, estimated by back-fitting (three passes).
+
+**Daily factor.** $D_d$ is the daily mean of $y - L - S$ and follows an AR(1) across days:
+
+$$
+D_d = \phi\, D_{d-1} + \sigma_{c(d)}\, z_d, \qquad t_{1/2} = \frac{\ln 2}{-\ln \phi},
+$$
+
+$\phi$ by least squares on pairs of consecutive days only, $\sigma_c$ by season from the
+residuals, $z_d = \varepsilon_d / \sigma_{c(d)}$ the standardised shocks. Monthly demeaning
+biases $\hat\phi$ down by about $(1 + 3\phi)/30$ (Kendall); the estimate is used uncorrected
+because the correction did not improve validation.
+
+**Intraday patterns.** $u_t = y_t - L - S - D_{d(t)}$ for every complete 24-hour day, stored
+with the day's season and $z_d$ (the resampling pool).
+
+**Simulation.** Per path and simulated day $d$, draw a pool day $j$ of the same season, then
+
+$$
+D_d = \phi\, D_{d-1} + \sigma_{c(d)}\, z_j, \qquad D_0 = \frac{\sigma_{c(0)}\, z_{j_0}}{\sqrt{1 - \phi^2}},
+\qquad y_t = \mu_t + D_{d(t)} + u_{j, h(t)},
+$$
+
+so each day keeps the 24-hour pattern of one real day together with its shock, and the path
+starts in the stationary state. For a future year $\mu_t = \lambda + \bar L_{m(t)} + S_t$,
+with $\bar L_m$ the average monthly shape and $\lambda$ the annual level. Level uncertainty:
+$\lambda \to \lambda + \sigma_\lambda \eta_n$ with one $\eta_n \sim N(0, 1)$ per path
+($\sigma_\lambda$ = 0.12).
+
+**Calibration to a forward.** $\lambda$ solves, by bisection,
+
+$$
+\frac{1}{N T} \sum_{n=1}^{N} \sum_{t=1}^{T} s \sinh\!\left(\lambda + \bar L_{m(t)} + S_t + x_{n,t}\right) = F,
+$$
+
+with the same residual draws $x_{n,t}$ as the simulation (common random numbers), so the
+simulated average equals the forward $F$ exactly before level uncertainty. Because $\sinh$
+is convex, setting the level from $\operatorname{arcsinh}(F/s)$ would overshoot $F$ (Jensen).
+
+**Validation.** In-sample, 200 paths over the calibration window with the fitted monthly
+levels. For each statistic (mean, standard deviation, 1/5/50/95/99% quantiles, share of
+negative hours, autocorrelation at 1, 24 and 168 hours) history should lie inside the 5-95%
+range across paths. Version 2 meets 7 of 11; the misses (1% quantile, negative share,
+autocorrelation at 1 and 24 hours) are explained in the report and in learning track Day 5,
+section 4.4. Version 1, a single hourly AR(1), failed on day-to-day memory and was replaced.
+
+## 9. Assumptions and limitations
 
 | Assumption | Effect | Addressed in |
 |---|---|---|
@@ -212,7 +283,11 @@ figure exists for an illustrative park.
 | Site models give potential output | No grid curtailment (heavy in Schleswig-Holstein), outages or degradation | v2 |
 | Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
 | Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5/PPA-8 (price model, futures) |
-| One history, no scenarios | No distribution, no risk premium | PPA-6/PPA-7 (Monte Carlo) |
+| One history, no scenarios | No distribution, no risk premium | PPA-5 (price paths); PPA-6/PPA-7 (joint Monte Carlo, premia) |
+| Price model: symmetric transform, no soft floor at zero | Too few hours just below 0 EUR/MWh, too many deep negative hours | v2 of the price model |
+| Price paths independent of weather (PPA-5) | Solar capture rate overstated (0.61 simulated vs 0.555 in 2025) | PPA-6 |
+| One calibration window (2024-2026), in-sample validation only | Regime changes and out-of-sample errors not tested | v2: rolling, out-of-sample validation |
+| One illustrative annual forward (85 EUR/MWh), no monthly forward curve | Level and its seasonality not market-implied | PPA-8 |
 | Measured generation is after curtailment | Slightly higher capture prices than official market values (Day 2) | Backlog PPA-2b |
 | No balancing, imbalance, route-to-market or credit costs | Fair prices are upper bounds | PPA-7 |
 | Negative-price clause assumes curtailment | No cost of producing at negative prices | – |
@@ -225,3 +300,5 @@ figure exists for an illustrative park.
 
 - **v0, PPA-3:** structures, fair prices, discounting, back-test design.
 - **v0.1, PPA-4:** volume section (weather conversion, solar and wind models, P50/P90).
+- **v0.2, PPA-5:** stochastic price model (section 8); four LaTeX commands in section 7 that
+  had been saved as control characters (`\t`, `\a`, `\f`, `\r`) restored.

@@ -11,7 +11,7 @@ tests pass and the learning-track page for that day is written.
 | PPA-2b | later | Test the wind curtailment hypothesis with the TSOs' online extrapolation | To do |
 | PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | **Done** |
 | PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | **Done** |
-| PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | To do |
+| PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | **Done** |
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | To do |
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | To do |
 | PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | To do |
@@ -62,6 +62,22 @@ years, so that volume risk (P50/P90) and the site's shape can enter the PPA pric
 - [x] Checks against national generation: hourly correlation, monthly shares, capture rate.
 - [x] Report, learning-track page, notebook section, exercises.
 
+## PPA-5: Stochastic price model (Day 5)
+
+**Story:** As a pricing analyst I want many plausible hourly price years that agree with the
+forward price and behave like real prices, so that PPA values come with a distribution and
+not just one historical outcome.
+
+**Acceptance criteria**
+- [x] Local calendar: hour, season, day type with the nine nationwide holidays (tested).
+- [x] Model in arcsinh space: monthly levels, daily shape, daily AR(1) factor, intraday
+      patterns resampled as whole days; saved as `price_model.json`.
+- [x] Parameter recovery on synthetic prices with known parameters (including Kendall's bias).
+- [x] Level calibrated to a forward price (exact with common random numbers); level volatility.
+- [x] Validation against history: distribution, negative hours, autocorrelation; gaps
+      documented (7 of 11 statistics inside the 5-95% range).
+- [x] Report, learning-track page, notebook section, exercises.
+
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 
 **Finding (8 Oct 2026):** our wind capture prices are above the official
@@ -87,6 +103,9 @@ extrapolation, which keeps more energy in cheap hours.
 
 ## Later ideas (not scheduled)
 
+- Price model v2: a soft floor just below zero for negative prices; block bootstrap or a
+  weather link for multi-day patterns; out-of-sample and rolling-window validation; a
+  monthly forward curve instead of one annual level.
 - Secret scanning in CI (e.g. gitleaks) after the `.env.example` near-miss on 8 Oct 2026.
 - Day 3 back-test re-run with the Day 4 site profiles instead of scaled national profiles.
 - Grid curtailment (redispatch) and availability in the wind model; air-density correction.

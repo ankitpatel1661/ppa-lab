@@ -6,7 +6,8 @@ Update this page whenever a dataset or column is added (part of the definition o
 **Contents:** [Conventions](#conventions-that-apply-everywhere) ·
 [Layers](#data-layers) · [prices_native](#prices_nativeparquet) ·
 [prices_hourly](#prices_hourlyparquet) · [power_15min / power_hourly](#power_15minparquet-and-power_hourlyparquet) ·
-[Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test) ·
+[weather / generation](#weather_parkparquet-day-4) · [price_model.json](#price_modeljson-day-5) ·
+[Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test, volumes, price paths) ·
 [Loading](#how-to-load-the-data)
 
 ---
@@ -31,7 +32,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 |---|---|---|---|---|
 | Raw | `data/raw/energy_charts/<dataset>/<YYYY-MM>.parquet` + `.json` manifest | No | `ppa-lab fetch` | Exactly what the API returned, one file per month, with checksum, parameters and licence |
 | Raw (weather) | `data/raw/open_meteo/weather_<park>/<YYYY>.parquet` + `.json` manifest | No | `ppa-lab weather` | ERA5 weather per site and year exactly as Open-Meteo labels it, with the ERA5 grid point used |
-| Processed | `data/processed/*.parquet` | No | `ppa-lab build`, `ppa-lab weather` | Cleaned, de-duplicated, restricted to the configured range (files below) |
+| Processed | `data/processed/*.parquet`, `price_model.json` | No | `ppa-lab build`, `ppa-lab weather`, `ppa-lab prices` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters (files below) |
 | Reference | `data/reference/*.csv` | **Yes** | by hand, with provenance in the file header | Small published datasets used for reconciliation |
 
 Rebuild everything with `make all` (first download of prices about 10-15 minutes and of
@@ -163,6 +164,30 @@ No grid curtailment, outages or degradation are modelled (potential output).
 
 ---
 
+## `price_model.json` (Day 5)
+
+The calibrated stochastic price model (`ppa_lab.prices.model.PriceModel`), written by
+`ppa-lab prices` and read back with `PriceModel.load(path)`. Plain JSON, about 0.3 MB. All
+values except `scale` are in **transformed units** y = arcsinh(P / scale), not EUR/MWh.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `scale` | number, EUR/MWh | s of the arcsinh transform (120) |
+| `phi` | number | AR(1) coefficient of the daily factor, per day (half-life = ln 2 / −ln phi days) |
+| `calibration` | [start, end] | First and last local day of the calibration window |
+| `sigma` | {season: number} | Standard deviation of the daily shocks per season (`winter`, `spring`, `summer`, `autumn`) |
+| `profile` | list of [season, daytype, hour, value] | Daily shape S: 4 seasons x 3 day types (`weekday`, `saturday`, `holiday` = Sunday or nationwide holiday) x 24 local hours = 288 rows |
+| `month_shape` | {month 1-12: number} | Average monthly level minus the annual level (used for future years) |
+| `levels` | {"YYYY-MM": number} | Fitted level L of each month of the calibration window |
+| `pool_season` | list of strings | Season of each historical day in the resampling pool (998 days) |
+| `pool_z` | list of numbers | That day's standardised daily shock z (mean about 0, sd about 1) |
+| `pool_u` | list of 24-number lists | That day's intraday pattern u: deviation of each local hour from the day's level |
+
+Only complete 24-hour local days enter the pool (days with a daylight-saving change have 23
+or 25 hours and are left out).
+
+---
+
 ## Reference data
 
 ### `data/reference/netztransparenz_market_values_monthly.csv`
@@ -241,6 +266,21 @@ of an illustrative park with the national profile shape, scaled per local year.
 | `yield_trend(annual)` | `per_decade` (MWh), `per_decade_pct` (%) from a linear fit |
 | `monthly_shares(mw, tz, years)` | share of annual energy per calendar month (1-12) |
 | `site_vs_national(site, national, prices, tz, years)` | per year: `correlation`, `base_eur_mwh`, site and national capture price and rate |
+
+### Price model outputs (`ppa_lab.prices`)
+
+| Function | Returns |
+|---|---|
+| `calendar_features(index, tz)` | per timestamp: local `hour`, `month`, `season`, `daytype` (`weekday` / `saturday` / `holiday`), `year` |
+| `german_holidays(year)` | set of the nine nationwide public holidays (dates) |
+| `simulate(model, index, tz, n_paths, annual_level, seed, level_volatility)` | NumPy array **paths x hours**, EUR/MWh, columns in the order of `index` (UTC, interval beginning) |
+| `simulate_daily_factor(...)` | array paths x local days: the daily factor D (transformed units) |
+| `calibrate_level(model, index, tz, target_price, n_paths, seed)` | the annual level (transformed units) at which `simulate(..., seed=seed)` averages `target_price` |
+| `price_statistics(prices)` | `mean`, `std`, `p01`, `p05`, `p50`, `p95`, `p99`, `negative_share` |
+| `compare_with_history(history, paths)` | one row per statistic (above, plus `acf_1h`, `acf_24h`, `acf_168h`): `history`, `simulated_mean`, `simulated_p05`, `simulated_p95`, `inside_range` |
+
+The same `seed` always gives the same paths. A simulated row is one possible delivery year,
+not a forecast of a particular hour.
 
 ### `annual_price_stats(prices, tz)` (`ppa_lab.analysis.reconcile`)
 

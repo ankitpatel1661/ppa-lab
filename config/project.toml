@@ -34,6 +34,25 @@ effective_from = 2026-05-29
 min_eur_mwh = -600.0
 max_eur_mwh = 4000.0
 
+[price_model]
+# Day 5: stochastic hourly price model (src/ppa_lab/prices/model.py), calibrated on the
+# recent regime (deep solar dips, many negative prices, 15-minute products since Oct 2025).
+calibration_start = 2024-01-01
+calibration_end = 2026-09-30
+# s in y = arcsinh(P / s), EUR/MWh. Chosen by validation over 30-300 (learning track Day 5,
+# section 4.3): from 120 on, 7 of 11 statistics fall inside the simulated range (80: 5);
+# larger s only makes the negative tail heavier. 120 is the smallest robust choice.
+scale_eur_mwh = 120.0
+n_paths = 500
+seed = 2026
+# Illustrative delivery year and forward price until Day 8 brings market forwards
+# (85 EUR/MWh is the number used in the preparation guide's price stack).
+delivery_year = 2027
+forward_eur_mwh = 85.0
+# Uncertainty of the annual level, in transformed units (depends on s): with s = 120 and an
+# 85 EUR/MWh forward, one standard deviation is about 18 EUR/MWh on the level.
+level_volatility = 0.12
+
 [weather]
 # ERA5 reanalysis (ECMWF / Copernicus) through the free Open-Meteo archive API.
 base_url = "https://archive-api.open-meteo.com/v1"

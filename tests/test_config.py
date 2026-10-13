@@ -77,3 +77,16 @@ def test_every_park_has_a_site_and_a_model():
         needed = {"solar": {"tilt_deg", "azimuth_deg", "dc_ac_ratio", "losses_pct"},
                   "wind_onshore": {"turbine_type", "hub_height_m", "losses_pct"}}[park.technology]
         assert needed <= set(park.model)
+
+
+def test_price_model_window_must_lie_inside_the_market_data(tmp_path):
+    s = load_settings()
+    pm = s.price_model
+    assert s.start <= pm.calibration_start < pm.calibration_end <= s.end
+    assert pm.delivery_year > pm.calibration_end.year
+    bad = DEFAULT_CONFIG.read_text().replace("calibration_end = 2026-09-30",
+                                             "calibration_end = 2027-06-30")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="calibration"):
+        load_settings(path)

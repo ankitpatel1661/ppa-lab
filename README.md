@@ -8,12 +8,38 @@ combines German power prices, generation and weather data, simulates them
 together, and prices power purchase agreements (PPAs) with their market, shape
 and volume risks.
 
-> **Status: Day 4 of 14 (ticket PPA-4, version 0.4.0).** Done so far: the
+> **Status: Day 5 of 14 (ticket PPA-5, version 0.5.0).** Done so far: the
 > market-data foundation (Day 1), capture prices reconciled against the official
 > German market values (Day 2), the PPA structures with their pricing maths and a
-> 2024-2025 back-test (Day 3, [methodology](METHODOLOGY.md)), and site generation from
-> 31 years of ERA5 weather with P50/P90 volumes (Day 4).
+> 2024-2025 back-test (Day 3, [methodology](METHODOLOGY.md)), site generation from
+> 31 years of ERA5 weather with P50/P90 volumes (Day 4), and a stochastic hourly price
+> model calibrated to a forward price and validated against history (Day 5).
 > See the [backlog](docs/BACKLOG.md) for what comes next.
+
+## Day 5 results: thousands of plausible price years
+
+An hourly model of German day-ahead prices, fitted on 2024-01 to 2026-09 (24,095 hours):
+arcsinh-transformed prices = monthly level + daily shape (season x day type x hour, with
+the nine nationwide holidays) + a daily factor that reverts like an Ornstein-Uhlenbeck
+process + intraday patterns resampled as whole historical days.
+
+| | |
+|---|---|
+| Memory of the daily factor | phi = 0.521 per day, **half-life 1.06 days** |
+| Validation (history inside the 5-95% range of 200 simulated paths) | **7 of 11** statistics: mean, spread, 5/50/95/99% quantiles, weekly autocorrelation |
+| Still outside | 1% quantile and negative hours (6.2% in history, 4.9% in the model), autocorrelation at 1 and 24 hours |
+| 2027 at an 85 EUR/MWh forward (500 paths) | annual average 5% / 50% / 95%: 55.9 / 84.2 / 117.5 EUR/MWh; 5.7% negative hours |
+| Solar capture rate, 2025 output | **0.612** with simulated prices vs **0.555** with real ones |
+
+- **Validation changed the model twice.** A textbook hourly AR(1) forgot yesterday within
+  ten hours (24-hour autocorrelation 0.38-0.54 vs 0.70) and was replaced by the two-factor
+  version; a wider search of the transform's scale moved it from 80 to 120 EUR/MWh
+  (5 to 7 statistics inside).
+- **The gap that matters:** within a month, sunnier days have cheaper middays (correlation
+  −0.30 in 2025); in the model it is 0.00. Independent prices overstate what solar earns.
+  Day 6 links weather and prices.
+
+Full report: [`reports/day05_price_model.md`](reports/day05_price_model.md).
 
 ## Day 4 results: how much the parks produce, and how much that varies
 
@@ -116,7 +142,7 @@ The full numbers, the data-quality report and four charts are in
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 144 offline tests, about 5 seconds
+make test      # 167 offline tests, about 8 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 ```
 
@@ -138,6 +164,7 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab capture   # reports/day02_capture_prices.md + figures
 .venv/bin/ppa-lab ppa       # reports/day03_ppa_structures.md + figures
 .venv/bin/ppa-lab weather   # ERA5 weather -> park generation -> reports/day04_generation.md
+.venv/bin/ppa-lab prices    # price model: fit, validate, simulate -> reports/day05_price_model.md
 ```
 
 The first download takes 10 to 15 minutes because the free API is rate limited;
@@ -169,6 +196,10 @@ src/ppa_lab/
   weather/yields.py          annual energy per weather year, P50/P90
   analysis/generation.py     trend and checks against national data
   analysis/day04_report.py   Day 4 report and charts
+  prices/calendar.py         local hour, season, day type, German holidays (Easter computed)
+  prices/model.py            arcsinh price model: fit, simulate, calibrate the level to a forward
+  prices/validation.py       simulated vs historical statistics
+  analysis/day05_report.py   Day 5 report and charts
   cli.py                     `ppa-lab` command
 tests/                       offline tests with real API fixtures
 notebooks/                   ppa_lab_playground.ipynb: interactive, one section per day
