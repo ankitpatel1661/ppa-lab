@@ -51,6 +51,30 @@ reports = "reports"
 reference = "data/reference"
 
 # -----------------------------------------------------------------------------
+# Day 3: PPA back-tests. Illustrative parks from the project brief (50 MW solar,
+# 30 MW onshore wind). They use the national generation profile of their technology,
+# scaled to capacity x full-load hours each year; Day 4 replaces this with site models.
+# A contract for delivery year Y is signed at Y-1's fair price (naive forward proxy).
+# -----------------------------------------------------------------------------
+[pricing]
+delivery_years = [2024, 2025]
+# Floor for the "merchant + floor" structure. 0 EUR/MWh = protection against negative
+# prices; economically the same as curtailing whenever the price is below zero.
+floor_eur_mwh = 0.0
+
+[pricing.parks.solar_park]
+technology = "solar"
+capacity_mw = 50
+# German ground-mounted PV yields roughly 950-1,050 MWh per MWp and year.
+full_load_hours = 1000
+
+[pricing.parks.wind_park]
+technology = "wind_onshore"
+capacity_mw = 30
+# Onshore fleet average is below 2,000 h; modern turbines reach 2,500 h and more.
+full_load_hours = 2000
+
+# -----------------------------------------------------------------------------
 # Published reference values we "tie out" against (reconciliation).
 # tolerance = the absolute difference we accept, because publishers use slightly
 # different conventions (e.g. hourly vs quarter-hourly counting).

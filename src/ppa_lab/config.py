@@ -39,6 +39,16 @@ class Reference:
 
 
 @dataclass(frozen=True)
+class Park:
+    """An illustrative park for the PPA back-tests (national profile shape, scaled)."""
+
+    name: str
+    technology: str  # a key of ppa_lab.analysis.capture.TECHNOLOGIES
+    capacity_mw: float
+    full_load_hours: float  # MWh per MW and year
+
+
+@dataclass(frozen=True)
 class EnergyChartsSettings:
     base_url: str
     timeout_s: float
@@ -61,6 +71,9 @@ class Settings:
     reports_dir: Path
     reference_dir: Path
     references: tuple[Reference, ...]
+    parks: tuple[Park, ...] = ()
+    delivery_years: tuple[int, ...] = ()
+    floor_eur_mwh: float = 0.0
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -80,6 +93,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
     market = raw["market"]
     ec = raw["sources"]["energy_charts"]
     paths = raw["paths"]
+    pricing = raw.get("pricing", {})
 
     settings = Settings(
         timezone=raw["project"]["timezone"],
@@ -107,6 +121,12 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         reports_dir=root / paths["reports"],
         reference_dir=root / paths["reference"],
         references=tuple(Reference(**ref) for ref in raw.get("reconciliation", [])),
+        parks=tuple(
+            Park(name=name, **park)
+            for name, park in pricing.get("parks", {}).items()
+        ),
+        delivery_years=tuple(pricing.get("delivery_years", ())),
+        floor_eur_mwh=float(pricing.get("floor_eur_mwh", 0.0)),
     )
     _validate(settings)
     return settings
@@ -122,3 +142,10 @@ def _validate(s: Settings) -> None:
     for lim in s.price_limits:
         if lim.min_eur_mwh >= lim.max_eur_mwh:
             raise ValueError(f"Invalid price limit {lim}")
+    for y in s.delivery_years:
+        # Strikes for delivery year Y are fixed from year Y-1: both must be complete years.
+        if date(y - 1, 1, 1) < s.start or date(y, 12, 31) > s.end:
+            raise ValueError(
+                f"delivery year {y} needs {y - 1} (for the strikes) and {y} inside "
+                f"{s.start}..{s.end}"
+            )

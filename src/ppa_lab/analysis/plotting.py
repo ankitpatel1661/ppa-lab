@@ -9,8 +9,8 @@ import matplotlib
 matplotlib.use("Agg")  # render to files, no window needed (also works on CI servers)
 import matplotlib.pyplot as plt  # noqa: E402
 
-# Validated categorical palette (slots 1-3) and neutral inks.
-BLUE, ORANGE, GREEN = "#2a78d6", "#eb6834", "#1baf7a"
+# Validated categorical palette (slots 1-4) and neutral inks.
+BLUE, ORANGE, GREEN, YELLOW = "#2a78d6", "#eb6834", "#1baf7a", "#eda100"
 INK, INK_2, GRID = "#0b0b0b", "#52514e", "#e2e2de"
 # Ordinal ramp (one hue, light to dark) for ordered categories such as years.
 BLUE_RAMP = ("#86b6ef", "#3987e5", "#1c5cab", "#0d366b")

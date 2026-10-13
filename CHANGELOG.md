@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-08 (Day 3, ticket PPA-3)
+
+### Added
+- `ppa_lab.pricing.contracts`: cash flows per interval to the producer for merchant,
+  pay-as-produced (with and without a negative-price clause), virtual PPA (CfD),
+  floor / cap / collar and baseload PPAs; fair pay-as-produced and baseload prices
+  (ratio of expectations, with discounting); works on pandas Series and NumPy scenarios.
+- `ppa_lab.pricing.backtest`: illustrative parks from national profiles, strikes fixed
+  from the previous year, plan (same terms on the previous year) and surprise.
+- Day 3 report (`ppa-lab ppa`, `make ppa`, part of `make all`; skipped with a warning when
+  the data range has no complete previous year) with two charts.
+- `[pricing]` configuration (parks, delivery years, floor), validated on load.
+- `METHODOLOGY.md` version 0: the pricing maths, conventions, assumptions, limitations.
+- Day 3 learning-track page, notebook section (3.1-3.6 and "My solutions"), exercises.
+
+### Changed
+- Data dictionary: contract cash flows and back-test tables.
+
+### Found
+- Monthly revenue spread within a year measures seasonality, not risk (a PaP PPA looked
+  riskier than merchant); replaced by the surprise against plan.
+
 ## [0.2.0] - 2026-10-08 (Day 2, ticket PPA-2)
 
 ### Added

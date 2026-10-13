@@ -6,7 +6,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 **Contents:** [Conventions](#conventions-that-apply-everywhere) ·
 [Layers](#data-layers) · [prices_native](#prices_nativeparquet) ·
 [prices_hourly](#prices_hourlyparquet) · [power_15min / power_hourly](#power_15minparquet-and-power_hourlyparquet) ·
-[Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) ·
+[Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test) ·
 [Loading](#how-to-load-the-data)
 
 ---
@@ -155,6 +155,40 @@ Index `(period, technology)`: `period` is a local `Period` (`freq="M"` or `"Y"`)
 | `capture_rate` | ratio | capture price / base price (value factor) |
 | `energy_twh` | TWh | Energy produced in the period |
 | `negative_price_share` | 0 to 1 | Share of that energy produced at a negative price |
+
+### Contract cash flows (`ppa_lab.pricing.contracts`)
+
+Every function returns **EUR per interval to the producer**, in the shape of its inputs
+(a Series with the same index, or an array of shape `(scenarios, intervals)`).
+Inputs: `prices` in EUR/MWh and `volumes` in MWh per interval, on the same time grid.
+
+| Function | Cash flow per interval |
+|---|---|
+| `merchant(prices, volumes)` | P · q |
+| `pay_as_produced(prices, volumes, strike, pay_at_negative_prices=True)` | K · q (0 where P < 0 if the clause applies) |
+| `cfd(prices, volumes, strike)` | P · q + (K − P) · q |
+| `collar(prices, volumes, floor=None, cap=None)` | q · clip(P, F, C) |
+| `baseload(prices, volumes, strike, band_mwh)` | K_B · B + (q − B) · P |
+
+Fair prices (`fair_pay_as_produced_price`, `fair_baseload_price`) return one number in
+EUR/MWh; `discount_factors(times, valuation, rate)` returns one factor per timestamp.
+
+### Back-test tables (`ppa_lab.pricing.backtest`)
+
+`backtest(prices, energy, tz, delivery_years, floor)` returns three tables:
+
+| Table | Index | Columns |
+|---|---|---|
+| cash flows | `ts_utc` (delivery years) | `merchant`, `pay_as_produced`, `pap_negative_clause`, `baseload`, `merchant_with_floor` (EUR per interval) |
+| strikes | `year` | `pay_as_produced_strike`, `baseload_strike` (EUR/MWh), `band_mw` (MW) |
+| plan | `year` | one column per structure: expected EUR/MWh at signing |
+
+`summarise(cash, energy, tz, plan)`: index `(year, structure)`, columns `revenue_eur_m`,
+`revenue_eur_per_mwh`, `vs_merchant_eur_per_mwh`, `plan_eur_per_mwh`,
+`vs_plan_eur_per_mwh` (the surprise), `worst_month_eur_k`.
+
+`park_energy(national_mw, capacity_mw, full_load_hours, tz, years)`: MWh per interval
+of an illustrative park with the national profile shape, scaled per local year.
 
 ### `annual_price_stats(prices, tz)` (`ppa_lab.analysis.reconcile`)
 

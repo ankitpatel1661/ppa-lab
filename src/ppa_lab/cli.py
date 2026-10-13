@@ -5,15 +5,18 @@
     ppa-lab check    run data-quality checks (exit code 1 if any check fails)
     ppa-lab report   write the Day 1 report and charts to reports/
     ppa-lab capture  write the Day 2 capture-price report and charts to reports/
-    ppa-lab all      fetch + build + check + report + capture
+    ppa-lab ppa      write the Day 3 PPA-structures back-test and charts to reports/
+    ppa-lab all      fetch + build + check + report + capture + ppa
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import logging
 import sys
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -76,8 +79,25 @@ def cmd_capture(args, settings) -> int:
     return 0
 
 
+def cmd_ppa(args, settings) -> int:
+    from ppa_lab.analysis.day03_report import write_day03_report  # heavy import, load lazily
+
+    # A delivery year needs itself and the year before (for the strikes) as complete years.
+    years = tuple(
+        y for y in settings.delivery_years
+        if date(y - 1, 1, 1) >= settings.start and date(y, 12, 31) <= settings.end
+    )
+    if not years:
+        log.warning("Day 3 report skipped: no delivery year with a complete previous year "
+                    "in %s..%s", settings.start, settings.end)
+        return 0
+    paths = write_day03_report(dataclasses.replace(settings, delivery_years=years))
+    log.info("Report written to %s", paths["report"])
+    return 0
+
+
 def cmd_all(args, settings) -> int:
-    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture):
+    for step in (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa):
         code = step(args, settings)
         if code:
             return code
@@ -97,7 +117,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("check", cmd_check, "run data-quality checks"),
         ("report", cmd_report, "write the Day 1 report"),
         ("capture", cmd_capture, "write the Day 2 capture-price report"),
-        ("all", cmd_all, "fetch, build, check, report and capture"),
+        ("ppa", cmd_ppa, "write the Day 3 PPA-structures back-test"),
+        ("all", cmd_all, "fetch, build, check, report, capture and ppa"),
     ):
         p = sub.add_parser(name, help=help_text)
         p.set_defaults(func=func)

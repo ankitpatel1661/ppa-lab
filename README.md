@@ -8,11 +8,34 @@ combines German power prices, generation and weather data, simulates them
 together, and prices power purchase agreements (PPAs) with their market, shape
 and volume risks.
 
-> **Status: Day 2 of 14 (ticket PPA-2, version 0.2.0).** Done so far: the
-> market-data foundation (real German day-ahead prices and generation since 2023,
-> data-quality checks, reconciliation) and capture prices for solar and wind,
-> reconciled against the official German market values.
+> **Status: Day 3 of 14 (ticket PPA-3, version 0.3.0).** Done so far: the
+> market-data foundation (Day 1), capture prices reconciled against the official
+> German market values (Day 2), and the PPA structures with their pricing maths and a
+> 2024-2025 back-test (Day 3, [methodology](METHODOLOGY.md)).
 > See the [backlog](docs/BACKLOG.md) for what comes next.
+
+## Day 3 results: what each PPA structure would have earned
+
+A 50 MW solar park and a 30 MW wind park (national profiles, scaled) sign each contract
+at the end of the previous year at last year's fair price, and deliver in 2024 and 2025.
+Revenue per MWh produced; cash flows to the producer:
+
+| EUR/MWh | Merchant | Pay-as-produced | PaP, no pay at negative prices | Baseload | Merchant + floor 0 |
+|---|---|---|---|---|---|
+| Solar 2024 | 46.48 | **72.25** | 59.04 | 63.14 | 49.26 |
+| Solar 2025 | 45.95 | 46.48 | 35.22 | **35.14** | 49.25 |
+| Wind 2024 | 64.54 | 78.44 | 73.50 | **81.20** | 65.03 |
+| Wind 2025 | **77.27** | 64.54 | 59.63 | 66.46 | 77.71 |
+
+- **A pay-as-produced PPA removes all price surprise** (realised minus the expectation at
+  signing is 0.00 in every case); whether it beats merchant is hindsight.
+- **A baseload PPA hedges the price level, not the shape:** on the solar park in 2025 it
+  fell 11.34 EUR/MWh short of plan, worse than merchant, and produced a negative month.
+- **A negative-price clause cost solar 11.26 EUR/MWh in 2025** (24% of the energy unpaid);
+  the right to curtail at negative prices was worth 3.30 EUR/MWh.
+
+Full report: [`reports/day03_ppa_structures.md`](reports/day03_ppa_structures.md);
+the maths: [`METHODOLOGY.md`](METHODOLOGY.md).
 
 ## Day 2 results: what solar and wind really earn
 
@@ -68,8 +91,8 @@ The full numbers, the data-quality report and four charts are in
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 85 offline tests, about 2 seconds
-make all       # download data, build datasets, check quality, write both reports
+make test      # 115 offline tests, about 2 seconds
+make all       # download data, build datasets, check quality, write all reports
 ```
 
 Explore the data interactively in the playground notebook (one section per sprint day):
@@ -88,6 +111,7 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab check     # data-quality checks; exit code 1 on failure
 .venv/bin/ppa-lab report    # reports/day01_market_data.md + figures
 .venv/bin/ppa-lab capture   # reports/day02_capture_prices.md + figures
+.venv/bin/ppa-lab ppa       # reports/day03_ppa_structures.md + figures
 ```
 
 The first download takes 10 to 15 minutes because the free API is rate limited;
@@ -109,11 +133,15 @@ src/ppa_lab/
   analysis/capture.py        capture prices and rates, official market-value comparison
   analysis/day02_report.py   Day 2 report and charts
   analysis/plotting.py       shared chart style
+  analysis/day03_report.py   Day 3 report and charts
+  pricing/contracts.py       cash flows of every PPA structure, fair prices, discounting
+  pricing/backtest.py        historical back-test: parks, prior-year strikes, plan and surprise
   cli.py                     `ppa-lab` command
 tests/                       offline tests with real API fixtures
 notebooks/                   ppa_lab_playground.ipynb: interactive, one section per day
 data/reference/              small published reference data (official market values)
 exercises/                   hands-on exercises with automatic checks
+METHODOLOGY.md               the pricing maths, conventions, assumptions and limitations
 docs/decisions/              architecture decision records (ADRs)
 docs/learning_track/         day-by-day explanations of what was built and why
 reports/                     generated reports and figures

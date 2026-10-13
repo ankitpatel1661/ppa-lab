@@ -27,7 +27,8 @@ explain every box in your own words.
 |---|---|---|---|
 | 1 | PPA-1 | [day01_market_data_foundation.md](day01_market_data_foundation.md) | Power-market basics, time and units, a real data pipeline, data quality, reconciliation |
 | 2 | PPA-2 | [day02_capture_prices.md](day02_capture_prices.md) | Capture prices and rates, cannibalisation, official market values, investigating reconciliation breaks |
-| 3 | PPA-3 | (next) | PPA pricing maths: pay-as-produced, baseload, CfD, floors |
+| 3 | PPA-3 | [day03_ppa_structures.md](day03_ppa_structures.md) | PPA structures as cash flows, fair prices, options, an honest back-test |
+| 4 | PPA-4 | (next) | Weather to power: site models for solar and wind |
 
 ## Companions
 

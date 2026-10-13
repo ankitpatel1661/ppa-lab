@@ -6,7 +6,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from conftest import FakeClient
+from conftest import FakeClient, write_synthetic_market
 from ppa_lab import cli
 
 
@@ -28,6 +28,16 @@ def test_all_runs_the_whole_pipeline(two_day_settings):
     assert cli.main(["all"]) == 0
     assert (two_day_settings.reports_dir / "day01_market_data.md").exists()
     assert (two_day_settings.reports_dir / "day02_capture_prices.md").exists()
+    # Two days contain no complete year before a delivery year: Day 3 is skipped, not failed.
+    assert not (two_day_settings.reports_dir / "day03_ppa_structures.md").exists()
+
+
+def test_ppa_command_writes_the_day03_report(settings, monkeypatch):
+    s = dataclasses.replace(settings, start=date(2024, 1, 1), end=date(2025, 12, 31))
+    write_synthetic_market(s)
+    monkeypatch.setattr(cli, "load_settings", lambda path=None: s)
+    assert cli.main(["ppa"]) == 0
+    assert (s.reports_dir / "day03_ppa_structures.md").exists()
 
 
 def test_capture_command_writes_the_day02_report(two_day_settings):

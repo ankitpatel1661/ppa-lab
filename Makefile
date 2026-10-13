@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -40,7 +40,10 @@ report:  ## write reports/day01_market_data.md and figures
 capture:  ## write reports/day02_capture_prices.md and figures
 	$(PY) -m ppa_lab capture
 
-all: data build check report capture  ## the whole pipeline (Day 1 + Day 2)
+ppa:  ## write reports/day03_ppa_structures.md and figures (PPA back-test)
+	$(PY) -m ppa_lab ppa
+
+all: data build check report capture ppa  ## the whole pipeline (Days 1-3)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"

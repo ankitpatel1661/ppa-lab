@@ -51,3 +51,18 @@ def test_every_reference_metric_is_computed_by_the_pipeline():
     )
     unknown = {r.metric for r in load_settings().references} - produced
     assert not unknown, f"reference metrics nobody computes: {unknown}"
+
+
+def test_backtest_parks_are_configured():
+    s = load_settings()
+    assert {p.technology for p in s.parks} <= {"solar", "wind_onshore", "wind_offshore"}
+    assert all(p.capacity_mw > 0 and p.full_load_hours > 0 for p in s.parks)
+
+
+def test_a_delivery_year_needs_the_previous_year_in_the_data_range(tmp_path):
+    text = DEFAULT_CONFIG.read_text()
+    bad = text.replace("delivery_years = [2024, 2025]", "delivery_years = [2023, 2024]")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="2022"):
+        load_settings(path)

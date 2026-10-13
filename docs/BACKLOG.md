@@ -9,7 +9,7 @@ tests pass and the learning-track page for that day is written.
 | PPA-1 | 1 | Market-data foundation: repo, API client, raw cache, DQ checks, reconciliation | **Done** |
 | PPA-2 | 2 | Capture prices and capture rates for German solar and wind | **Done** |
 | PPA-2b | later | Test the wind curtailment hypothesis with the TSOs' online extrapolation | To do |
-| PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | To do |
+| PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | **Done** |
 | PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | To do |
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | To do |
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | To do |
@@ -32,6 +32,22 @@ solar and wind, so I can see how much of the baseload price each technology earn
       curtailment (learning track Day 2, section 4.3).
 - [x] Chart: capture rate by month and technology; short written interpretation.
 - [x] Learning-track page `docs/learning_track/day02_capture_prices.md`.
+
+## PPA-3: PPA structures and pricing maths (Day 3)
+
+**Story:** As a pricing analyst I want the cash flows and fair prices of the standard PPA
+structures in one tested library, so that every later price and risk number is built
+from the same, documented building blocks.
+
+**Acceptance criteria**
+- [x] Cash flows per interval (producer view) for merchant, pay-as-produced (with a
+      negative-price clause option), virtual PPA (CfD), floor / cap / collar, baseload.
+- [x] Fair prices as ratios of expectations, with discounting; NumPy scenarios supported.
+- [x] Invariant tests: floor never lowers value; CfD removes price risk; baseload =
+      merchant + swap; break-even strike = capture price.
+- [x] `METHODOLOGY.md` v0.
+- [x] Back-test 2024-2025 (50 MW solar, 30 MW wind) with prior-year strikes, plan and surprise.
+- [x] Learning-track page, notebook section, exercises.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 

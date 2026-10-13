@@ -69,6 +69,18 @@ def make_power_frame(start: date, end: date) -> pd.DataFrame:
     )
 
 
+def write_synthetic_market(settings) -> None:
+    """Processed prices (hourly) and power (15 min) for 2024-2025: cheap middays."""
+    power = make_power_frame(date(2024, 1, 1), date(2025, 12, 31))
+    hourly = power.index[::4]  # synthetic power starts on a full hour
+    hour = hourly.tz_convert(TZ).hour
+    price = np.where((hour >= 10) & (hour < 16), -5.0, 90.0)
+    prices = pd.DataFrame({"price_eur_mwh": price, "interval_min": 60.0}, index=hourly)
+    settings.processed_dir.mkdir(parents=True, exist_ok=True)
+    prices.to_parquet(settings.processed_dir / "prices_native.parquet")
+    power.to_parquet(settings.processed_dir / "power_15min.parquet")
+
+
 class FakeClient:
     """Stands in for EnergyChartsClient: same methods, no network."""
 
