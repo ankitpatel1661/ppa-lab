@@ -116,3 +116,17 @@ def test_ppa_pricing_settings_match_the_scenarios(tmp_path):
     path.write_text(bad)
     with pytest.raises(ValueError, match="start_year"):
         load_settings(path)
+
+
+def test_hedging_backtest_needs_the_previous_year_and_quotes_name_known_products(tmp_path):
+    s = load_settings()
+    hg = s.hedging
+    assert all(s.start.year <= y - 1 and y <= s.end.year for y in hg.backtest_years)
+    assert {q.product for q in hg.market_quotes} <= {"cal_base", "cal_peak"}
+    assert all(q.source.startswith("http") for q in hg.market_quotes)
+    bad = DEFAULT_CONFIG.read_text().replace("backtest_years = [2024, 2025]",
+                                             "backtest_years = [2023, 2025]")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="backtest"):
+        load_settings(path)

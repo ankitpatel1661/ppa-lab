@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from ppa_lab.hedging.hedge import STRATEGIES
 from ppa_lab.pricing.risk import tenor_price
 
 RESULTS = Path(__file__).resolve().parents[2] / "reports" / "results.json"
@@ -83,3 +84,19 @@ def structures_table(results: dict, park: str) -> pd.DataFrame:
         "Cash flow at risk 95% (EUR m)": t["cfar_eur"] / 1e6,
     })
     return out.astype(float).round(2)
+
+
+def hedging_table(results: dict, park: str) -> pd.DataFrame | None:
+    """Merchant risk by hedge (Step 8), or None when the results have no hedging section."""
+    hedging = results.get("hedging", {}).get("parks", {}).get(park)
+    if hedging is None:
+        return None
+    t = pd.DataFrame(hedging["strategies"]).T
+    t.index = [STRATEGIES.get(key, key) for key in t.index]
+    return pd.DataFrame({
+        "MW sold": t["hedge_mw"].astype(float),
+        "Hedge ratio (%)": 100 * t["hedge_ratio"].astype(float),
+        "CFaR95 (EUR m)": t["cfar_eur"].astype(float) / 1e6,
+        "CFaR cut (%)": 100 * t["cfar_reduction"].astype(float),
+        "Variance removed (%)": 100 * t["effectiveness"].astype(float),
+    }).round(2)

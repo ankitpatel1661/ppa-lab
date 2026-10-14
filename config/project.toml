@@ -88,6 +88,36 @@ credit_eur_mwh = 1.0
 capture_rate_drift = 0.0
 degradation = 0.0
 
+[hedging]
+# Step 8: hedging the parks' merchant output with power futures (src/ppa_lab/hedging/).
+# Back-test: Cal base for year Y sold at year Y-1's average spot price (a naive forward
+# proxy: historical futures settlements are not in the public data used here).
+backtest_years = [2024, 2025]
+
+# Market reference quotes for German baseload/peak futures, taken from secondary public web
+# pages (not EEX settlement files): used for the market check only. Replace or add EEX
+# settlements when available.
+[[hedging.market_quotes]]
+product = "cal_base"
+delivery_year = 2027
+price_eur_mwh = 104.24
+date = 2026-07-31
+source = "https://www.tacto.ai/en/energy/electricity-price"
+
+[[hedging.market_quotes]]
+product = "cal_base"
+delivery_year = 2027
+price_eur_mwh = 113.45
+date = 2026-08-28
+source = "https://www.power2market.com/en/markets"
+
+[[hedging.market_quotes]]
+product = "cal_peak"
+delivery_year = 2027
+price_eur_mwh = 119.48
+date = 2026-08-28
+source = "https://www.power2market.com/en/markets"
+
 [weather]
 # ERA5 reanalysis (ECMWF / Copernicus) through the free Open-Meteo archive API.
 base_url = "https://archive-api.open-meteo.com/v1"

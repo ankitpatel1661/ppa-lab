@@ -66,3 +66,33 @@ def test_memo_without_pricing_results_says_what_to_run(settings):
     out = write_step09_memo(settings, pdf=False)
     assert "run `ppa-lab pricing` first" in out["memo"].read_text()
     assert out["results"] is None
+
+
+def hedging_fixture() -> dict:
+    """The shape of data/processed/hedging.json (Step 8)."""
+    strategies = {"none": {"hedge_mw": 0.0, "hedge_ratio": 0.0, "cfar_eur": 1.4e6,
+                           "cfar_reduction": 0.0, "effectiveness": 0.0},
+                  "cal_base_min_variance": {"hedge_mw": 5.6, "hedge_ratio": 0.89,
+                                            "cfar_eur": 0.27e6, "cfar_reduction": 0.81,
+                                            "effectiveness": 0.97}}
+    park = {"strategies": strategies,
+            "buyer": {"premium_full_band": 5.0, "premium_min_variance": 4.2,
+                      "min_variance_ratio": 0.9},
+            "market_check": {"quote": 113.45, "date": "2026-08-28", "model_forward": 85.4,
+                             "indicative_model": 32.5, "indicative_market": 46.8}}
+    return {"delivery_year": 2027, "parks": {"solar_park": park, "wind_park": park}}
+
+
+def test_memo_uses_the_hedging_results_when_present(settings):
+    settings.processed_dir.mkdir(parents=True, exist_ok=True)
+    (settings.processed_dir / "ppa_pricing.json").write_text(json.dumps(pricing_fixture()))
+    (settings.processed_dir / "hedging.json").write_text(json.dumps(hedging_fixture()))
+
+    out = write_step09_memo(settings, pdf=False)
+
+    text = out["memo"].read_text()
+    assert "89%" in text and "81%" in text                     # the hedge recommendation
+    assert "113.45" in text and "46.8" in text                 # the market check
+    assert len(text.splitlines()) < 80
+    published = json.loads(out["results"].read_text())
+    assert published["hedging"]["parks"]["solar_park"]["buyer"]["premium_min_variance"] == 4.2

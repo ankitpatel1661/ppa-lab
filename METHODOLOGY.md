@@ -3,11 +3,12 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 0.4** (ticket PPA-7): cash flows and fair prices of the standard structures,
+**Version 1.0** (ticket PPA-8): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
-weather and price scenarios (PPA-6, section 9), and prices, risk premia and cash flow at risk
-on those scenarios (PPA-7, section 10). The next version adds hedging (PPA-8).
+weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
+on those scenarios (PPA-7, section 10), and hedging with power futures with a market check of
+the forward (PPA-8, section 11).
 
 ---
 
@@ -386,7 +387,53 @@ $$
 with capture-rate drift $\delta$, degradation $g$ and discount rate $r$. The first year's premium
 and costs per MWh are applied to every year.
 
-## 11. Assumptions and limitations
+## 11. Hedging with futures (PPA-8)
+
+Code: `src/ppa_lab/hedging/` (`products.py`, `hedge.py`); report `reports/step08_hedging.md`;
+results `data/processed/hedging.json`. Same scenarios as section 10.
+
+**Products.** EEX German power futures as masks $M_k$ over the delivery hours, in local time:
+Cal base (all hours), Cal peak (Monday to Friday 08:00-20:00, public holidays included, as on
+EEX), quarters Q1-Q4 and months M01-M12 (base). The model forward of product $k$ is the
+scenarios' mean price over its hours, $F_k = \frac{1}{S\,|M_k|}\sum_s \sum_{t \in M_k} P_{s,t}$,
+so every hedge is fair in expectation and changes only the spread.
+
+**Payoff.** Selling $h_k$ MW of product $k$ pays, per scenario,
+
+$$
+H_s = \sum_k h_k X_{s,k}, \qquad X_{s,k} = \sum_{t \in M_k} (F_k - P_{s,t}).
+$$
+
+**Minimum-variance hedge.** For a revenue $C_s$ (merchant: $\sum_t q_{s,t} P_{s,t}$),
+
+$$
+h^\star = \arg\min_h \operatorname{Var}(C + X h)
+= -\left(\tilde X^\top \tilde X\right)^{-1} \tilde X^\top \tilde C,
+$$
+
+a least-squares fit on the centred $\tilde X$, $\tilde C$ (Ederington, 1979); for one product,
+$h^\star = -\operatorname{Cov}(C, X)/\operatorname{Var}(X)$. No sign or position limits. Hedge
+ratio $= \sum_k h_k |M_k| / \sum_t \bar q_t$ (MW sold as a year average, over the average output in MW);
+hedge effectiveness $= 1 - \operatorname{Var}(C + H)/\operatorname{Var}(C)$; CFaR as in section 5.
+Strategies compared: none, Cal base at 50% and 100% of the average output, and minimum-variance
+with Cal base, quarters and months.
+
+**Buyer's hedge.** The PPA buyer of section 10 sells a band $B$; Step 7 used
+$B = E[\sum_t q_t]/T$. Step 8 also reports $B^\star$, the minimum-variance band for the buyer's
+position $\sum_t q_{s,t}(P_{s,t} - K^\star)$, and the premium $\pi_{joint}$ with $B^\star$.
+
+**Back-test.** For year $Y$, sell $h$ MW of Cal base at $F_Y = \bar P_{Y-1}$, the previous
+local calendar year's average day-ahead price (a naive proxy, no futures history in the
+project); hedge P&L $= h \sum_{t \in Y} (F_Y - P_t)$ next to the merchant revenue of the measured
+historical output. $h$ = minimum-variance ratio $\times$ P50 average output.
+
+**Market check.** Published Cal base and peak quotes (`[hedging.market_quotes]`: product,
+delivery year, price, date, source URL) against $F_k$; the indicative price at the latest Cal
+base quote is the section 10 stack with the forward and the fair price scaled by
+$F^{mkt}/\bar P$ (capture rate, premium and costs unchanged; the dashboard's forward knob).
+The quotes are from secondary web sources and stand in for EEX settlement prices.
+
+## 12. Assumptions and limitations
 
 | Assumption | Effect | Addressed in |
 |---|---|---|
@@ -394,7 +441,7 @@ and costs per MWh are applied to every year.
 | Hourly ERA5 at a ~0.25° grid point | Smooths gusts and local terrain; coastal cells mix land and sea | site chosen on land; v2: downscaling or measured data |
 | Site models give potential output | No grid curtailment (heavy in Schleswig-Holstein), outages or degradation | v2 |
 | Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
-| Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5/PPA-8 (price model, futures) |
+| Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5 (price model); PPA-8 compares with market quotes |
 | One history, no scenarios | No distribution, no risk premium | PPA-5 (price paths); PPA-6/PPA-7 (joint Monte Carlo, premia) |
 | Price model: symmetric transform, no soft floor at zero | Too few hours just below 0 EUR/MWh, too many deep negative hours | v2 of the price model |
 | Price paths independent of weather (PPA-5) | Capture rates overstated (wind 1.02 vs 0.88, solar 0.62 vs 0.555 in 2025) | Done in PPA-6 (section 9) |
@@ -402,11 +449,14 @@ and costs per MWh are applied to every year.
 | Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
 | Linear daily response per season | No saturation (e.g. once prices hit zero, more wind changes little) | Analog patterns carry part of it; v2 |
 | Parks produce their potential output | No curtailment at negative prices; a candidate for the wind 2024 gap | v2 |
-| One delivery year of scenarios; later years by drift and degradation | A ten-year price rests on a flat forward and an assumed capture-rate trend | Sensitivities in PPA-7; forward curve in PPA-8 |
+| One delivery year of scenarios; later years by drift and degradation | A ten-year price rests on a flat forward and an assumed capture-rate trend | Sensitivities in PPA-7; v2: market curve for later years |
 | Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
-| Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8 (market forwards, hedge ratio) |
+| Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (premium 0.8 EUR/MWh lower for solar); transaction costs v2 |
 | One calibration window (2024-2026), in-sample validation only | Regime changes and out-of-sample errors not tested | v2: rolling, out-of-sample validation |
-| One illustrative annual forward (85 EUR/MWh), no monthly forward curve | Level and its seasonality not market-implied | PPA-8 |
+| One illustrative annual forward (85 EUR/MWh), no monthly forward curve | Level and its seasonality not market-implied; published Cal-27 base quotes are 104-113 EUR/MWh (solar indicative 46.8 instead of 33.3 at 113.45) | PPA-8 market check; re-anchoring to the market forward is an open decision (backlog) |
+| Hedges at the model forward, no limits, no costs | Real hedges trade at market prices with bid-ask spreads, margining and position limits; unconstrained monthly hedges can be negative | v2: constraints (no negative sales), costs |
+| Hedge back-test with last year's average as forward | Not a market price; two years only, so it illustrates, not measures | v2: EEX settlement history |
+| Market quotes from secondary web sources | Not official EEX settlements; dates differ | Replace with EEX data |
 | Measured generation is after curtailment | Slightly higher capture prices than official market values (Step 2) | Backlog PPA-2b |
 | Balancing, route-to-market and credit costs as fixed EUR/MWh | Not modelled from imbalance prices or counterparty data | Stated assumptions in PPA-7; models in v2 |
 | Negative-price clause assumes curtailment | No cost of producing at negative prices | – |
@@ -423,3 +473,5 @@ and costs per MWh are applied to every year.
   had been saved as control characters (`\t`, `\a`, `\f`, `\r`) restored.
 - **v0.3, PPA-6:** joint weather and price scenarios (section 9); limitations updated.
 - **v0.4, PPA-7:** pricing and risk on the scenarios (section 10); limitations updated.
+- **v1.0, PPA-8:** hedging with futures and the market check (section 11); assumptions
+  renumbered to section 12; limitations updated.

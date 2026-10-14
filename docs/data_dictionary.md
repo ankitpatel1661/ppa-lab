@@ -8,7 +8,8 @@ Update this page whenever a dataset or column is added (part of the definition o
 [prices_hourly](#prices_hourlyparquet) · [power_15min / power_hourly](#power_15minparquet-and-power_hourlyparquet) ·
 [weather / generation](#weather_parkparquet-step-4) · [price_model.json](#price_modeljson-step-5) ·
 [scenarios_2027](#scenarios_yearparquet-step-6) · [ppa_pricing.json / results.json](#ppa_pricingjson-step-7-and-reportsresultsjson-step-9) ·
-[Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test, volumes, price paths) ·
+[hedging.json](#hedgingjson-step-8) ·
+[Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test, volumes, price paths, hedging) ·
 [Loading](#how-to-load-the-data)
 
 ---
@@ -33,7 +34,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 |---|---|---|---|---|
 | Raw | `data/raw/energy_charts/<dataset>/<YYYY-MM>.parquet` + `.json` manifest | No | `ppa-lab fetch` | Exactly what the API returned, one file per month, with checksum, parameters and licence |
 | Raw (weather) | `data/raw/open_meteo/weather_<park>/<YYYY>.parquet` + `.json` manifest | No | `ppa-lab weather` | ERA5 weather per site and year exactly as Open-Meteo labels it, with the ERA5 grid point used |
-| Processed | `data/processed/*.parquet`, `price_model.json`, `ppa_pricing.json` | No | `ppa-lab build`, `weather`, `prices`, `scenarios`, `pricing` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters; scenario and pricing results (files below) |
+| Processed | `data/processed/*.parquet`, `price_model.json`, `ppa_pricing.json`, `hedging.json` | No | `ppa-lab build`, `weather`, `prices`, `scenarios`, `pricing`, `hedging` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters; scenario, pricing and hedging results (files below) |
 | Reference | `data/reference/*.csv` | **Yes** | by hand, with provenance in the file header | Small published datasets used for reconciliation |
 
 Rebuild everything with `make all` (first download of prices about 10-15 minutes and of
@@ -216,7 +217,8 @@ the capture prices (`ppa_lab.scenarios.generator.fair_price`). Hourly prices are
 ## `ppa_pricing.json` (Step 7) and `reports/results.json` (Step 9)
 
 Key pricing results, written by `ppa-lab pricing`; input for Step 9. `ppa-lab memo` copies
-them to `reports/results.json` (committed, plus `ppa_lab_version`), which the dashboard reads.
+them to `reports/results.json` (committed, plus `ppa_lab_version` and, if present, the Step 8
+`hedging` results), which the dashboard reads.
 Strict JSON: missing values are `null`. All prices in EUR/MWh,
 revenues in EUR, energies in MWh, for the first delivery year unless stated.
 
@@ -233,6 +235,26 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `parks.<park>.whole_window` | `fair_price` and `premium` with analog days from the whole calibration window |
 | `parks.<park>.assumptions` | `balancing_eur_mwh`, `credit_eur_mwh`, `capture_rate_drift`, `degradation` (from `[ppa.parks.*]`) |
 | `discount_rate` | annual discount rate of the tenor price |
+
+---
+
+## `hedging.json` (Step 8)
+
+Written by `ppa-lab hedging`; `ppa-lab memo` copies it into `reports/results.json` as `hedging`.
+Strict JSON. Same scenarios as `ppa_pricing.json`. Prices EUR/MWh, revenues EUR, amounts MW
+(year average).
+
+| Key | Meaning |
+|---|---|
+| `delivery_year` | Delivery year of the scenarios |
+| `model_forwards` | `cal_base`, `cal_peak`, `Q1`..`Q4`: mean scenario price over the product's hours |
+| `market_quotes` | List of `product`, `delivery_year`, `price_eur_mwh`, `date`, `source` (URL) from `[hedging.market_quotes]` |
+| `parks.<park>.average_mw`, `p50_mw` | Expected output over the scenarios / P50 historical output, as average MW |
+| `parks.<park>.strategies.<strategy>` | `hedge_mw`, `hedge_ratio`, `expected_eur`, `cfar_eur`, `cfar_reduction`, `effectiveness` for `none`, `cal_base_50`, `cal_base_100`, `cal_base_min_variance`, `quarters_min_variance`, `months_min_variance` |
+| `parks.<park>.quarters_min_variance_mw`, `months_min_variance_mw` | MW per product of the multi-product minimum-variance hedges (can be negative) |
+| `parks.<park>.buyer` | `band_mw` (Step 7 band), `min_variance_mw`, `min_variance_ratio`, `premium_full_band`, `premium_min_variance` (EUR/MWh) |
+| `parks.<park>.backtest.<year>` | `forward_proxy` (previous year's average), `realised_base`, `merchant_revenue_eur`, `hedge_pnl_eur`, `hedged_revenue_eur` |
+| `parks.<park>.market_check` | `quote`, `date` (latest Cal base quote), `model_forward`, `indicative_model`, `indicative_market` (EUR/MWh) |
 
 ---
 
@@ -354,6 +376,18 @@ not a forecast of a particular hour.
 | `structure_revenues(prices, volumes, floor)` | structure → (strike, annual revenue per scenario) |
 | `structure_table(prices, volumes, floor, quantile)` | per structure: fair price, expected and P5 revenue, CFaR, CFaR share, floor value |
 | `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ...)` | per year: forward, capture rate, fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+
+### Hedging (`ppa_lab.hedging`)
+
+| Function | Returns |
+|---|---|
+| `product_masks(index, tz)` | product → boolean mask over the hours: `cal_base`, `cal_peak` (Mon-Fri 08-20 local), `Q1`..`Q4`, `M01`..`M12` |
+| `model_forwards(prices, masks)` | product → mean scenario price over its hours (EUR/MWh) |
+| `hedge_payoffs(prices, masks, forwards, products)` | array (scenarios, products): Σ over the product's hours of (F − P), EUR per MW sold |
+| `min_variance_hedge(cash, payoffs)` | MW per product minimising Var(cash + payoffs · h) |
+| `hedge_strategies(cash, prices, masks, forwards, average_mw, quantile)` | per strategy: MW, hedge ratio, expected revenue, CFaR, CFaR reduction, effectiveness, MW per product |
+| `buyer_hedge(prices, volumes, quantile)` | the PPA buyer's full and minimum-variance band and premia |
+| `backtest_hedge(prices, mw, tz, years, hedge_mw)` | per year: forward proxy, realised base, merchant revenue, hedge P&L, hedged revenue |
 
 ### `annual_price_stats(prices, tz)` (`ppa_lab.analysis.reconcile`)
 

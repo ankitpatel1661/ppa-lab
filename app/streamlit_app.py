@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from ppa_lab.dashboard import (  # noqa: E402
     Assumptions,
     default_assumptions,
+    hedging_table,
     load_results,
     offer,
     structures_table,
@@ -121,8 +122,9 @@ for col, label, value, note in zip(
     col.metric(label, value)
     col.caption(note)
 
-tab_price, tab_risk, tab_built, tab_method = st.tabs(
-    ["From forward to offer", "Risk by structure", "How it was built", "Method and limits"])
+tab_price, tab_risk, tab_hedge, tab_built, tab_method = st.tabs(
+    ["From forward to offer", "Risk by structure", "Hedging", "How it was built",
+     "Method and limits"])
 
 with tab_price:
     st.pyplot(stack_figure(s))
@@ -147,6 +149,31 @@ with tab_risk:
         f"hedge it would be {p['unhedged']:.1f}, but that is the price level, which the buyer can "
         "hedge almost for free.")
 
+with tab_hedge:
+    hedges = hedging_table(results, park)
+    if hedges is None:
+        st.info("No hedging results yet: run `ppa-lab hedging` and `ppa-lab memo` (Step 8).")
+    else:
+        h = results["hedging"]["parks"][park]
+        st.subheader(f"If the park sold at spot: merchant risk by futures hedge ({start})")
+        st.dataframe(hedges, width="stretch")
+        st.caption("MW sold: futures sold, as a year-average MW. Hedge ratio = MW sold / the "
+                   "park's average output. CFaR95 = expected revenue minus its 5% quantile.")
+        best = h["strategies"]["cal_base_min_variance"]
+        st.markdown(
+            f"Selling **{best['hedge_ratio']:.0%} of the average output** as Cal base futures "
+            f"cuts the merchant cash flow at risk by **{best['cfar_reduction']:.0%}**. The PPA "
+            f"buyer's premium falls from {h['buyer']['premium_full_band']:.1f} to "
+            f"{h['buyer']['premium_min_variance']:.1f} EUR/MWh with the minimum-variance hedge "
+            f"({h['buyer']['min_variance_ratio']:.0%} of the average output).")
+        m = h.get("market_check") or {}
+        if m:
+            st.warning(
+                f"Market check: a published Cal base quote of {m['quote']:.2f} EUR/MWh "
+                f"({m['date']}) is above the assumed forward ({m['model_forward']:.1f}). Use the "
+                f"forward knob: at the quote the indicative price is {m['indicative_market']:.1f} "
+                f"EUR/MWh.")
+
 with tab_built:
     steps = pd.DataFrame([
         (1, "Market data", "Prices and generation since 2023, checked and reconciled",
@@ -163,6 +190,8 @@ with tab_built:
          "step06_joint_scenarios.md"),
         (7, "Pricing and risk", "Structures, premia, price stack, ten-year price",
          "step07_ppa_pricing.md"),
+        (8, "Hedging", "Futures hedges, hedge ratio, buyer's hedge, market check",
+         "step08_hedging.md"),
     ], columns=["Step", "What", "Result", "Report"])
     steps["Report"] = steps["Report"].map(lambda f: f"{REPO}/reports/{f}")
     st.dataframe(steps, hide_index=True, width="stretch",

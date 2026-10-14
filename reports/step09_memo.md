@@ -1,6 +1,6 @@
 # Indicative price for a 10-year solar PPA (Lusatia, 50 MWp)
 
-<p class="meta">Memo · 14 Oct 2026 · ppa-lab 0.9.0 · illustrative analysis
+<p class="meta">Memo · 14 Oct 2026 · ppa-lab 1.0.0 · illustrative analysis
 from public data, not an offer · details: reports/step07_ppa_pricing.md</p>
 
 **Bottom line.** For a 10-year pay-as-produced PPA (2027-2036) the negotiation range is
@@ -44,8 +44,7 @@ more than the risk premium and the costs together.
 1. Quote within the range above; do not go below 33.3 EUR/MWh.
 2. Keep a negative-price clause out, or price it separately: 25% of the solar output
    falls in hours with negative prices and would be unpaid.
-3. Agree the cannibalisation view with Risk before signing, and hedge the level of any unsold
-   volume with baseload forwards (next step of the project: market forwards and hedge ratio).
+3. Agree the cannibalisation view with Risk before signing, and for any unsold volume sell about 89% of the average output as Cal base futures: it cuts the merchant cash flow at risk by 81% (solar park).
 
 ## Method and limits
 
@@ -55,5 +54,5 @@ day-ahead prices, analog days from 2025-10-01). Fair price
 = E[Σ q P] / E[Σ q]; premium = 5% shortfall of the buyer's hedged value per MWh; later years by
 a flat forward and capture rate, discounted at 6%. Limits: the
 forward is an assumption, the costs are illustrative, the parks produce their potential output
-(no curtailment), and one market regime is in the data. Wind park for comparison: fair
-74.8, indicative 68.4 EUR/MWh.
+(no curtailment), and one market regime is in the data. Published Cal-27 base quotes are higher than the assumed forward: at 113.45 EUR/MWh (2026-08-28) the solar indicative price would be 46.8 instead of 33.3 EUR/MWh. Wind park for
+comparison: fair 74.8, indicative 68.4 EUR/MWh.

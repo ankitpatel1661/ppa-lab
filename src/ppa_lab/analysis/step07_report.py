@@ -234,12 +234,12 @@ def _tenor_md(tenors: dict[str, list[dict]], names: dict[str, str]) -> str:
     return pd.DataFrame(rows).to_markdown(index=False)
 
 
-def _strict(obj):
+def to_strict_json(obj):
     """JSON-safe copy: NaN becomes null, NumPy numbers become Python floats."""
     if isinstance(obj, dict):
-        return {k: _strict(v) for k, v in obj.items()}
+        return {k: to_strict_json(v) for k, v in obj.items()}
     if isinstance(obj, list | tuple):
-        return [_strict(v) for v in obj]
+        return [to_strict_json(v) for v in obj]
     if isinstance(obj, int | float | np.floating | np.integer) and not isinstance(obj, bool):
         value = float(obj) if not isinstance(obj, int | np.integer) else int(obj)
         return None if isinstance(value, float) and np.isnan(value) else value
@@ -303,7 +303,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         }
 
     out_json = settings.processed_dir / "ppa_pricing.json"
-    out_json.write_text(json.dumps(_strict({
+    out_json.write_text(json.dumps(to_strict_json({
         "generated_utc": f"{datetime.now(UTC):%Y-%m-%d %H:%M}", "delivery_year": ppa.start_year,
         "tenor_years": ppa.tenor_years, "discount_rate": ppa.discount_rate,
         "analog_pool_start": str(ppa.analog_pool_start),

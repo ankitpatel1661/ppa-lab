@@ -39,12 +39,17 @@ with their market, shape and volume risks.
 - **The biggest lever is the view on cannibalisation:** which historical days represent 2027
   (+7.6 EUR/MWh with the whole 2024-2026 window), the capture-rate trend (±3.4 per pp per
   year), the forward (±4.1 for ±10%).
+- **The forward is the biggest open input:** published Cal-27 base quotes (104-113 EUR/MWh)
+  are well above the assumed 85; at 113.45 the solar indicative price would be 46.8 EUR/MWh
+  and wind 93.0 (Step 8). Hedging the unsold output with Cal base at about 90% of its average
+  output cuts its cash flow at risk by 75-81%.
 
 **Read more:** [one-page management memo](reports/step09_memo.md) ([PDF](reports/step09_memo.pdf))
 · [methodology](METHODOLOGY.md) · [Step 7 report](reports/step07_ppa_pricing.md) ·
+[Step 8 hedging report](reports/step08_hedging.md) ·
 **try your own assumptions** in the dashboard (`make app`).
 
-## How it works, in seven steps
+## How it works, in nine steps
 
 | Step | Question | Key result | Report | Learn |
 |---|---|---|---|---|
@@ -55,16 +60,16 @@ with their market, shape and volume risks.
 | 5 | Which price years are plausible? | Prices forget in about a day; validated against history | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
 | 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 87 → 75 EUR/MWh | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
 | 7 | What price, and how much risk is left? | 33.3 EUR/MWh indicative; CFaR −86% with the PPA | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
+| 8 | How much to sell forward, and is our forward right? | Cal base at ~90% of output cuts merchant CFaR by 81% (solar); market Cal-27 104-113 vs 85 assumed | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
+| 9 | How do we tell management? | One-page memo and a dashboard with live assumptions | [memo](reports/step09_memo.md) | [page](docs/learning_track/step09_memo_dashboard.md) |
 
-The memo and the dashboard (Step 9) present the result; hedging with market forwards
-(Step 8) comes next. Every step has tests, a report, a learning-track page, a notebook
-section and exercises.
+Every step has tests, a report, a learning-track page, a notebook section and exercises.
 
 ## Run it yourself
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 216 offline tests, about 20 seconds
+make test      # 228 offline tests, about 30 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 make app       # the dashboard (reads the committed results; no download needed)
 ```
@@ -90,6 +95,7 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab prices    # price model: fit, validate, simulate -> reports/step05_price_model.md
 .venv/bin/ppa-lab scenarios # weather x price scenarios -> reports/step06_joint_scenarios.md
 .venv/bin/ppa-lab pricing   # PPA prices, risk premia, CFaR -> reports/step07_ppa_pricing.md
+.venv/bin/ppa-lab hedging   # futures hedges, buyer's hedge, market check -> reports/step08_hedging.md
 .venv/bin/ppa-lab memo      # one-page memo + reports/results.json for the dashboard
 ```
 
@@ -132,6 +138,9 @@ src/ppa_lab/
   analysis/step06_report.py   Step 6 report and charts
   pricing/risk.py            structures on scenarios, CFaR, risk premia, ten-year price
   analysis/step07_report.py   Step 7 report and charts
+  hedging/products.py        EEX products: Cal base and peak, quarters, months (local time)
+  hedging/hedge.py           hedge payoffs, minimum-variance hedges, strategies, back-test
+  analysis/step08_report.py   Step 8 report, charts and market check
   analysis/step09_memo.py    one-page memo and the dashboard's results file
   dashboard.py               dashboard logic (tested): an offer for any assumptions
   cli.py                     `ppa-lab` command
@@ -148,6 +157,30 @@ scripts/build_docs.py        learning-track Markdown -> PDF (`make docs`)
 ```
 
 ## Results by step
+
+### Step 8 results: how much to sell forward
+
+The parks' output sold at spot in 2027 (496 scenarios), and with EEX futures sold at the
+model's forward. Hedge ratio = MW sold / average output.
+
+| 2027, merchant output | Solar park (50 MWp) | Wind park (30 MW) |
+|---|---|---|
+| CFaR95, no hedge | EUR 1.44 m | EUR 2.95 m |
+| Cal base, 100% of average output | EUR 0.35 m | EUR 0.88 m |
+| **Cal base, minimum-variance** | **EUR 0.27 m** (5.6 MW, 89%) | **EUR 0.74 m** (11.7 MW, 93%) |
+| Months, minimum-variance | EUR 0.23 m | EUR 0.67 m |
+| PPA buyer's premium: full band → minimum-variance band | 5.27 → 4.45 EUR/MWh | 3.39 → 2.92 EUR/MWh |
+
+- **One product does almost all the work:** Cal base at about 90% of the average output.
+  Monthly hedges from 496 scenarios mostly fit noise (some months even negative).
+- **Judge a hedge by the risk it removes:** back-tested at the previous year's average price,
+  the solar hedge earned EUR +0.82 m in 2024 and lost EUR 0.53 m in 2025.
+- **Market check:** published Cal-27 base quotes are 104.24 EUR/MWh (31 Jul 2026) and
+  113.45 (28 Aug 2026) against the model's 85. At 113.45 the indicative prices would be 46.8
+  (solar) and 93.0 (wind) instead of 33.3 and 68.4. Anchoring the model's level to the market
+  forward is the main open decision ([backlog](docs/BACKLOG.md)).
+
+Full report: [`reports/step08_hedging.md`](reports/step08_hedging.md).
 
 ### Step 6 results: prices that see the weather
 
@@ -304,6 +337,10 @@ The full numbers, the data-quality report and four charts are in
 - Official market values (Marktwerte): the German TSOs, published on
   [netztransparenz.de](https://www.netztransparenz.de), stored in
   `data/reference/` for reconciliation.
+- Forward quotes for the market check (Step 8): published Cal-27 quotes from
+  [tacto.ai](https://www.tacto.ai/en/energy/electricity-price) and
+  [power2market](https://www.power2market.com/en/markets), with date and URL in
+  `config/project.toml` (secondary sources, not EEX settlement prices).
 - Code: MIT licence (see `LICENSE`). The licence does not cover downloaded data.
 
 ## Methodology notes
@@ -317,6 +354,6 @@ The full numbers, the data-quality report and four charts are in
 
 ## Status
 
-Version 0.9.0: Steps 1-7 and 9 are done; **Step 8** (hedging with market forwards: hedge
-ratio, products, back-test) is next. See the [backlog](docs/BACKLOG.md) and the
-[changelog](CHANGELOG.md).
+Version 1.0.0: Steps 1-9 are done. Candidates for a version 2 (anchoring the level to market
+forwards, constrained hedges, out-of-sample validation, site curtailment) are in the
+[backlog](docs/BACKLOG.md); see also the [changelog](CHANGELOG.md).

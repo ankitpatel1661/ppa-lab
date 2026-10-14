@@ -14,7 +14,8 @@ that step is written.
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | **Done** |
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | **Done** |
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | **Done** |
-| PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | To do (next) |
+| PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | **Done** |
+| PPA-8b | later | Anchor the price level to the market forward (decision pending) | To do |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
 ## PPA-2: Capture prices and capture rates (Step 2)
@@ -118,8 +119,32 @@ the assumptions myself, without running the pipeline.
 - [x] README as a front page with the answer and a CI badge.
 - [x] Learning-track page, notebook section, exercises.
 
-Done before PPA-8 on purpose: the public MVP had to be complete before the application date;
-PPA-8 (hedging with market forwards) follows.
+Done before PPA-8 on purpose: the public MVP had to be complete before the application date.
+
+## PPA-8: Hedging with futures (Step 8)
+
+**Story:** As treasury I want to know how much of the unsold output to sell forward, in
+which product, and whether our model's forward matches the market.
+
+**Acceptance criteria**
+- [x] German futures products on the delivery calendar: Cal base and peak, quarters, months.
+- [x] Hedge payoffs and minimum-variance hedges for one or several products.
+- [x] Strategies for both parks' merchant output (none, 50%, 100%, minimum-variance with Cal
+      base, quarters, months) with CFaR and variance removed.
+- [x] The PPA buyer's minimum-variance band against Step 7's full band.
+- [x] Back-test on 2024-2025 and a market check against published quotes.
+- [x] Report, `hedging.json` for the memo and the dashboard, learning page, notebook, exercises.
+
+## PPA-8b: Anchor the price level to the market forward (decision pending)
+
+**Finding (Step 8):** published Cal-27 base quotes are 104.24 EUR/MWh (31 Jul 2026, tacto.ai)
+and 113.45 (28 Aug 2026, power2market), peak 119.48; the model uses the assumed 85 EUR/MWh.
+At 113.45 the indicative prices would be 46.8 (solar) and 93.0 (wind) instead of 33.3 and 68.4.
+
+**Acceptance criteria**
+- [ ] Decide the level: a verified market quote (ideally an EEX settlement) or the assumption.
+- [ ] If changed: `[price_model] forward_eur_mwh`, re-run `make prices scenarios pricing hedging memo`,
+      update the README, memo and learning pages that quote the headline numbers.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 
@@ -151,6 +176,8 @@ extrapolation, which keeps more energy in cheap hours.
 - Price model v2: a soft floor just below zero for negative prices; block bootstrap or a
   weather link for multi-day patterns; out-of-sample and rolling-window validation; a
   monthly forward curve instead of one annual level.
+- Hedging v2: no negative sales and position limits (`scipy.optimize.nnls`), transaction
+  costs, a back-test with EEX settlement history, multi-year hedges.
 - Secret scanning in CI (e.g. gitleaks) after the `.env.example` near-miss on 8 Oct 2026.
 - Step 3 back-test re-run with the Step 4 site profiles instead of scaled national profiles.
 - Grid curtailment (redispatch) and availability in the wind model; air-density correction.

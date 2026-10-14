@@ -40,6 +40,7 @@ def test_all_runs_the_whole_pipeline(two_day_settings):
     assert not (two_day_settings.reports_dir / "step07_ppa_pricing.md").exists()
     # Step 9 runs and says that the pricing results are missing.
     assert "ppa-lab pricing" in (two_day_settings.reports_dir / "step09_memo.md").read_text()
+    assert not (two_day_settings.reports_dir / "step08_hedging.md").exists()
 
 
 def test_prices_command_writes_the_step05_report(settings, monkeypatch):
@@ -89,6 +90,18 @@ def test_memo_command_writes_the_memo_and_the_results_file(settings, monkeypatch
     assert cli.main(["memo"]) == 0
     assert (settings.reports_dir / "step09_memo.md").exists()
     assert (settings.reports_dir / "results.json").exists()
+
+
+def test_hedging_command_writes_the_step08_report(settings, monkeypatch):
+    from test_step08_report import small_settings
+    s = small_settings(settings)
+    write_synthetic_market(s)
+    monkeypatch.setattr(cli, "load_settings", lambda path=None: s)
+    monkeypatch.setattr(cli, "_weather_client", lambda _settings: FakeWeatherClient())
+    assert cli.main(["weather"]) == 0
+    assert cli.main(["hedging"]) == 0
+    assert (s.reports_dir / "step08_hedging.md").exists()
+    assert (s.processed_dir / "hedging.json").exists()
 
 
 def test_weather_command_builds_generation_and_the_step04_report(settings, monkeypatch):

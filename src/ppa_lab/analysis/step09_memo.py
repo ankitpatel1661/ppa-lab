@@ -94,6 +94,21 @@ def memo_text(results: dict, settings: Settings) -> str:
         plain = structures["pay_as_produced"]["expected_revenue_eur"]
         paid = clause["expected_revenue_eur"] / plain
         negative = f"{1 - paid:.0%}"
+    hedge_line = ("hedge the level of any unsold volume with baseload forwards.")
+    market_line = ""
+    hedging = results.get("hedging")
+    if hedging and "solar_park" in hedging.get("parks", {}):
+        h = hedging["parks"]["solar_park"]
+        best = h["strategies"]["cal_base_min_variance"]
+        hedge_line = (f"for any unsold volume sell about {best['hedge_ratio']:.0%} of the average "
+                      f"output as Cal base futures: it cuts the merchant cash flow at risk by "
+                      f"{best['cfar_reduction']:.0%} (solar park).")
+        m = h.get("market_check") or {}
+        if m:
+            market_line = (f" Published Cal-{str(start)[2:]} base quotes are higher than the "
+                           f"assumed forward: at {m['quote']:.2f} EUR/MWh ({m['date']}) the solar "
+                           f"indicative price would be {m['indicative_market']:.1f} instead of "
+                           f"{m['indicative_model']:.1f} EUR/MWh.")
     site = parks["solar_park"].site if "solar_park" in parks else "the solar site"
     mwp = parks["solar_park"].capacity_mw if "solar_park" in parks else 50
     return f"""# Indicative price for a {years}-year solar PPA ({site.split(',')[0]}, {mwp:g} MWp)
@@ -132,8 +147,7 @@ more than the risk premium and the costs together.
 1. Quote within the range above; do not go below {base_ind:.1f} EUR/MWh.
 2. Keep a negative-price clause out, or price it separately: {negative} of the solar output
    falls in hours with negative prices and would be unpaid.
-3. Agree the cannibalisation view with Risk before signing, and hedge the level of any unsold
-   volume with baseload forwards (next step of the project: market forwards and hedge ratio).
+3. Agree the cannibalisation view with Risk before signing, and {hedge_line}
 
 ## Method and limits
 
@@ -143,8 +157,8 @@ day-ahead prices, analog days from {results['analog_pool_start']}). Fair price
 = E[Σ q P] / E[Σ q]; premium = 5% shortfall of the buyer's hedged value per MWh; later years by
 a flat forward and capture rate, discounted at {results['discount_rate']:.0%}. Limits: the
 forward is an assumption, the costs are illustrative, the parks produce their potential output
-(no curtailment), and one market regime is in the data. Wind park for comparison: fair
-{w['fair_price']:.1f}, indicative {w['indicative']:.1f} EUR/MWh.
+(no curtailment), and one market regime is in the data.{market_line} Wind park for
+comparison: fair {w['fair_price']:.1f}, indicative {w['indicative']:.1f} EUR/MWh.
 """
 
 
@@ -179,6 +193,9 @@ def write_step09_memo(settings: Settings, pdf: bool = True) -> dict[str, Path | 
                         "first (Step 7).\n")
         return {"memo": memo, "pdf": None, "results": None}
     results = json.loads(source.read_text())
+    hedging = settings.processed_dir / "hedging.json"
+    if hedging.exists():
+        results["hedging"] = json.loads(hedging.read_text())
     published = reports / "results.json"
     published.write_text(json.dumps({**results, "ppa_lab_version": __version__}, indent=1))
     memo.write_text(memo_text(results, settings))

@@ -6,6 +6,32 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] (Step 8, ticket PPA-8; all steps done)
+
+### Added
+- Hedging with power futures (`ppa_lab.hedging`): EEX products on the delivery calendar
+  (Cal base and peak, quarters, months, in local time; `product_masks`), model forwards,
+  hedge payoffs, minimum-variance hedges for one or several products (`min_variance_hedge`),
+  strategies compared by CFaR and variance removed (`hedge_strategies`), the PPA buyer's
+  minimum-variance band (`buyer_hedge`) and a back-test on history (`backtest_hedge`).
+- Step 8 report (`ppa-lab hedging`, `make hedging`, part of `make all` before the memo) with
+  the forward curve, a market check against published Cal-27 quotes, the strategies, the
+  buyer's hedge and the back-test, three charts and `data/processed/hedging.json`.
+- `[hedging]` settings: back-test years and market quotes (product, delivery year, price,
+  date, source URL), validated.
+- The memo's hedge recommendation and market check, and a Hedging tab in the dashboard,
+  read the Step 8 results (`reports/results.json` now contains `hedging`).
+- Step 8 learning-track page, notebook section (8.1-8.6, "My solutions"), exercises;
+  METHODOLOGY v1.0 (section 11, assumptions renumbered to 12); data dictionary entries.
+
+### Findings
+- A Cal base hedge of about 90% of the average output cuts the merchant CFaR95 by 81%
+  (solar) and 75% (wind); monthly hedges add little and mostly fit noise.
+- The PPA buyer's premium with the minimum-variance band is 4.45 instead of 5.27 EUR/MWh
+  (solar) and 2.92 instead of 3.39 (wind).
+- Published Cal-27 base quotes (104.24 and 113.45 EUR/MWh) are well above the assumed
+  85 EUR/MWh; at 113.45 the indicative prices would be 46.8 (solar) and 93.0 (wind).
+
 ## [0.9.0] (Step 9, ticket PPA-9; Step 8 follows)
 
 ### Added

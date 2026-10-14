@@ -10,9 +10,10 @@
     ppa-lab prices   calibrate and validate the stochastic price model, write the Step 5 report
     ppa-lab scenarios  joint weather x price scenarios for the delivery year, Step 6 report
     ppa-lab pricing  price the parks' PPAs: structures, risk premia, price stack, Step 7 report
+    ppa-lab hedging  hedging the parks' output with power futures, Step 8 report
     ppa-lab memo     one-page management memo + reports/results.json for the dashboard (Step 9)
     ppa-lab all      fetch + build + check + report + capture + ppa + weather + prices + scenarios
-                     + pricing + memo
+                     + pricing + hedging + memo
 """
 
 from __future__ import annotations
@@ -165,6 +166,20 @@ def cmd_pricing(args, settings) -> int:
     return 0
 
 
+def cmd_hedging(args, settings) -> int:
+    from ppa_lab.analysis.step08_report import write_step08_report  # heavy import, load lazily
+
+    pm = settings.price_model
+    if settings.hedging is None or settings.ppa is None or pm is None or not (
+            settings.start <= pm.calibration_start and pm.calibration_end <= settings.end):
+        log.warning("Step 8 report skipped: hedging needs the scenarios and the price model's "
+                    "calibration window inside %s..%s", settings.start, settings.end)
+        return 0
+    paths = write_step08_report(settings)
+    log.info("Report written to %s", paths["report"])
+    return 0
+
+
 MEMO_PDF = True  # render the memo to PDF when Chrome is available (tests switch it off)
 
 
@@ -178,7 +193,7 @@ def cmd_memo(args, settings) -> int:
 
 def cmd_all(args, settings) -> int:
     steps = (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa, cmd_weather,
-             cmd_prices, cmd_scenarios, cmd_pricing, cmd_memo)
+             cmd_prices, cmd_scenarios, cmd_pricing, cmd_hedging, cmd_memo)
     for step in steps:
         code = step(args, settings)
         if code:
@@ -204,6 +219,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("prices", cmd_prices, "calibrate and validate the price model -> Step 5 report"),
         ("scenarios", cmd_scenarios, "joint weather x price scenarios -> Step 6 report"),
         ("pricing", cmd_pricing, "price the PPAs with their risk premia -> Step 7 report"),
+        ("hedging", cmd_hedging, "hedging with power futures -> Step 8 report"),
         ("memo", cmd_memo, "one-page memo and the dashboard's results file -> Step 9"),
         ("all", cmd_all, "the whole pipeline, Steps 1 to 9"),
     ):

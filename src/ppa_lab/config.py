@@ -102,6 +102,25 @@ class PpaSettings:
 
 
 @dataclass(frozen=True)
+class MarketQuote:
+    """A published forward price (Step 8 market check)."""
+
+    product: str              # cal_base or cal_peak
+    delivery_year: int
+    price_eur_mwh: float
+    date: date                # trading day of the quote
+    source: str               # URL
+
+
+@dataclass(frozen=True)
+class HedgingSettings:
+    """Hedging with futures (Step 8)."""
+
+    backtest_years: tuple[int, ...]
+    market_quotes: tuple[MarketQuote, ...] = ()
+
+
+@dataclass(frozen=True)
 class EnergyChartsSettings:
     base_url: str
     timeout_s: float
@@ -134,6 +153,7 @@ class Settings:
     price_model: PriceModelSettings | None = None
     scenarios: ScenarioSettings | None = None
     ppa: PpaSettings | None = None
+    hedging: HedgingSettings | None = None
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -146,6 +166,11 @@ class Settings:
 def _ppa(raw: dict) -> PpaSettings:
     parks = {name: PpaParkSettings(**values) for name, values in raw.get("parks", {}).items()}
     return PpaSettings(**{k: v for k, v in raw.items() if k != "parks"}, parks=parks)
+
+
+def _hedging(raw: dict) -> HedgingSettings:
+    quotes = tuple(MarketQuote(**q) for q in raw.get("market_quotes", []))
+    return HedgingSettings(backtest_years=tuple(raw["backtest_years"]), market_quotes=quotes)
 
 
 def load_settings(path: Path | None = None, root: Path | None = None) -> Settings:
@@ -197,6 +222,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         price_model=PriceModelSettings(**raw["price_model"]) if "price_model" in raw else None,
         scenarios=ScenarioSettings(**raw["scenarios"]) if "scenarios" in raw else None,
         ppa=_ppa(raw["ppa"]) if "ppa" in raw else None,
+        hedging=_hedging(raw["hedging"]) if "hedging" in raw else None,
     )
     _validate(settings)
     return settings
@@ -246,6 +272,15 @@ def _validate(s: Settings) -> None:
         unknown = set(ppa.parks) - {p.name for p in s.parks}
         if unknown:
             raise ValueError(f"[ppa.parks] names unknown parks: {sorted(unknown)}")
+    hg = s.hedging
+    if hg is not None:
+        for y in hg.backtest_years:
+            if y - 1 < s.start.year or y > s.end.year:
+                raise ValueError(f"hedging backtest year {y} needs {y - 1} and {y} inside "
+                                 f"{s.start}..{s.end}")
+        known = {"cal_base", "cal_peak"}
+        if any(q.product not in known for q in hg.market_quotes):
+            raise ValueError(f"hedging.market_quotes products must be one of {sorted(known)}")
     if s.weather_first_year > s.start.year:
         raise ValueError("weather.first_year must not be after market.start")
     for y in s.delivery_years:

@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios pricing memo app all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios pricing hedging memo app all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -62,7 +62,10 @@ app:  ## open the dashboard (installs Streamlit into .venv once)
 	$(PY) -m pip install --quiet -e ".[app]"
 	$(PY) -m streamlit run app/streamlit_app.py
 
-all: data build check report capture ppa weather prices scenarios pricing memo  ## the whole pipeline (Steps 1-9)
+hedging:  ## hedging with power futures -> reports/step08_hedging.md
+	$(PY) -m ppa_lab hedging
+
+all: data build check report capture ppa weather prices scenarios pricing hedging memo  ## the whole pipeline (Steps 1-9)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"

@@ -77,3 +77,18 @@ def test_structures_table_is_in_eur_millions():
     t = structures_table(r, "solar_park")
     assert t.loc["merchant", "Cash flow at risk 95% (EUR m)"] == pytest.approx(1.44)
     assert t.loc["pay_as_produced", "Strike (EUR/MWh)"] == pytest.approx(41.1)
+
+
+def test_hedging_table_when_step8_results_are_published():
+    from ppa_lab.dashboard import hedging_table
+    r = results_fixture()
+    assert hedging_table(r, "solar_park") is None              # no Step 8 results yet
+    r["hedging"] = {"parks": {"solar_park": {"strategies": {
+        "none": {"hedge_mw": 0.0, "hedge_ratio": 0.0, "cfar_eur": 1.44e6, "cfar_reduction": 0.0,
+                 "effectiveness": 0.0},
+        "cal_base_min_variance": {"hedge_mw": 5.6, "hedge_ratio": 0.89, "cfar_eur": 0.27e6,
+                                  "cfar_reduction": 0.81, "effectiveness": 0.97}}}}}
+    t = hedging_table(r, "solar_park")
+    assert list(t.index) == ["No hedge (merchant)", "Cal base, minimum-variance"]
+    assert t.loc["Cal base, minimum-variance", "CFaR95 (EUR m)"] == pytest.approx(0.27)
+    assert t.loc["Cal base, minimum-variance", "Hedge ratio (%)"] == pytest.approx(89.0)
