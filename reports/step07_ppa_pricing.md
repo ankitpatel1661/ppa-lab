@@ -1,6 +1,6 @@
 # Step 7 report: pricing the PPAs and their risk
 
-Generated 2026-10-14 07:14 UTC by `ppa-lab pricing`.
+Generated 2026-10-14 07:52 UTC by `ppa-lab pricing`.
 
 Inputs: the Step 6 joint scenarios for 2027
 (496 scenarios: 31 weather years x

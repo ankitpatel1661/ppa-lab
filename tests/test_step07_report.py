@@ -38,6 +38,7 @@ def test_step07_report_end_to_end(settings):
         assert phrase in text
     for key in ("stack", "revenue", "buyer"):
         assert out[key].exists()
+    assert "NaN" not in out["results"].read_text()          # strict JSON: null, not NaN
     results = json.loads(out["results"].read_text())
     solar = results["parks"]["solar_park"]
     stack = solar["stack_eur_mwh"]
@@ -45,6 +46,12 @@ def test_step07_report_end_to_end(settings):
         stack["fair_price"] - stack["risk_premium"] - stack["balancing"] - stack["credit"])
     assert stack["fair_price"] == pytest.approx(stack["forward"] + stack["shape"])
     assert solar["tenor"]["years"] == [2026, 2027, 2028]
+    # the analog-pool sensitivity is stored too (the dashboard offers both pools)
+    assert solar["whole_window"]["fair_price"] > 0 and solar["whole_window"]["premium"] >= 0
+    # the assumptions behind the numbers travel with them
+    assert results["discount_rate"] == 0.06
+    assert solar["assumptions"] == {"balancing_eur_mwh": 1.5, "credit_eur_mwh": 1.0,
+                                    "capture_rate_drift": 0.0, "degradation": 0.005}
 
 
 def test_step07_report_explains_missing_weather(settings):

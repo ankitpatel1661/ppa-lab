@@ -1,0 +1,264 @@
+{
+ "generated_utc": "2026-10-14 07:52",
+ "delivery_year": 2027,
+ "tenor_years": 10,
+ "discount_rate": 0.06,
+ "analog_pool_start": "2025-10-01",
+ "scenarios": 496,
+ "forward_assumption": 85.0,
+ "parks": {
+  "solar_park": {
+   "premia_eur_mwh": {
+    "fair_price": 41.08162302129598,
+    "unhedged": 25.228929837667117,
+    "joint": 5.274008388141283,
+    "profile": 4.95717365769775,
+    "volume": 0.3168347304435333
+   },
+   "stack_eur_mwh": {
+    "forward": 85.42394557229001,
+    "shape": -44.34232255099403,
+    "fair_price": 41.08162302129598,
+    "risk_premium": 5.274008388141283,
+    "balancing": 1.5,
+    "credit": 1.0,
+    "indicative": 33.3076146331547
+   },
+   "structures": {
+    "merchant": {
+     "fair_price_eur_mwh": null,
+     "expected_revenue_eur": 2259040.5052037155,
+     "p05_revenue_eur": 822766.7206922477,
+     "cfar_eur": 1436273.784511468,
+     "cfar_share": 0.6357893013440888,
+     "floor_value_eur_mwh": null
+    },
+    "pay_as_produced": {
+     "fair_price_eur_mwh": 41.08162302129598,
+     "expected_revenue_eur": 2259040.5052037155,
+     "p05_revenue_eur": 2063809.434048448,
+     "cfar_eur": 195231.07115526753,
+     "cfar_share": 0.08642212067714208,
+     "floor_value_eur_mwh": null
+    },
+    "pay_as_produced_clause": {
+     "fair_price_eur_mwh": 41.08162302129598,
+     "expected_revenue_eur": 1686622.3817298482,
+     "p05_revenue_eur": 1363241.9098259313,
+     "cfar_eur": 323380.4719039169,
+     "cfar_share": 0.19173258662217482,
+     "floor_value_eur_mwh": null
+    },
+    "merchant_floor": {
+     "fair_price_eur_mwh": null,
+     "expected_revenue_eur": 2259040.505203715,
+     "p05_revenue_eur": 1187110.8152356618,
+     "cfar_eur": 1071929.6899680533,
+     "cfar_share": 0.47450662681738376,
+     "floor_value_eur_mwh": 9.34267175205586
+    },
+    "baseload": {
+     "fair_price_eur_mwh": 85.42394557229001,
+     "expected_revenue_eur": 2259040.505203715,
+     "p05_revenue_eur": 1907142.0311389063,
+     "cfar_eur": 351898.4740648088,
+     "cfar_share": 0.1557734238293684,
+     "floor_value_eur_mwh": null
+    }
+   },
+   "energy_mwh_expected": 54989.076357393904,
+   "p50_mwh": 55098.812426136836,
+   "p90_1y_mwh": 51498.07345275228,
+   "whole_window": {
+    "fair_price": 48.664419846069535,
+    "premium": 5.295897167336823
+   },
+   "assumptions": {
+    "balancing_eur_mwh": 1.5,
+    "credit_eur_mwh": 1.0,
+    "capture_rate_drift": 0.0,
+    "degradation": 0.005
+   },
+   "tenor": {
+    "years": [
+     2027,
+     2028,
+     2029,
+     2030,
+     2031,
+     2032,
+     2033,
+     2034,
+     2035,
+     2036
+    ],
+    "fair_price": 41.081623021295975,
+    "indicative": 33.30761463315469,
+    "sensitivity": [
+     {
+      "case": "Base case",
+      "fair_price": 41.081623021295975,
+      "indicative": 33.30761463315469
+     },
+     {
+      "case": "Capture rate -2 pp per year",
+      "fair_price": 34.27946101368872,
+      "indicative": 26.505452625547434
+     },
+     {
+      "case": "Capture rate -1 pp per year",
+      "fair_price": 37.68054201749235,
+      "indicative": 29.906533629351067
+     },
+     {
+      "case": "Capture rate +1 pp per year",
+      "fair_price": 44.482704025099615,
+      "indicative": 36.70869563695833
+     },
+     {
+      "case": "Forward \u221210%",
+      "fair_price": 36.973460719166376,
+      "indicative": 29.199452331025093
+     },
+     {
+      "case": "Forward +10%",
+      "fair_price": 45.189785323425575,
+      "indicative": 37.41577693528429
+     },
+     {
+      "case": "Analog days from the whole window",
+      "fair_price": 48.66441984606953,
+      "indicative": 40.890411457928245
+     }
+    ]
+   }
+  },
+  "wind_park": {
+   "premia_eur_mwh": {
+    "fair_price": 74.81393862280093,
+    "unhedged": 27.8842203076286,
+    "joint": 3.386775204127576,
+    "profile": 0.8847328381909747,
+    "volume": 2.5020423659366013
+   },
+   "stack_eur_mwh": {
+    "forward": 85.42394557229001,
+    "shape": -10.610006949489076,
+    "fair_price": 74.81393862280093,
+    "risk_premium": 3.386775204127576,
+    "balancing": 2.0,
+    "credit": 1.0,
+    "indicative": 68.42716341867336
+   },
+   "structures": {
+    "merchant": {
+     "fair_price_eur_mwh": null,
+     "expected_revenue_eur": 8213212.819050856,
+     "p05_revenue_eur": 5267112.430004672,
+     "cfar_eur": 2946100.389046184,
+     "cfar_share": 0.35870255087176034,
+     "floor_value_eur_mwh": null
+    },
+    "pay_as_produced": {
+     "fair_price_eur_mwh": 74.81393862280093,
+     "expected_revenue_eur": 8213212.819050854,
+     "p05_revenue_eur": 7538144.241722615,
+     "cfar_eur": 675068.5773282386,
+     "cfar_share": 0.08219299708907966,
+     "floor_value_eur_mwh": null
+    },
+    "pay_as_produced_clause": {
+     "fair_price_eur_mwh": 74.81393862280093,
+     "expected_revenue_eur": 7437372.873955303,
+     "p05_revenue_eur": 6695691.609331608,
+     "cfar_eur": 741681.264623695,
+     "cfar_share": 0.09972355523829723,
+     "floor_value_eur_mwh": null
+    },
+    "merchant_floor": {
+     "fair_price_eur_mwh": null,
+     "expected_revenue_eur": 8213212.819050855,
+     "p05_revenue_eur": 5489291.890709191,
+     "cfar_eur": 2723920.9283416644,
+     "cfar_share": 0.3316510832427753,
+     "floor_value_eur_mwh": 3.05111598515863
+    },
+    "baseload": {
+     "fair_price_eur_mwh": 85.42394557229001,
+     "expected_revenue_eur": 8213212.819050854,
+     "p05_revenue_eur": 7337297.75690769,
+     "cfar_eur": 875915.0621431638,
+     "cfar_share": 0.10664706752897551,
+     "floor_value_eur_mwh": null
+    }
+   },
+   "energy_mwh_expected": 109781.85309104588,
+   "p50_mwh": 110030.90615146898,
+   "p90_1y_mwh": 102165.50844836132,
+   "whole_window": {
+    "fair_price": 75.35225239999158,
+    "premium": 3.1337833829847686
+   },
+   "assumptions": {
+    "balancing_eur_mwh": 2.0,
+    "credit_eur_mwh": 1.0,
+    "capture_rate_drift": 0.0,
+    "degradation": 0.0
+   },
+   "tenor": {
+    "years": [
+     2027,
+     2028,
+     2029,
+     2030,
+     2031,
+     2032,
+     2033,
+     2034,
+     2035,
+     2036
+    ],
+    "fair_price": 74.81393862280093,
+    "indicative": 68.42716341867336,
+    "sensitivity": [
+     {
+      "case": "Base case",
+      "fair_price": 74.81393862280093,
+      "indicative": 68.42716341867336
+     },
+     {
+      "case": "Capture rate -2 pp per year",
+      "fair_price": 67.94242454436706,
+      "indicative": 61.55564934023948
+     },
+     {
+      "case": "Capture rate -1 pp per year",
+      "fair_price": 71.37818158358401,
+      "indicative": 64.99140637945644
+     },
+     {
+      "case": "Capture rate +1 pp per year",
+      "fair_price": 78.24969566201786,
+      "indicative": 71.86292045789028
+     },
+     {
+      "case": "Forward \u221210%",
+      "fair_price": 67.33254476052085,
+      "indicative": 60.94576955639327
+     },
+     {
+      "case": "Forward +10%",
+      "fair_price": 82.29533248508102,
+      "indicative": 75.90855728095345
+     },
+     {
+      "case": "Analog days from the whole window",
+      "fair_price": 75.3522523999916,
+      "indicative": 68.96547719586403
+     }
+    ]
+   }
+  }
+ },
+ "ppa_lab_version": "0.9.0"
+}

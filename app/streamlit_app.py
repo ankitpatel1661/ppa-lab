@@ -1,0 +1,188 @@
+"""ppa-lab dashboard: the PPA price and its risk, for your own assumptions.
+
+    make app            # or: .venv/bin/python -m streamlit run app/streamlit_app.py
+
+Reads reports/results.json (committed, written by `ppa-lab memo`), so it runs without
+downloading any data. All calculations are in ppa_lab.dashboard (tested).
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import streamlit as st
+
+# Import ppa_lab from src/ when the package is not installed (Streamlit Community Cloud
+# installs only app/requirements.txt).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from ppa_lab.dashboard import (  # noqa: E402
+    Assumptions,
+    default_assumptions,
+    load_results,
+    offer,
+    structures_table,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+REPO = "https://github.com/ankitpatel1661/ppa-lab/blob/main"
+PARKS = {"Solar park · Lusatia · 50 MWp": "solar_park",
+         "Wind park · North Frisia · 30 MW": "wind_park"}
+BLUE, ORANGE, GREEN, INK = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b"
+
+st.set_page_config(page_title="ppa-lab · PPA price and risk", page_icon="⚡", layout="wide")
+
+try:
+    results = load_results(ROOT / "reports" / "results.json")
+except FileNotFoundError as err:
+    st.error(str(err))
+    st.stop()
+
+
+def stack_figure(s: dict) -> plt.Figure:
+    layers = [("Forward", s["forward"], "total"), ("Shape", s["shape"], "step"),
+              ("Trend over\nthe tenor", s["trend"], "step"),
+              ("Risk premium", -s["risk_premium"], "step"),
+              ("Balancing,\nroute to market", -s["balancing"], "step"),
+              ("Credit,\nliquidity", -s["credit"], "step"),
+              ("Indicative\nprice", s["indicative"], "total")]
+    fig, ax = plt.subplots(figsize=(9, 3.6))
+    level = 0.0
+    for i, (_, value, kind) in enumerate(layers):
+        if kind == "total":
+            ax.bar(i, value, color=BLUE, width=0.6)
+            level, top, text = value, value, f"{value:.1f}"
+        else:
+            ax.bar(i, value, bottom=level, color=ORANGE if value < 0 else GREEN, width=0.6)
+            top, level = max(level, level + value), level + value
+            text = f"{round(value, 1) + 0.0:+.1f}"          # no "-0.0"
+        ax.text(i, top + 1.2, text, ha="center", fontsize=9, fontweight="bold", color=INK)
+    ax.set_xticks(range(len(layers)), [name for name, _, _ in layers], fontsize=8)
+    ax.set_ylabel("EUR/MWh")
+    ax.set_ylim(0, 1.18 * max(s["forward"], s["indicative"]))
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.grid(axis="y", color="#e2e2de")
+    ax.set_axisbelow(True)
+    fig.tight_layout()
+    return fig
+
+
+# --------------------------------------------------------------------------- #
+# Sidebar: your assumptions
+# --------------------------------------------------------------------------- #
+with st.sidebar:
+    st.header("Your assumptions")
+    park = PARKS[st.radio("Park", list(PARKS))]
+    d = default_assumptions(results, park)
+    pool = st.radio("Which past represents the delivery year?",
+                    ["Last 12 months (base case)", "Whole 2024-2026 window"],
+                    help="Midday solar dips deepen as capacity grows: recent days are deeper.")
+    forward_shift = st.slider("Forward vs the assumed 85 EUR/MWh (%)", -30, 30, 0, 5) / 100
+    drift = st.slider("Capture-rate trend (pp per year)", -3.0, 2.0, d.drift * 100, 0.5) / 100
+    tenor = st.slider("Tenor (years)", 1, 15, d.tenor_years)
+    rate = st.slider("Discount rate (%)", 0.0, 12.0, d.discount_rate * 100, 0.5) / 100
+    degradation = st.slider("Output degradation (% per year)", 0.0, 1.5,
+                            round(d.degradation * 100, 2), 0.1) / 100
+    balancing = st.slider("Balancing and route to market (EUR/MWh)", 0.0, 5.0, d.balancing, 0.25)
+    credit = st.slider("Credit and liquidity (EUR/MWh)", 0.0, 5.0, d.credit, 0.25)
+    st.caption("Defaults = the Step 7 base case (config/project.toml).")
+
+mine = Assumptions(balancing=balancing, credit=credit, drift=drift, degradation=degradation,
+                   discount_rate=rate, tenor_years=tenor, forward_shift=forward_shift,
+                   pool="recent" if pool.startswith("Last") else "whole")
+result, base = offer(results, park, mine), offer(results, park, d)
+s, b = result["stack"], base["stack"]
+r = results["parks"][park]
+start = results["delivery_year"]
+
+# --------------------------------------------------------------------------- #
+# Main page
+# --------------------------------------------------------------------------- #
+st.title("What fixed price for a renewable PPA, and how much risk is left?")
+st.caption(f"ppa-lab {results.get('ppa_lab_version', '')} · German day-ahead prices, 31 ERA5 "
+           f"weather years, {results['scenarios']} joint scenarios for {start} · illustrative "
+           "analysis from public data, not an offer")
+
+merchant = r["structures"]["merchant"]["cfar_eur"] / 1e6
+pap = r["structures"]["pay_as_produced"]["cfar_eur"] / 1e6
+for col, label, value, note in zip(
+        st.columns(4),
+        (f"Indicative price, {tenor} years (EUR/MWh)", "Fair price before risk (EUR/MWh)",
+         "Buyer's risk premium, hedged (EUR/MWh)", "Producer's CFaR95 with the PPA (EUR m)"),
+        (f"{s['indicative']:.1f}", f"{s['tenor_fair_price']:.1f}", f"{s['risk_premium']:.1f}",
+         f"{pap:.2f}"),
+        (f"{s['indicative'] - b['indicative']:+.1f} vs the base case",
+         f"capture rate {s['fair_price'] / s['forward']:.2f} in {start}",
+         f"{r['premia_eur_mwh']['unhedged']:.1f} without a baseload hedge",
+         f"{merchant:.2f} if merchant (−{1 - pap / merchant:.0%} with the PPA)"), strict=True):
+    col.metric(label, value)
+    col.caption(note)
+
+tab_price, tab_risk, tab_built, tab_method = st.tabs(
+    ["From forward to offer", "Risk by structure", "How it was built", "Method and limits"])
+
+with tab_price:
+    st.pyplot(stack_figure(s))
+    years = result["years"].rename(columns={
+        "forward_eur_mwh": "Forward (EUR/MWh)", "capture_rate": "Capture rate",
+        "fair_price_eur_mwh": "Fair price (EUR/MWh)", "energy_mwh": "Energy (MWh)",
+        "discount_factor": "Discount factor"})
+    st.dataframe(years.style.format({"Forward (EUR/MWh)": "{:.1f}", "Capture rate": "{:.3f}",
+                                     "Fair price (EUR/MWh)": "{:.1f}", "Energy (MWh)": "{:,.0f}",
+                                     "Discount factor": "{:.3f}"}), width="stretch")
+    st.caption(f"Expected energy P50 {r['p50_mwh'] / 1e3:.1f} GWh a year; one year in ten below "
+               f"{r['p90_1y_mwh'] / 1e3:.1f} GWh (P90). Premium and costs per MWh of the first "
+               "year apply to every year.")
+
+with tab_risk:
+    st.subheader(f"What each structure leaves with the producer ({start}, fair strikes)")
+    st.dataframe(structures_table(results, park), width="stretch")
+    p = r["premia_eur_mwh"]
+    st.markdown(
+        f"The buyer of a pay-as-produced PPA asks for **{p['joint']:.1f} EUR/MWh** after selling "
+        f"a baseload forward ({p['profile']:.1f} profile, {p['volume']:.1f} volume); without the "
+        f"hedge it would be {p['unhedged']:.1f}, but that is the price level, which the buyer can "
+        "hedge almost for free.")
+
+with tab_built:
+    steps = pd.DataFrame([
+        (1, "Market data", "Prices and generation since 2023, checked and reconciled",
+         "step01_market_data.md"),
+        (2, "Capture prices", "What solar and wind earn vs the official market values",
+         "step02_capture_prices.md"),
+        (3, "PPA structures", "Cash flows and fair prices; back-test 2024-2025",
+         "step03_ppa_structures.md"),
+        (4, "Weather to power", "31 ERA5 weather years at two real sites; P50/P90",
+         "step04_generation.md"),
+        (5, "Price model", "Hourly prices: seasonality, daily mean reversion, analog days",
+         "step05_price_model.md"),
+        (6, "Joint scenarios", "Prices simulated for each weather year",
+         "step06_joint_scenarios.md"),
+        (7, "Pricing and risk", "Structures, premia, price stack, ten-year price",
+         "step07_ppa_pricing.md"),
+    ], columns=["Step", "What", "Result", "Report"])
+    steps["Report"] = steps["Report"].map(lambda f: f"{REPO}/reports/{f}")
+    st.dataframe(steps, hide_index=True, width="stretch",
+                 column_config={"Report": st.column_config.LinkColumn("Report")})
+    figures = ROOT / "reports" / "figures"
+    left, right = st.columns(2)
+    left.image(str(figures / "step06_capture_rates.png"),
+               caption="Capture rates per scenario: prices linked to the weather vs not")
+    right.image(str(figures / "step07_price_stack.png"), caption="Price stack, both parks")
+
+with tab_method:
+    st.markdown(f"""
+- **Fair price** = E[Σ q P] / E[Σ q] over {results['scenarios']} joint scenarios: 31 weather
+  years (ERA5, pvlib, windpowerlib) × simulated hourly prices that respond to that weather.
+- **Risk premium** = 5% shortfall of the buyer's value per expected MWh, after selling a baseload
+  forward for the expected average output.
+- **Tenor price**: energy- and discount-weighted average of yearly fair prices.
+- **Limits**: the forward is an assumption, balancing and credit costs are illustrative, prices
+  are calibrated on 2024-2026 (one market regime), the parks produce their potential output.
+
+Code, tests and methodology: [github.com/ankitpatel1661/ppa-lab](https://github.com/ankitpatel1661/ppa-lab)
+· [METHODOLOGY.md]({REPO}/METHODOLOGY.md) · [one-page memo]({REPO}/reports/step09_memo.md)
+""")

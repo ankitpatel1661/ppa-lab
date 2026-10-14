@@ -38,6 +38,8 @@ def test_all_runs_the_whole_pipeline(two_day_settings):
     assert not (two_day_settings.reports_dir / "step05_price_model.md").exists()
     assert not (two_day_settings.reports_dir / "step06_joint_scenarios.md").exists()
     assert not (two_day_settings.reports_dir / "step07_ppa_pricing.md").exists()
+    # Step 9 runs and says that the pricing results are missing.
+    assert "ppa-lab pricing" in (two_day_settings.reports_dir / "step09_memo.md").read_text()
 
 
 def test_prices_command_writes_the_step05_report(settings, monkeypatch):
@@ -74,6 +76,19 @@ def test_pricing_command_writes_the_step07_report(settings, monkeypatch):
     assert cli.main(["pricing"]) == 0
     assert (s.reports_dir / "step07_ppa_pricing.md").exists()
     assert (s.processed_dir / "ppa_pricing.json").exists()
+
+
+def test_memo_command_writes_the_memo_and_the_results_file(settings, monkeypatch):
+    import json
+
+    from test_step09_memo import pricing_fixture
+    settings.processed_dir.mkdir(parents=True, exist_ok=True)
+    (settings.processed_dir / "ppa_pricing.json").write_text(json.dumps(pricing_fixture()))
+    monkeypatch.setattr(cli, "load_settings", lambda path=None: settings)
+    monkeypatch.setattr(cli, "MEMO_PDF", False)
+    assert cli.main(["memo"]) == 0
+    assert (settings.reports_dir / "step09_memo.md").exists()
+    assert (settings.reports_dir / "results.json").exists()
 
 
 def test_weather_command_builds_generation_and_the_step04_report(settings, monkeypatch):

@@ -1,0 +1,6 @@
+# Streamlit Community Cloud installs these for app/streamlit_app.py. The app imports
+# ppa_lab from src/ and reads the committed reports/results.json: no data download needed.
+streamlit>=1.38
+numpy>=1.26
+pandas>=2.2
+matplotlib>=3.8

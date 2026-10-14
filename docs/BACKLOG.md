@@ -14,8 +14,8 @@ that step is written.
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | **Done** |
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | **Done** |
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | **Done** |
-| PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | To do |
-| PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | To do |
+| PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | To do (next) |
+| PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
 ## PPA-2: Capture prices and capture rates (Step 2)
 
@@ -104,6 +104,22 @@ risk we keep, so that origination can make an offer and Risk can approve it.
 - [x] Ten-year price with discounting, degradation and sensitivities (trend, forward, pool).
 - [x] Analog-pool decision in the configuration; results in `ppa_pricing.json` for Step 9.
 - [x] Report, learning-track page, notebook section, exercises.
+
+## PPA-9: Memo, dashboard, public MVP (Step 9)
+
+**Story:** As a manager or reviewer I want the answer on one page and the chance to change
+the assumptions myself, without running the pipeline.
+
+**Acceptance criteria**
+- [x] One-page memo generated from the Step 7 results (Markdown and PDF).
+- [x] Dashboard with the answer, the price stack, risk by structure and adjustable
+      assumptions; logic tested without Streamlit; app smoke test.
+- [x] Runs from committed results only (Streamlit Community Cloud ready).
+- [x] README as a front page with the answer and a CI badge.
+- [x] Learning-track page, notebook section, exercises.
+
+Done before PPA-8 on purpose: the public MVP had to be complete before the application date;
+PPA-8 (hedging with market forwards) follows.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 

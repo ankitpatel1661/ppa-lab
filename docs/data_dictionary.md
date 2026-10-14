@@ -7,7 +7,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 [Layers](#data-layers) · [prices_native](#prices_nativeparquet) ·
 [prices_hourly](#prices_hourlyparquet) · [power_15min / power_hourly](#power_15minparquet-and-power_hourlyparquet) ·
 [weather / generation](#weather_parkparquet-step-4) · [price_model.json](#price_modeljson-step-5) ·
-[scenarios_2027](#scenarios_yearparquet-step-6) · [ppa_pricing.json](#ppa_pricingjson-step-7) ·
+[scenarios_2027](#scenarios_yearparquet-step-6) · [ppa_pricing.json / results.json](#ppa_pricingjson-step-7-and-reportsresultsjson-step-9) ·
 [Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test, volumes, price paths) ·
 [Loading](#how-to-load-the-data)
 
@@ -213,9 +213,11 @@ the capture prices (`ppa_lab.scenarios.generator.fair_price`). Hourly prices are
 
 ---
 
-## `ppa_pricing.json` (Step 7)
+## `ppa_pricing.json` (Step 7) and `reports/results.json` (Step 9)
 
-Key pricing results, written by `ppa-lab pricing`; input for Step 9. All prices in EUR/MWh,
+Key pricing results, written by `ppa-lab pricing`; input for Step 9. `ppa-lab memo` copies
+them to `reports/results.json` (committed, plus `ppa_lab_version`), which the dashboard reads.
+Strict JSON: missing values are `null`. All prices in EUR/MWh,
 revenues in EUR, energies in MWh, for the first delivery year unless stated.
 
 | Key | Meaning |
@@ -228,6 +230,9 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `parks.<park>.structures.<structure>` | `fair_price_eur_mwh`, `expected_revenue_eur`, `p05_revenue_eur`, `cfar_eur`, `cfar_share`, `floor_value_eur_mwh` for `merchant`, `pay_as_produced`, `pay_as_produced_clause`, `merchant_floor`, `baseload` |
 | `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
 | `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor, and `sensitivity` (one row per case) |
+| `parks.<park>.whole_window` | `fair_price` and `premium` with analog days from the whole calibration window |
+| `parks.<park>.assumptions` | `balancing_eur_mwh`, `credit_eur_mwh`, `capture_rate_drift`, `degradation` (from `[ppa.parks.*]`) |
+| `discount_rate` | annual discount rate of the tenor price |
 
 ---
 

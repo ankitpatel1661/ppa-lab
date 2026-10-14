@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] (Step 9, ticket PPA-9; Step 8 follows)
+
+### Added
+- Dashboard (`app/streamlit_app.py`, `make app`): the answer, the price stack and the year
+  table for your own assumptions (park, analog pool, forward, capture-rate trend, tenor,
+  discount rate, degradation, costs), risk by structure, how it was built. It reads the
+  committed `reports/results.json`, imports `ppa_lab` from `src/` and installs only
+  `app/requirements.txt`, so it runs on Streamlit Community Cloud without the data pipeline.
+- Dashboard logic in `ppa_lab.dashboard` (tested without Streamlit); a headless smoke test of
+  the app (`tests/test_app.py`, skipped where Streamlit is not installed).
+- One-page management memo (`ppa-lab memo`, `make memo`, part of `make all`):
+  `reports/step09_memo.md` and `.pdf`, generated from the Step 7 results, plus
+  `reports/results.json` for the dashboard. `app` optional dependency (Streamlit).
+- README rebuilt as a front page (CI badge, the answer, the steps at a glance, run it yourself);
+  Step 9 learning-track page, notebook section (9.1-9.3, "My solutions"), exercises.
+
+### Changed
+- Step 7 results also store the whole-window premium and the pricing assumptions, and are
+  strict JSON (null instead of NaN).
+- Lint covers `app/` (Makefile and CI).
+
 ## [0.7.0] (Step 7, ticket PPA-7)
 
 ### Added

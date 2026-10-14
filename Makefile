@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios pricing all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios pricing memo app all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -20,7 +20,7 @@ test-network:  ## run the contract tests against the live API
 	$(PY) -m pytest -m network
 
 lint:  ## static checks (style, imports, common bugs)
-	$(PY) -m ruff check src tests
+	$(PY) -m ruff check src tests app
 
 format:  ## auto-fix what ruff can fix
 	$(PY) -m ruff check --fix src tests
@@ -55,7 +55,14 @@ scenarios:  ## joint weather x price scenarios -> reports/step06_joint_scenarios
 pricing:  ## price the PPAs: structures, risk premia, price stack -> reports/step07_ppa_pricing.md
 	$(PY) -m ppa_lab pricing
 
-all: data build check report capture ppa weather prices scenarios pricing  ## the whole pipeline (Steps 1-7)
+memo:  ## one-page management memo + reports/results.json for the dashboard
+	$(PY) -m ppa_lab memo
+
+app:  ## open the dashboard (installs Streamlit into .venv once)
+	$(PY) -m pip install --quiet -e ".[app]"
+	$(PY) -m streamlit run app/streamlit_app.py
+
+all: data build check report capture ppa weather prices scenarios pricing memo  ## the whole pipeline (Steps 1-9)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"

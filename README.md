@@ -1,31 +1,27 @@
 # ppa-lab: Renewable PPA Pricing & Risk Engine
 
-What fixed price should a renewable producer offer an industrial buyer for ten
-years of solar or wind output, and how much risk is left in that deal?
+[![CI](https://github.com/ankitpatel1661/ppa-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/ankitpatel1661/ppa-lab/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![Licence MIT](https://img.shields.io/badge/licence-MIT-green)
 
-`ppa-lab` answers that question with public data and transparent methods. It
-combines German power prices, generation and weather data, simulates them
-together, and prices power purchase agreements (PPAs) with their market, shape
-and volume risks.
+**What fixed price should a renewable producer offer an industrial buyer for ten years of
+solar or wind output, and how much risk is left in that deal?**
 
-> **Status: Step 7 of 9 (ticket PPA-7, version 0.7.0).** Done so far: the
-> market-data foundation (Step 1), capture prices reconciled against the official
-> German market values (Step 2), the PPA structures with their pricing maths and a
-> 2024-2025 back-test (Step 3, [methodology](METHODOLOGY.md)), site generation from
-> 31 years of ERA5 weather with P50/P90 volumes (Step 4), a stochastic hourly price
-> model calibrated to a forward price (Step 5), joint weather and price scenarios in
-> which prices respond to the weather (Step 6), and the PPA price with its risk premium
-> and the producer's cash flow at risk (Step 7).
-> See the [backlog](docs/BACKLOG.md) for what comes next.
+`ppa-lab` answers that question with public data and transparent, tested methods: German
+day-ahead prices and generation, 31 years of ERA5 weather at two real sites, a stochastic
+price model, prices and weather simulated together, and the standard PPA structures priced
+with their market, shape and volume risks.
 
-## Step 7 results: the answer
+## The answer
 
-> *For a 10-year pay-as-produced PPA (2027-2036) from the 50 MWp solar park in Lusatia, the
+> *For a 10-year pay-as-produced PPA (2027-2036) from a 50 MWp solar park in Lusatia, the
 > fair price before risk premia is **41.1 EUR/MWh** (forward 85.4 × expected capture rate
 > 0.48). After a profile and volume risk premium of 5.3 EUR/MWh and balancing and credit costs
 > of 2.5 EUR/MWh, the indicative price is **33.3 EUR/MWh**. Expected annual energy is 55.1 GWh
 > (P50; one-year P90 51.5 GWh). Under the PPA the producer's 95% cash flow at risk falls from
 > EUR 1.44 m (merchant) to EUR 0.20 m per year.*
+
+![From the forward price to an indicative PPA price, solar and wind](reports/figures/step07_price_stack.png)
 
 | 2027, EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
 |---|---|---|
@@ -38,163 +34,39 @@ and volume risks.
 
 - **Most of the buyer's risk is hedgeable:** a baseload forward removes 80-88% of it. Solar's
   residual risk is profile, wind's is volume.
-- **What moves the solar price most** is not the premium but the view on cannibalisation:
-  analog days from the whole 2024-2026 window instead of the last 12 months +7.6 EUR/MWh, a
-  capture-rate trend of ±1 pp per year ±3.4 EUR/MWh, the forward ±10% ±4.1 EUR/MWh.
+- **Prices must see the weather:** simulated independently of it, the wind park would earn
+  the baseload price (fair price 87 instead of 75 EUR/MWh).
+- **The biggest lever is the view on cannibalisation:** which historical days represent 2027
+  (+7.6 EUR/MWh with the whole 2024-2026 window), the capture-rate trend (±3.4 per pp per
+  year), the forward (±4.1 for ±10%).
 
-Full report: [`reports/step07_ppa_pricing.md`](reports/step07_ppa_pricing.md).
+**Read more:** [one-page management memo](reports/step09_memo.md) ([PDF](reports/step09_memo.pdf))
+· [methodology](METHODOLOGY.md) · [Step 7 report](reports/step07_ppa_pricing.md) ·
+**try your own assumptions** in the dashboard (`make app`).
 
-## Step 6 results: prices that see the weather
+## How it works, in seven steps
 
-Every weather year 1995-2025 is paired with 16 price paths for 2027 (496 scenarios). Prices
-are simulated **for** that weather: the daily level responds to solar, wind and temperature
-anomalies (a regression per season), and the hourly shape comes from historical days with
-similar weather (analog days).
-
-| 2027, forward 85 EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
-|---|---|---|
-| Fair pay-as-produced price, prices independent of weather (Step 5) | 51.76 EUR/MWh | 87.00 EUR/MWh |
-| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **48.66 EUR/MWh** | **75.35 EUR/MWh** |
-| Capture rate 5/50/95%, linked | 0.40 / 0.57 / 0.66 | 0.83 / 0.88 / 0.92 |
-| 2025 history inside the linked range? | yes (0.555) | yes (0.881; independent: 0.99-1.05) |
-
-- **Ignoring the link is a gift to the seller:** 12 EUR/MWh (13%) for wind, 3 EUR/MWh for
-  solar. Within a month, the correlation of wind with the daily price is −0.58 in history,
-  −0.60 in the Step 6 model and 0.00 in the Step 5 model.
-- **The biggest open assumption** is which historical days represent 2027: with analogs from
-  the last 12 months only, the solar price drops from 48.7 to 41.1 EUR/MWh (deeper midday dips
-  as solar capacity grows). Reported as a sensitivity; Step 7 decides.
-
-Full report: [`reports/step06_joint_scenarios.md`](reports/step06_joint_scenarios.md).
-
-## Step 5 results: thousands of plausible price years
-
-An hourly model of German day-ahead prices, fitted on 2024-01 to 2026-09 (24,095 hours):
-arcsinh-transformed prices = monthly level + daily shape (season x day type x hour, with
-the nine nationwide holidays) + a daily factor that reverts like an Ornstein-Uhlenbeck
-process + intraday patterns resampled as whole historical days.
-
-| | |
-|---|---|
-| Memory of the daily factor | phi = 0.521 per day, **half-life 1.06 days** |
-| Validation (history inside the 5-95% range of 200 simulated paths) | **7 of 11** statistics: mean, spread, 5/50/95/99% quantiles, weekly autocorrelation |
-| Still outside | 1% quantile and negative hours (6.2% in history, 4.9% in the model), autocorrelation at 1 and 24 hours |
-| 2027 at an 85 EUR/MWh forward (500 paths) | annual average 5% / 50% / 95%: 55.9 / 84.2 / 117.5 EUR/MWh; 5.7% negative hours |
-| Solar capture rate, 2025 output | **0.612** with simulated prices vs **0.555** with real ones |
-
-- **Validation changed the model twice.** A textbook hourly AR(1) forgot yesterday within
-  ten hours (24-hour autocorrelation 0.38-0.54 vs 0.70) and was replaced by the two-factor
-  version; a wider search of the transform's scale moved it from 80 to 120 EUR/MWh
-  (5 to 7 statistics inside).
-- **The gap that matters:** within a month, sunnier days have cheaper middays (correlation
-  −0.30 in 2025); in the model it is 0.00. Independent prices overstate what solar earns.
-  Step 6 links weather and prices.
-
-Full report: [`reports/step05_price_model.md`](reports/step05_price_model.md).
-
-## Step 4 results: how much the parks produce, and how much that varies
-
-Two illustrative parks at real locations, modelled hour by hour from ERA5 reanalysis
-weather (1995-2025) with pvlib and windpowerlib:
-
-| | Solar park, Lusatia (50 MWp) | Wind park, North Frisia (30 MW, V126-3.45) |
-|---|---|---|
-| P50 annual energy | 55.1 GWh = 1,102 kWh/kWp | 110.0 GWh = 3,668 full-load hours |
-| Year-to-year variability (CoV) | 5.0% | 5.5% |
-| P90, one year / 10-year average | −6.4% / −2.0% vs mean | −7.0% / −2.2% vs mean |
-| Worst / best weather year | 2001: −10.7% / 2018: +8.9% | 2003: −9.8% / 1998: +9.9% |
-| Trend 1995-2025 | +2.5% per decade (brightening) | +0.1% per decade |
-| Hourly correlation with the national fleet | 0.92 | 0.72-0.75 |
-
-- **Checks instead of a tie-out:** nobody publishes these parks' output, so the models are
-  checked against national generation (Step 1) and priced like Step 2: the site capture
-  rates are close to the national ones (solar 2025: 0.555 vs 0.516).
-- **Two traps found and fixed:** ERA5 radiation from Open-Meteo is labelled at the end of
-  its hour (shifted, and verified against the sun's position on every build), and the
-  first wind site sat in an ERA5 cell that is partly sea (0 m elevation, offshore-like
-  3,961 full-load hours); the park now sits 16 km inland.
-
-Full report: [`reports/step04_generation.md`](reports/step04_generation.md).
-
-## Step 3 results: what each PPA structure would have earned
-
-A 50 MW solar park and a 30 MW wind park (national profiles, scaled) sign each contract
-at the end of the previous year at last year's fair price, and deliver in 2024 and 2025.
-Revenue per MWh produced; cash flows to the producer:
-
-| EUR/MWh | Merchant | Pay-as-produced | PaP, no pay at negative prices | Baseload | Merchant + floor 0 |
-|---|---|---|---|---|---|
-| Solar 2024 | 46.48 | **72.25** | 59.04 | 63.14 | 49.26 |
-| Solar 2025 | 45.95 | 46.48 | 35.22 | **35.14** | 49.25 |
-| Wind 2024 | 64.54 | 78.44 | 73.50 | **81.20** | 65.03 |
-| Wind 2025 | **77.27** | 64.54 | 59.63 | 66.46 | 77.71 |
-
-- **A pay-as-produced PPA removes all price surprise** (realised minus the expectation at
-  signing is 0.00 in every case); whether it beats merchant is hindsight.
-- **A baseload PPA hedges the price level, not the shape:** on the solar park in 2025 it
-  fell 11.34 EUR/MWh short of plan, worse than merchant, and produced a negative month.
-- **A negative-price clause cost solar 11.26 EUR/MWh in 2025** (24% of the energy unpaid);
-  the right to curtail at negative prices was worth 3.30 EUR/MWh.
-
-Full report: [`reports/step03_ppa_structures.md`](reports/step03_ppa_structures.md);
-the maths: [`METHODOLOGY.md`](METHODOLOGY.md).
-
-## Step 2 results: what solar and wind really earn
-
-The capture price is the energy-weighted price a technology earns:
-sum(price x energy) / sum(energy) per quarter-hour. The capture rate divides it by the
-baseload price.
-
-| Capture rate (capture price, EUR/MWh) | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
+| Step | Question | Key result | Report | Learn |
 |---|---|---|---|---|
-| Baseload price | 95.18 | 78.51 | 89.32 | 107.72 |
-| Solar | 0.76 (72.25) | 0.59 (46.48) | 0.51 (45.95) | 0.52 (55.68) |
-| Wind onshore | 0.82 (78.44) | 0.82 (64.54) | 0.87 (77.27) | 0.89 (95.37) |
-| Wind offshore | 0.91 (86.56) | 0.91 (71.40) | 0.96 (85.53) | 0.94 (101.65) |
-| Solar energy sold at negative prices | 8.3% | 18.3% | 24.2% | 22.8% |
+| 1 | Can we trust the market data? | 2025 mean price 89.32 EUR/MWh = published | [report](reports/step01_market_data.md) | [page](docs/learning_track/step01_market_data_foundation.md) |
+| 2 | What do solar and wind really earn? | Solar capture rate 0.76 → 0.51 (2023 → 2025), matches official market values | [report](reports/step02_capture_prices.md) | [page](docs/learning_track/step02_capture_prices.md) |
+| 3 | How does each PPA structure move risk? | Pay-as-produced removes price surprise; baseload leaves shape risk | [report](reports/step03_ppa_structures.md) | [page](docs/learning_track/step03_ppa_structures.md) |
+| 4 | How much do our own parks produce? | Solar P50 1,102 kWh/kWp, wind 3,668 full-load hours, P90 −6 to −7% | [report](reports/step04_generation.md) | [page](docs/learning_track/step04_weather_to_power.md) |
+| 5 | Which price years are plausible? | Prices forget in about a day; validated against history | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
+| 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 87 → 75 EUR/MWh | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
+| 7 | What price, and how much risk is left? | 33.3 EUR/MWh indicative; CFaR −86% with the PPA | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
 
-- **Solar cannibalisation:** in two years solar's capture rate fell from 0.76 to 0.51.
-  In 2025 German solar earned EUR 3.0 billion less than the same energy at baseload.
-- **Reconciliation with the official market values** (netztransparenz.de, legally the
-  same formula): solar matches within 0.03 ct/kWh in 2023-2024 and 0.09 ct/kWh in
-  2025 (tolerance ±0.10, fixed in advance). The spot price matches in 43 of 44 months.
-  The one exception is June 2024, caused by the SDAC partial decoupling on
-  26 June 2024.
-- **Open investigation:** wind capture prices are 0.16 to 0.49 ct/kWh above the official
-  values in every year. The evidence points to curtailment in the measured generation
-  data versus the TSOs' online extrapolation. These references are deliberately left
-  outside tolerance until that is tested (backlog PPA-2b).
+The memo and the dashboard (Step 9) present the result; hedging with market forwards
+(Step 8) comes next. Every step has tests, a report, a learning-track page, a notebook
+section and exercises.
 
-![Capture rate by month](reports/figures/step02_capture_rate_monthly.png)
-
-Full report: [`reports/step02_capture_prices.md`](reports/step02_capture_prices.md).
-How it was built and investigated:
-[learning track, Step 2](docs/learning_track/step02_capture_prices.md).
-
-## Step 1 results
-
-| DE-LU day-ahead | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
-|---|---|---|---|---|
-| Mean price (EUR/MWh, time-weighted) | 95.18 | 78.51 | 89.32 | 107.72 |
-| Hours with negative prices | 301 | 457 | 576 | 471 |
-| Longest negative streak (hours) | 36 | 18 | 20 | 18 |
-| Lowest / highest price (EUR/MWh) | -500.00 / 524.27 | -135.45 / 936.28 | -250.32 / 583.40 | -499.99 / 747.10 |
-
-Reconciliation: the 2023 and 2025 mean prices match the official values exactly
-(2024 differs by −0.95 EUR/MWh, fully explained by the 26 June 2024 decoupling), and the
-negative-hour counts match published figures within 2 hours. Data quality: 23 checks pass,
-1 warning (one real interval at the -500 EUR/MWh floor), 0 failures; all 1,369 delivery
-days complete.
-
-The full numbers, the data-quality report and four charts are in
-[`reports/step01_market_data.md`](reports/step01_market_data.md).
-
-## Quickstart
+## Run it yourself
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 207 offline tests, about 15 seconds
+make test      # 216 offline tests, about 20 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
+make app       # the dashboard (reads the committed results; no download needed)
 ```
 
 Explore the data interactively in the playground notebook (one section per step):
@@ -218,6 +90,7 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab prices    # price model: fit, validate, simulate -> reports/step05_price_model.md
 .venv/bin/ppa-lab scenarios # weather x price scenarios -> reports/step06_joint_scenarios.md
 .venv/bin/ppa-lab pricing   # PPA prices, risk premia, CFaR -> reports/step07_ppa_pricing.md
+.venv/bin/ppa-lab memo      # one-page memo + reports/results.json for the dashboard
 ```
 
 The first download takes 10 to 15 minutes because the free API is rate limited;
@@ -259,9 +132,12 @@ src/ppa_lab/
   analysis/step06_report.py   Step 6 report and charts
   pricing/risk.py            structures on scenarios, CFaR, risk premia, ten-year price
   analysis/step07_report.py   Step 7 report and charts
+  analysis/step09_memo.py    one-page memo and the dashboard's results file
+  dashboard.py               dashboard logic (tested): an offer for any assumptions
   cli.py                     `ppa-lab` command
+app/streamlit_app.py         the dashboard (`make app`; app/requirements.txt for Streamlit Cloud)
 tests/                       offline tests with real API fixtures
-notebooks/                   ppa_lab_playground.ipynb: interactive, one section per day
+notebooks/                   ppa_lab_playground.ipynb: interactive, one section per step
 data/reference/              small published reference data (official market values)
 exercises/                   hands-on exercises with automatic checks
 METHODOLOGY.md               the pricing maths, conventions, assumptions and limitations
@@ -270,6 +146,153 @@ docs/learning_track/         step-by-step explanations of what was built and why
 reports/                     generated reports and figures
 scripts/build_docs.py        learning-track Markdown -> PDF (`make docs`)
 ```
+
+## Results by step
+
+### Step 6 results: prices that see the weather
+
+Every weather year 1995-2025 is paired with 16 price paths for 2027 (496 scenarios). Prices
+are simulated **for** that weather: the daily level responds to solar, wind and temperature
+anomalies (a regression per season), and the hourly shape comes from historical days with
+similar weather (analog days).
+
+| 2027, forward 85 EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
+|---|---|---|
+| Fair pay-as-produced price, prices independent of weather (Step 5) | 51.76 EUR/MWh | 87.00 EUR/MWh |
+| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **48.66 EUR/MWh** | **75.35 EUR/MWh** |
+| Capture rate 5/50/95%, linked | 0.40 / 0.57 / 0.66 | 0.83 / 0.88 / 0.92 |
+| 2025 history inside the linked range? | yes (0.555) | yes (0.881; independent: 0.99-1.05) |
+
+- **Ignoring the link is a gift to the seller:** 12 EUR/MWh (13%) for wind, 3 EUR/MWh for
+  solar. Within a month, the correlation of wind with the daily price is −0.58 in history,
+  −0.60 in the Step 6 model and 0.00 in the Step 5 model.
+- **The biggest open assumption** is which historical days represent 2027: with analogs from
+  the last 12 months only, the solar price drops from 48.7 to 41.1 EUR/MWh (deeper midday dips
+  as solar capacity grows). Reported as a sensitivity; Step 7 decides.
+
+Full report: [`reports/step06_joint_scenarios.md`](reports/step06_joint_scenarios.md).
+
+### Step 5 results: thousands of plausible price years
+
+An hourly model of German day-ahead prices, fitted on 2024-01 to 2026-09 (24,095 hours):
+arcsinh-transformed prices = monthly level + daily shape (season x day type x hour, with
+the nine nationwide holidays) + a daily factor that reverts like an Ornstein-Uhlenbeck
+process + intraday patterns resampled as whole historical days.
+
+| | |
+|---|---|
+| Memory of the daily factor | phi = 0.521 per day, **half-life 1.06 days** |
+| Validation (history inside the 5-95% range of 200 simulated paths) | **7 of 11** statistics: mean, spread, 5/50/95/99% quantiles, weekly autocorrelation |
+| Still outside | 1% quantile and negative hours (6.2% in history, 4.9% in the model), autocorrelation at 1 and 24 hours |
+| 2027 at an 85 EUR/MWh forward (500 paths) | annual average 5% / 50% / 95%: 55.9 / 84.2 / 117.5 EUR/MWh; 5.7% negative hours |
+| Solar capture rate, 2025 output | **0.612** with simulated prices vs **0.555** with real ones |
+
+- **Validation changed the model twice.** A textbook hourly AR(1) forgot yesterday within
+  ten hours (24-hour autocorrelation 0.38-0.54 vs 0.70) and was replaced by the two-factor
+  version; a wider search of the transform's scale moved it from 80 to 120 EUR/MWh
+  (5 to 7 statistics inside).
+- **The gap that matters:** within a month, sunnier days have cheaper middays (correlation
+  −0.30 in 2025); in the model it is 0.00. Independent prices overstate what solar earns.
+  Step 6 links weather and prices.
+
+Full report: [`reports/step05_price_model.md`](reports/step05_price_model.md).
+
+### Step 4 results: how much the parks produce, and how much that varies
+
+Two illustrative parks at real locations, modelled hour by hour from ERA5 reanalysis
+weather (1995-2025) with pvlib and windpowerlib:
+
+| | Solar park, Lusatia (50 MWp) | Wind park, North Frisia (30 MW, V126-3.45) |
+|---|---|---|
+| P50 annual energy | 55.1 GWh = 1,102 kWh/kWp | 110.0 GWh = 3,668 full-load hours |
+| Year-to-year variability (CoV) | 5.0% | 5.5% |
+| P90, one year / 10-year average | −6.4% / −2.0% vs mean | −7.0% / −2.2% vs mean |
+| Worst / best weather year | 2001: −10.7% / 2018: +8.9% | 2003: −9.8% / 1998: +9.9% |
+| Trend 1995-2025 | +2.5% per decade (brightening) | +0.1% per decade |
+| Hourly correlation with the national fleet | 0.92 | 0.72-0.75 |
+
+- **Checks instead of a tie-out:** nobody publishes these parks' output, so the models are
+  checked against national generation (Step 1) and priced like Step 2: the site capture
+  rates are close to the national ones (solar 2025: 0.555 vs 0.516).
+- **Two traps found and fixed:** ERA5 radiation from Open-Meteo is labelled at the end of
+  its hour (shifted, and verified against the sun's position on every build), and the
+  first wind site sat in an ERA5 cell that is partly sea (0 m elevation, offshore-like
+  3,961 full-load hours); the park now sits 16 km inland.
+
+Full report: [`reports/step04_generation.md`](reports/step04_generation.md).
+
+### Step 3 results: what each PPA structure would have earned
+
+A 50 MW solar park and a 30 MW wind park (national profiles, scaled) sign each contract
+at the end of the previous year at last year's fair price, and deliver in 2024 and 2025.
+Revenue per MWh produced; cash flows to the producer:
+
+| EUR/MWh | Merchant | Pay-as-produced | PaP, no pay at negative prices | Baseload | Merchant + floor 0 |
+|---|---|---|---|---|---|
+| Solar 2024 | 46.48 | **72.25** | 59.04 | 63.14 | 49.26 |
+| Solar 2025 | 45.95 | 46.48 | 35.22 | **35.14** | 49.25 |
+| Wind 2024 | 64.54 | 78.44 | 73.50 | **81.20** | 65.03 |
+| Wind 2025 | **77.27** | 64.54 | 59.63 | 66.46 | 77.71 |
+
+- **A pay-as-produced PPA removes all price surprise** (realised minus the expectation at
+  signing is 0.00 in every case); whether it beats merchant is hindsight.
+- **A baseload PPA hedges the price level, not the shape:** on the solar park in 2025 it
+  fell 11.34 EUR/MWh short of plan, worse than merchant, and produced a negative month.
+- **A negative-price clause cost solar 11.26 EUR/MWh in 2025** (24% of the energy unpaid);
+  the right to curtail at negative prices was worth 3.30 EUR/MWh.
+
+Full report: [`reports/step03_ppa_structures.md`](reports/step03_ppa_structures.md);
+the maths: [`METHODOLOGY.md`](METHODOLOGY.md).
+
+### Step 2 results: what solar and wind really earn
+
+The capture price is the energy-weighted price a technology earns:
+sum(price x energy) / sum(energy) per quarter-hour. The capture rate divides it by the
+baseload price.
+
+| Capture rate (capture price, EUR/MWh) | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
+|---|---|---|---|---|
+| Baseload price | 95.18 | 78.51 | 89.32 | 107.72 |
+| Solar | 0.76 (72.25) | 0.59 (46.48) | 0.51 (45.95) | 0.52 (55.68) |
+| Wind onshore | 0.82 (78.44) | 0.82 (64.54) | 0.87 (77.27) | 0.89 (95.37) |
+| Wind offshore | 0.91 (86.56) | 0.91 (71.40) | 0.96 (85.53) | 0.94 (101.65) |
+| Solar energy sold at negative prices | 8.3% | 18.3% | 24.2% | 22.8% |
+
+- **Solar cannibalisation:** in two years solar's capture rate fell from 0.76 to 0.51.
+  In 2025 German solar earned EUR 3.0 billion less than the same energy at baseload.
+- **Reconciliation with the official market values** (netztransparenz.de, legally the
+  same formula): solar matches within 0.03 ct/kWh in 2023-2024 and 0.09 ct/kWh in
+  2025 (tolerance ±0.10, fixed in advance). The spot price matches in 43 of 44 months.
+  The one exception is June 2024, caused by the SDAC partial decoupling on
+  26 June 2024.
+- **Open investigation:** wind capture prices are 0.16 to 0.49 ct/kWh above the official
+  values in every year. The evidence points to curtailment in the measured generation
+  data versus the TSOs' online extrapolation. These references are deliberately left
+  outside tolerance until that is tested (backlog PPA-2b).
+
+![Capture rate by month](reports/figures/step02_capture_rate_monthly.png)
+
+Full report: [`reports/step02_capture_prices.md`](reports/step02_capture_prices.md).
+How it was built and investigated:
+[learning track, Step 2](docs/learning_track/step02_capture_prices.md).
+
+### Step 1 results
+
+| DE-LU day-ahead | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
+|---|---|---|---|---|
+| Mean price (EUR/MWh, time-weighted) | 95.18 | 78.51 | 89.32 | 107.72 |
+| Hours with negative prices | 301 | 457 | 576 | 471 |
+| Longest negative streak (hours) | 36 | 18 | 20 | 18 |
+| Lowest / highest price (EUR/MWh) | -500.00 / 524.27 | -135.45 / 936.28 | -250.32 / 583.40 | -499.99 / 747.10 |
+
+Reconciliation: the 2023 and 2025 mean prices match the official values exactly
+(2024 differs by −0.95 EUR/MWh, fully explained by the 26 June 2024 decoupling), and the
+negative-hour counts match published figures within 2 hours. Data quality: 23 checks pass,
+1 warning (one real interval at the -500 EUR/MWh floor), 0 failures; all 1,369 delivery
+days complete.
+
+The full numbers, the data-quality report and four charts are in
+[`reports/step01_market_data.md`](reports/step01_market_data.md).
 
 ## Data sources and licence
 
@@ -291,3 +314,9 @@ scripts/build_docs.py        learning-track Markdown -> PDF (`make docs`)
   averages are time-weighted across both.
 - "Negative hours" means hours whose average price is below zero; two alternative
   definitions are reported because publishers differ.
+
+## Status
+
+Version 0.9.0: Steps 1-7 and 9 are done; **Step 8** (hedging with market forwards: hedge
+ratio, products, back-test) is next. See the [backlog](docs/BACKLOG.md) and the
+[changelog](CHANGELOG.md).

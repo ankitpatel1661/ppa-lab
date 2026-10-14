@@ -10,8 +10,9 @@
     ppa-lab prices   calibrate and validate the stochastic price model, write the Step 5 report
     ppa-lab scenarios  joint weather x price scenarios for the delivery year, Step 6 report
     ppa-lab pricing  price the parks' PPAs: structures, risk premia, price stack, Step 7 report
+    ppa-lab memo     one-page management memo + reports/results.json for the dashboard (Step 9)
     ppa-lab all      fetch + build + check + report + capture + ppa + weather + prices + scenarios
-                     + pricing
+                     + pricing + memo
 """
 
 from __future__ import annotations
@@ -164,9 +165,20 @@ def cmd_pricing(args, settings) -> int:
     return 0
 
 
+MEMO_PDF = True  # render the memo to PDF when Chrome is available (tests switch it off)
+
+
+def cmd_memo(args, settings) -> int:
+    from ppa_lab.analysis.step09_memo import write_step09_memo
+
+    paths = write_step09_memo(settings, pdf=MEMO_PDF)
+    log.info("Memo written to %s", paths["memo"])
+    return 0
+
+
 def cmd_all(args, settings) -> int:
     steps = (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa, cmd_weather,
-             cmd_prices, cmd_scenarios, cmd_pricing)
+             cmd_prices, cmd_scenarios, cmd_pricing, cmd_memo)
     for step in steps:
         code = step(args, settings)
         if code:
@@ -192,7 +204,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("prices", cmd_prices, "calibrate and validate the price model -> Step 5 report"),
         ("scenarios", cmd_scenarios, "joint weather x price scenarios -> Step 6 report"),
         ("pricing", cmd_pricing, "price the PPAs with their risk premia -> Step 7 report"),
-        ("all", cmd_all, "the whole pipeline, Steps 1 to 7"),
+        ("memo", cmd_memo, "one-page memo and the dashboard's results file -> Step 9"),
+        ("all", cmd_all, "the whole pipeline, Steps 1 to 9"),
     ):
         p = sub.add_parser(name, help=help_text)
         p.set_defaults(func=func)

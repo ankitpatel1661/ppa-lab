@@ -234,6 +234,18 @@ def _tenor_md(tenors: dict[str, list[dict]], names: dict[str, str]) -> str:
     return pd.DataFrame(rows).to_markdown(index=False)
 
 
+def _strict(obj):
+    """JSON-safe copy: NaN becomes null, NumPy numbers become Python floats."""
+    if isinstance(obj, dict):
+        return {k: _strict(v) for k, v in obj.items()}
+    if isinstance(obj, list | tuple):
+        return [_strict(v) for v in obj]
+    if isinstance(obj, int | float | np.floating | np.integer) and not isinstance(obj, bool):
+        value = float(obj) if not isinstance(obj, int | np.integer) else int(obj)
+        return None if isinstance(value, float) and np.isnan(value) else value
+    return obj
+
+
 # --------------------------------------------------------------------------- #
 # Report
 # --------------------------------------------------------------------------- #
@@ -263,9 +275,11 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     for park in names:
         cost = ppa.parks[park]
         priced[park] = price_park(base.prices, base.volume(park), cost, q)
-        alt = None
+        alt, whole_window = None, None
         if whole is not None:
-            alt = float((whole.prices * whole.volume(park)).sum() / whole.volume(park).sum())
+            whole_premia = risk_premia(whole.prices, whole.volume(park), q)
+            alt = whole_premia["fair_price"]
+            whole_window = {"fair_price": alt, "premium": whole_premia["joint"]}
         tenors[park] = tenor_rows(priced[park], cost, ppa.start_year, ppa.tenor_years,
                                   ppa.discount_rate, alt)
         annual = annual_energy(inputs["gen"][park], tz).loc[
@@ -277,6 +291,11 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             "structures": priced[park]["structures"].to_dict(orient="index"),
             "energy_mwh_expected": priced[park]["energy_mwh"],
             "p50_mwh": pv["p50"], "p90_1y_mwh": pv["p90_1y"],
+            "whole_window": whole_window,
+            "assumptions": {"balancing_eur_mwh": cost.balancing_eur_mwh,
+                            "credit_eur_mwh": cost.credit_eur_mwh,
+                            "capture_rate_drift": cost.capture_rate_drift,
+                            "degradation": cost.degradation},
             "tenor": {"years": list(range(ppa.start_year, end_year + 1)),
                       "fair_price": tenors[park][0]["fair_price"],
                       "indicative": tenors[park][0]["indicative"],
@@ -284,11 +303,12 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         }
 
     out_json = settings.processed_dir / "ppa_pricing.json"
-    out_json.write_text(json.dumps({
+    out_json.write_text(json.dumps(_strict({
         "generated_utc": f"{datetime.now(UTC):%Y-%m-%d %H:%M}", "delivery_year": ppa.start_year,
-        "tenor_years": ppa.tenor_years, "analog_pool_start": str(ppa.analog_pool_start),
+        "tenor_years": ppa.tenor_years, "discount_rate": ppa.discount_rate,
+        "analog_pool_start": str(ppa.analog_pool_start),
         "scenarios": int(base.prices.shape[0]), "forward_assumption": pm.forward_eur_mwh,
-        "parks": results}, indent=1, default=float))
+        "parks": results}), indent=1, allow_nan=False))
 
     fig_dir = settings.reports_dir / "figures"
     lead = next(iter(names))
