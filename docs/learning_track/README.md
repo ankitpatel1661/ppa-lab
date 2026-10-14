@@ -31,7 +31,8 @@ explain every box in your own words.
 | 4 | PPA-4 | [step04_weather_to_power.md](step04_weather_to_power.md) | ERA5 reanalysis, pvlib and windpowerlib site models, P50/P90 volume risk |
 | 5 | PPA-5 | [step05_price_model.md](step05_price_model.md) | Stochastic price model: arcsinh transform, seasonality, mean reversion, calibration to a forward, validation |
 | 6 | PPA-6 | [step06_joint_scenarios.md](step06_joint_scenarios.md) | Joint weather and price scenarios: the covariance of volume and price, a weather-price link with analog days, what ignoring it costs |
-| 7 | PPA-7 | (next) | Price the solar PPA with its risk premium |
+| 7 | PPA-7 | [step07_ppa_pricing.md](step07_ppa_pricing.md) | Pricing and risk: structures on scenarios, cash flow at risk, the buyer's premium after a hedge, the price stack, a ten-year price |
+| 8 | PPA-8 | (next) | Hedging with futures |
 
 ## Companions
 

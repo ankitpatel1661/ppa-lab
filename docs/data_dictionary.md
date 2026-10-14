@@ -6,8 +6,8 @@ Update this page whenever a dataset or column is added (part of the definition o
 **Contents:** [Conventions](#conventions-that-apply-everywhere) ·
 [Layers](#data-layers) · [prices_native](#prices_nativeparquet) ·
 [prices_hourly](#prices_hourlyparquet) · [power_15min / power_hourly](#power_15minparquet-and-power_hourlyparquet) ·
-[weather / generation](#weather_parkparquet-day-4) · [price_model.json](#price_modeljson-day-5) ·
-[scenarios_2027](#scenarios_yearparquet-day-6) ·
+[weather / generation](#weather_parkparquet-step-4) · [price_model.json](#price_modeljson-step-5) ·
+[scenarios_2027](#scenarios_yearparquet-step-6) · [ppa_pricing.json](#ppa_pricingjson-step-7) ·
 [Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test, volumes, price paths) ·
 [Loading](#how-to-load-the-data)
 
@@ -33,7 +33,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 |---|---|---|---|---|
 | Raw | `data/raw/energy_charts/<dataset>/<YYYY-MM>.parquet` + `.json` manifest | No | `ppa-lab fetch` | Exactly what the API returned, one file per month, with checksum, parameters and licence |
 | Raw (weather) | `data/raw/open_meteo/weather_<park>/<YYYY>.parquet` + `.json` manifest | No | `ppa-lab weather` | ERA5 weather per site and year exactly as Open-Meteo labels it, with the ERA5 grid point used |
-| Processed | `data/processed/*.parquet`, `price_model.json` | No | `ppa-lab build`, `weather`, `prices`, `scenarios` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters; scenario results (files below) |
+| Processed | `data/processed/*.parquet`, `price_model.json`, `ppa_pricing.json` | No | `ppa-lab build`, `weather`, `prices`, `scenarios`, `pricing` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters; scenario and pricing results (files below) |
 | Reference | `data/reference/*.csv` | **Yes** | by hand, with provenance in the file header | Small published datasets used for reconciliation |
 
 Rebuild everything with `make all` (first download of prices about 10-15 minutes and of
@@ -213,6 +213,24 @@ the capture prices (`ppa_lab.scenarios.generator.fair_price`). Hourly prices are
 
 ---
 
+## `ppa_pricing.json` (Step 7)
+
+Key pricing results, written by `ppa-lab pricing`; input for Step 9. All prices in EUR/MWh,
+revenues in EUR, energies in MWh, for the first delivery year unless stated.
+
+| Key | Meaning |
+|---|---|
+| `delivery_year`, `tenor_years` | First delivery year and contract length |
+| `analog_pool_start` | First historical day used for intraday patterns (the configured base case) |
+| `scenarios`, `forward_assumption` | Number of joint scenarios; the assumed forward price |
+| `parks.<park>.premia_eur_mwh` | `fair_price`, `unhedged`, `joint` (after the baseload hedge), `profile`, `volume` |
+| `parks.<park>.stack_eur_mwh` | `forward` (scenario average), `shape`, `fair_price`, `risk_premium`, `balancing`, `credit`, `indicative` |
+| `parks.<park>.structures.<structure>` | `fair_price_eur_mwh`, `expected_revenue_eur`, `p05_revenue_eur`, `cfar_eur`, `cfar_share`, `floor_value_eur_mwh` for `merchant`, `pay_as_produced`, `pay_as_produced_clause`, `merchant_floor`, `baseload` |
+| `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
+| `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor, and `sensitivity` (one row per case) |
+
+---
+
 ## Reference data
 
 ### `data/reference/netztransparenz_market_values_monthly.csv`
@@ -319,6 +337,18 @@ not a forecast of a particular hour.
 | `simulate_linked(model, link, index, tz, weather, n_paths, annual_level, seed, ...)` | paths x hours, EUR/MWh, for the given daily weather |
 | `build_scenarios(...)` | `Scenarios`: `prices` (S x hours), `generation` (weather years x hours per park), `weather_years`, `year_row`, `level`, `linked` |
 | `scenario_table(scenarios, parks)` | the columns of `scenarios_<year>.parquet` |
+
+### Pricing and risk (`ppa_lab.pricing.risk`)
+
+| Function | Returns |
+|---|---|
+| `cash_flow_at_risk(cash, quantile)` | expected cash flow minus its quantile (EUR) |
+| `premium(values, energy, quantile)` | (expected value − quantile) / expected energy (EUR/MWh) |
+| `buyer_value(prices, volumes, strike, forward, band_mw)` | per scenario: Σ q (P − K), plus a baseload hedge B Σ (F − P) if given |
+| `risk_premia(prices, volumes, quantile)` | `fair_price`, `unhedged`, `joint`, `profile`, `volume` (EUR/MWh) |
+| `structure_revenues(prices, volumes, floor)` | structure → (strike, annual revenue per scenario) |
+| `structure_table(prices, volumes, floor, quantile)` | per structure: fair price, expected and P5 revenue, CFaR, CFaR share, floor value |
+| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ...)` | per year: forward, capture rate, fair price, energy, discount factor; tenor price in `.attrs["price"]` |
 
 ### `annual_price_stats(prices, tz)` (`ppa_lab.analysis.reconcile`)
 

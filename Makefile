@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios pricing all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -52,7 +52,10 @@ prices:  ## calibrate + validate the price model -> reports/step05_price_model.m
 scenarios:  ## joint weather x price scenarios -> reports/step06_joint_scenarios.md
 	$(PY) -m ppa_lab scenarios
 
-all: data build check report capture ppa weather prices scenarios  ## the whole pipeline (Steps 1-6)
+pricing:  ## price the PPAs: structures, risk premia, price stack -> reports/step07_ppa_pricing.md
+	$(PY) -m ppa_lab pricing
+
+all: data build check report capture ppa weather prices scenarios pricing  ## the whole pipeline (Steps 1-7)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"

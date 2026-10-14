@@ -64,6 +64,30 @@ analog_k = 10                     # ... drawn among the 10 with the closest weat
 validation_exclusion_days = 7     # in-sample check: analogs at least a week from the day
 seed = 2027
 
+[ppa]
+# Step 7: price a pay-as-produced PPA on the joint scenarios of Step 6
+# (src/ppa_lab/pricing/risk.py). Costs are the preparation guide's illustrative values.
+start_year = 2027                 # first delivery year = [price_model].delivery_year
+tenor_years = 10
+discount_rate = 0.06              # annual; cash flows discounted at mid-year
+risk_quantile = 0.05              # premia and cash flow at risk at the 5% quantile
+# Which historical days represent the delivery year's intraday patterns (learning track
+# Step 6, section 4.3): the most recent 12 months, because solar's midday dips deepen
+# year by year as capacity grows. The whole window is reported as a sensitivity.
+analog_pool_start = 2025-10-01
+
+[ppa.parks.solar_park]
+balancing_eur_mwh = 1.5           # balancing and route to market
+credit_eur_mwh = 1.0              # credit and liquidity
+capture_rate_drift = 0.0          # per year after 2027; sensitivities -0.02 to +0.01
+degradation = 0.005               # PV module degradation, about 0.5 % per year
+
+[ppa.parks.wind_park]
+balancing_eur_mwh = 2.0           # wind forecast errors are larger than solar ones
+credit_eur_mwh = 1.0
+capture_rate_drift = 0.0
+degradation = 0.0
+
 [weather]
 # ERA5 reanalysis (ECMWF / Copernicus) through the free Open-Meteo archive API.
 base_url = "https://archive-api.open-meteo.com/v1"

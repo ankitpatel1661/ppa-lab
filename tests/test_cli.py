@@ -37,6 +37,7 @@ def test_all_runs_the_whole_pipeline(two_day_settings):
     # The price model's calibration window lies outside two days: Steps 5 and 6 are skipped.
     assert not (two_day_settings.reports_dir / "step05_price_model.md").exists()
     assert not (two_day_settings.reports_dir / "step06_joint_scenarios.md").exists()
+    assert not (two_day_settings.reports_dir / "step07_ppa_pricing.md").exists()
 
 
 def test_prices_command_writes_the_step05_report(settings, monkeypatch):
@@ -61,6 +62,18 @@ def test_scenarios_command_writes_the_step06_report(settings, monkeypatch):
     assert cli.main(["scenarios"]) == 0
     assert (s.reports_dir / "step06_joint_scenarios.md").exists()
     assert (s.processed_dir / "scenarios_2026.parquet").exists()
+
+
+def test_pricing_command_writes_the_step07_report(settings, monkeypatch):
+    from test_step07_report import small_settings
+    s = small_settings(settings)
+    write_synthetic_market(s)
+    monkeypatch.setattr(cli, "load_settings", lambda path=None: s)
+    monkeypatch.setattr(cli, "_weather_client", lambda _settings: FakeWeatherClient())
+    assert cli.main(["weather"]) == 0
+    assert cli.main(["pricing"]) == 0
+    assert (s.reports_dir / "step07_ppa_pricing.md").exists()
+    assert (s.processed_dir / "ppa_pricing.json").exists()
 
 
 def test_weather_command_builds_generation_and_the_step04_report(settings, monkeypatch):

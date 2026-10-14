@@ -102,3 +102,17 @@ def test_scenarios_use_complete_weather_years_and_need_the_price_model(tmp_path)
     path.write_text(bad)
     with pytest.raises(ValueError, match="weather_last_year"):
         load_settings(path)
+
+
+def test_ppa_pricing_settings_match_the_scenarios(tmp_path):
+    s = load_settings()
+    ppa = s.ppa
+    assert ppa.start_year == s.price_model.delivery_year      # scenarios exist for this year
+    assert ppa.tenor_years >= 1 and 0 < ppa.risk_quantile < 0.5
+    assert set(ppa.parks) <= {p.name for p in s.parks}
+    assert s.price_model.calibration_start <= ppa.analog_pool_start <= s.price_model.calibration_end
+    bad = DEFAULT_CONFIG.read_text().replace("start_year = 2027", "start_year = 2030")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="start_year"):
+        load_settings(path)

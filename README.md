@@ -8,14 +8,41 @@ combines German power prices, generation and weather data, simulates them
 together, and prices power purchase agreements (PPAs) with their market, shape
 and volume risks.
 
-> **Status: Step 6 of 9 (ticket PPA-6, version 0.6.0).** Done so far: the
+> **Status: Step 7 of 9 (ticket PPA-7, version 0.7.0).** Done so far: the
 > market-data foundation (Step 1), capture prices reconciled against the official
 > German market values (Step 2), the PPA structures with their pricing maths and a
 > 2024-2025 back-test (Step 3, [methodology](METHODOLOGY.md)), site generation from
 > 31 years of ERA5 weather with P50/P90 volumes (Step 4), a stochastic hourly price
-> model calibrated to a forward price (Step 5), and joint weather and price scenarios in
-> which prices respond to the weather (Step 6).
+> model calibrated to a forward price (Step 5), joint weather and price scenarios in
+> which prices respond to the weather (Step 6), and the PPA price with its risk premium
+> and the producer's cash flow at risk (Step 7).
 > See the [backlog](docs/BACKLOG.md) for what comes next.
+
+## Step 7 results: the answer
+
+> *For a 10-year pay-as-produced PPA (2027-2036) from the 50 MWp solar park in Lusatia, the
+> fair price before risk premia is **41.1 EUR/MWh** (forward 85.4 × expected capture rate
+> 0.48). After a profile and volume risk premium of 5.3 EUR/MWh and balancing and credit costs
+> of 2.5 EUR/MWh, the indicative price is **33.3 EUR/MWh**. Expected annual energy is 55.1 GWh
+> (P50; one-year P90 51.5 GWh). Under the PPA the producer's 95% cash flow at risk falls from
+> EUR 1.44 m (merchant) to EUR 0.20 m per year.*
+
+| 2027, EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
+|---|---|---|
+| Forward (scenario average) | 85.4 | 85.4 |
+| Fair pay-as-produced price | 41.1 | 74.8 |
+| Buyer's risk premium after a baseload hedge (without hedge) | 5.3 (25.2) | 3.4 (27.9) |
+| of which profile / volume | 5.0 / 0.3 | 0.9 / 2.5 |
+| **Indicative price** (after balancing and credit costs) | **33.3** | **68.4** |
+| Producer's CFaR95: merchant → pay-as-produced | EUR 1.44 m → 0.20 m | EUR 2.95 m → 0.68 m |
+
+- **Most of the buyer's risk is hedgeable:** a baseload forward removes 80-88% of it. Solar's
+  residual risk is profile, wind's is volume.
+- **What moves the solar price most** is not the premium but the view on cannibalisation:
+  analog days from the whole 2024-2026 window instead of the last 12 months +7.6 EUR/MWh, a
+  capture-rate trend of ±1 pp per year ±3.4 EUR/MWh, the forward ±10% ±4.1 EUR/MWh.
+
+Full report: [`reports/step07_ppa_pricing.md`](reports/step07_ppa_pricing.md).
 
 ## Step 6 results: prices that see the weather
 
@@ -166,7 +193,7 @@ The full numbers, the data-quality report and four charts are in
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 194 offline tests, about 12 seconds
+make test      # 207 offline tests, about 15 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 ```
 
@@ -190,6 +217,7 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab weather   # ERA5 weather -> park generation -> reports/step04_generation.md
 .venv/bin/ppa-lab prices    # price model: fit, validate, simulate -> reports/step05_price_model.md
 .venv/bin/ppa-lab scenarios # weather x price scenarios -> reports/step06_joint_scenarios.md
+.venv/bin/ppa-lab pricing   # PPA prices, risk premia, CFaR -> reports/step07_ppa_pricing.md
 ```
 
 The first download takes 10 to 15 minutes because the free API is rate limited;
@@ -229,6 +257,8 @@ src/ppa_lab/
   scenarios/link.py          weather-price link: response per season + analog days
   scenarios/generator.py     weather years x price paths, fair price
   analysis/step06_report.py   Step 6 report and charts
+  pricing/risk.py            structures on scenarios, CFaR, risk premia, ten-year price
+  analysis/step07_report.py   Step 7 report and charts
   cli.py                     `ppa-lab` command
 tests/                       offline tests with real API fixtures
 notebooks/                   ppa_lab_playground.ipynb: interactive, one section per day

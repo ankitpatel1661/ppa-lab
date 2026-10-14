@@ -80,6 +80,28 @@ class ScenarioSettings:
 
 
 @dataclass(frozen=True)
+class PpaParkSettings:
+    """Cost and trend assumptions of one park's PPA (Step 7)."""
+
+    balancing_eur_mwh: float         # balancing and route-to-market costs
+    credit_eur_mwh: float            # credit and liquidity
+    capture_rate_drift: float        # change of the capture rate per year after the first
+    degradation: float               # annual loss of output (share)
+
+
+@dataclass(frozen=True)
+class PpaSettings:
+    """Pricing of a multi-year pay-as-produced PPA on the joint scenarios (Step 7)."""
+
+    start_year: int
+    tenor_years: int
+    discount_rate: float
+    risk_quantile: float
+    analog_pool_start: date          # historical days that represent the delivery year
+    parks: dict[str, PpaParkSettings]
+
+
+@dataclass(frozen=True)
 class EnergyChartsSettings:
     base_url: str
     timeout_s: float
@@ -111,6 +133,7 @@ class Settings:
     weather_license: str = ""
     price_model: PriceModelSettings | None = None
     scenarios: ScenarioSettings | None = None
+    ppa: PpaSettings | None = None
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -118,6 +141,11 @@ class Settings:
         if not applicable:
             raise ValueError(f"No price limit configured for delivery day {day}")
         return max(applicable, key=lambda lim: lim.effective_from)
+
+
+def _ppa(raw: dict) -> PpaSettings:
+    parks = {name: PpaParkSettings(**values) for name, values in raw.get("parks", {}).items()}
+    return PpaSettings(**{k: v for k, v in raw.items() if k != "parks"}, parks=parks)
 
 
 def load_settings(path: Path | None = None, root: Path | None = None) -> Settings:
@@ -168,6 +196,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         weather_license=weather.get("license", ""),
         price_model=PriceModelSettings(**raw["price_model"]) if "price_model" in raw else None,
         scenarios=ScenarioSettings(**raw["scenarios"]) if "scenarios" in raw else None,
+        ppa=_ppa(raw["ppa"]) if "ppa" in raw else None,
     )
     _validate(settings)
     return settings
@@ -205,6 +234,18 @@ def _validate(s: Settings) -> None:
             raise ValueError("[scenarios] needs [price_model]")
         if sc.weather_last_year < s.weather_first_year:
             raise ValueError("scenarios.weather_last_year must not be before weather.first_year")
+    ppa = s.ppa
+    if ppa is not None:
+        if pm is None or sc is None:
+            raise ValueError("[ppa] needs [price_model] and [scenarios]")
+        if ppa.start_year != pm.delivery_year:
+            raise ValueError("ppa.start_year must equal price_model.delivery_year (the scenarios' "
+                             "year)")
+        if not pm.calibration_start <= ppa.analog_pool_start <= pm.calibration_end:
+            raise ValueError("ppa.analog_pool_start must lie inside the calibration window")
+        unknown = set(ppa.parks) - {p.name for p in s.parks}
+        if unknown:
+            raise ValueError(f"[ppa.parks] names unknown parks: {sorted(unknown)}")
     if s.weather_first_year > s.start.year:
         raise ValueError("weather.first_year must not be after market.start")
     for y in s.delivery_years:

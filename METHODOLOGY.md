@@ -3,11 +3,11 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 0.3** (ticket PPA-6): cash flows and fair prices of the standard structures,
+**Version 0.4** (ticket PPA-7): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
-stochastic hourly price model calibrated to a forward price (PPA-5, section 8), and joint
-weather and price scenarios (PPA-6, section 9). Later versions add risk premia (PPA-7) and
-hedging (PPA-8).
+stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
+weather and price scenarios (PPA-6, section 9), and prices, risk premia and cash flow at risk
+on those scenarios (PPA-7, section 10). The next version adds hedging (PPA-8).
 
 ---
 
@@ -129,7 +129,8 @@ $$
 
 with the risk premium for profile and volume uncertainty, the expected cost of negative
 prices and curtailment, balancing and route-to-market costs, and credit and liquidity.
-Version 0 quantifies only the first term on history; the others follow in PPA-7.
+Version 0 quantified only the first term on history; PPA-7 computes all of them on the
+joint scenarios (section 10).
 
 ---
 
@@ -141,6 +142,9 @@ $$
 \text{premium} = \frac{E[\Pi] - q_{5\%}(\Pi)}{E\left[\sum_t q_t\right]}, \qquad
 \text{CFaR}_{95} = E[CF] - q_{5\%}(CF).
 $$
+
+How they are applied to the scenarios (whose value $\Pi$, whose cash flow $CF$, which hedge)
+is section 10.
 
 ---
 
@@ -333,7 +337,56 @@ wind and the daily price (history −0.58, Step 6 −0.60, Step 5 0.00). Sensiti
 the analog pool (solar fair price 48.7 / 44.9 / 41.1 EUR/MWh for pools from 2024, 2025 and the
 last 12 months).
 
-## 10. Assumptions and limitations
+---
+
+## 10. Pricing and risk on the scenarios (PPA-7)
+
+Code: `src/ppa_lab/pricing/risk.py`; report `reports/step07_ppa_pricing.md`; results
+`data/processed/ppa_pricing.json`. Arrays $P_{s,t}$ and $q_{s,t}$ over $S$ equally likely
+scenarios (section 9, with analog days from `[ppa] analog_pool_start`) and the $T$ hours of the
+first delivery year.
+
+**Structures (producer view).** The contract functions of section 3, unchanged, on every
+scenario; annual revenue $R_s$ per structure, each struck at its fair price (section 4):
+merchant; pay-as-produced at $K^\star$; pay-as-produced with the negative-price clause at the
+same $K^\star$ (the clause costs the producer its output at $P < 0$); merchant plus a floor $F$
+net of its fair premium $E[\sum_t q_t (F - P_t)^+]$; baseload at $K_B^\star = \bar P$ with band
+$B = E[\sum_t q_t]/T$. Risk: $\text{CFaR}_{95} = E[R] - q_{5\%}(R)$.
+
+**Buyer's premium.** The buyer of a pay-as-produced PPA at strike $K$ is worth, per scenario,
+
+$$
+V_s = \sum_t q_{s,t}\,(P_{s,t} - K) \;+\; B \sum_t (\bar P - P_{s,t}),
+$$
+
+the second term being a baseload band $B$ sold at the scenarios' average price $\bar P$ (the
+model's forward), which removes the price level. At $K = K^\star$, $E[V] = 0$ and
+
+$$
+\pi_{joint} = \frac{E[V] - q_{5\%}(V)}{E\left[\sum_t q_t\right]}, \qquad
+\pi_{profile} = \pi_{joint}\big|_{q_{s,t} \to \bar q_t}, \qquad
+\pi_{volume} = \pi_{joint} - \pi_{profile},
+$$
+
+with $\bar q_t$ the expected hourly volume (so $\pi_{profile}$ only sees the price shape) and
+$\pi_{volume}$ what varying volumes and their link to prices add. The premium without the hedge
+is reported for comparison.
+
+**Price stack.** $K^{PaP} = \bar P \cdot c - \pi_{joint} - \text{balancing} - \text{credit}$, with
+$c = K^\star/\bar P$ the expected capture rate and the costs from `[ppa.parks.*]` (stated
+assumptions).
+
+**Tenor.** For years $i = 0, \dots, N-1$: $F_i$ (flat unless given), $c_i = c + \delta\, i$,
+$K_i = F_i c_i$, $E_i = E[\sum_t q_t]\,(1 - g)^i$, $D_i = (1 + r)^{-(i + 1/2)}$, and
+
+$$
+K_N = \frac{\sum_i D_i E_i K_i}{\sum_i D_i E_i},
+$$
+
+with capture-rate drift $\delta$, degradation $g$ and discount rate $r$. The first year's premium
+and costs per MWh are applied to every year.
+
+## 11. Assumptions and limitations
 
 | Assumption | Effect | Addressed in |
 |---|---|---|
@@ -349,12 +402,15 @@ last 12 months).
 | Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
 | Linear daily response per season | No saturation (e.g. once prices hit zero, more wind changes little) | Analog patterns carry part of it; v2 |
 | Parks produce their potential output | No curtailment at negative prices; a candidate for the wind 2024 gap | v2 |
+| One delivery year of scenarios; later years by drift and degradation | A ten-year price rests on a flat forward and an assumed capture-rate trend | Sensitivities in PPA-7; forward curve in PPA-8 |
+| Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
+| Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8 (market forwards, hedge ratio) |
 | One calibration window (2024-2026), in-sample validation only | Regime changes and out-of-sample errors not tested | v2: rolling, out-of-sample validation |
 | One illustrative annual forward (85 EUR/MWh), no monthly forward curve | Level and its seasonality not market-implied | PPA-8 |
 | Measured generation is after curtailment | Slightly higher capture prices than official market values (Step 2) | Backlog PPA-2b |
-| No balancing, imbalance, route-to-market or credit costs | Fair prices are upper bounds | PPA-7 |
+| Balancing, route-to-market and credit costs as fixed EUR/MWh | Not modelled from imbalance prices or counterparty data | Stated assumptions in PPA-7; models in v2 |
 | Negative-price clause assumes curtailment | No cost of producing at negative prices | – |
-| Option premiums not included in cash flows | Floors and caps shown as payoffs only | PPA-7 |
+| Option premiums not included in cash flows (history) | Floors and caps shown as payoffs only in the back-test | PPA-7 prices the floor on scenarios |
 | No taxes, grid fees, guarantees of origin | Not part of the energy price | – |
 
 ---
@@ -366,3 +422,4 @@ last 12 months).
 - **v0.2, PPA-5:** stochastic price model (section 8); four LaTeX commands in section 7 that
   had been saved as control characters (`\t`, `\a`, `\f`, `\r`) restored.
 - **v0.3, PPA-6:** joint weather and price scenarios (section 9); limitations updated.
+- **v0.4, PPA-7:** pricing and risk on the scenarios (section 10); limitations updated.

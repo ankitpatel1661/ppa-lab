@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] (Step 7, ticket PPA-7)
+
+### Added
+- Pricing and risk on the joint scenarios (`ppa_lab.pricing.risk`): every structure struck at
+  its fair price with expected and P5 revenue and CFaR95 (`structure_table`,
+  `structure_revenues`, reusing the Step 3 contract functions); the buyer's value and risk
+  premium after a baseload hedge, split into profile and volume (`buyer_value`,
+  `risk_premia`); a multi-year price with drift, degradation and discounting (`tenor_price`).
+- Step 7 report (`ppa-lab pricing`, `make pricing`, part of `make all`) with the structures,
+  premia, price stack, ten-year price and sensitivities, three charts and
+  `data/processed/ppa_pricing.json` for Step 9; `[ppa]` and `[ppa.parks.*]` settings with the
+  analog-pool decision (last 12 months) and stated cost assumptions.
+- Step 7 learning-track page, notebook section (7.1-7.6, "My solutions"), exercises;
+  METHODOLOGY v0.4 (section 10); data dictionary entries.
+
+### Fixed
+- Data dictionary links still pointed to `...-day-N` anchors after the rename to steps.
+
+### Found
+- Ten-year solar pay-as-produced price: 41.1 fair, 33.3 indicative EUR/MWh (wind 74.8 / 68.4).
+- A baseload hedge removes 80-88% of the buyer's risk; the residual premium is 5.3 EUR/MWh for
+  solar (mostly profile) and 3.4 for wind (mostly volume).
+- A pay-as-produced PPA cuts the producer's CFaR95 by 86% (solar) and 77% (wind).
+- The negative-price clause at the plain strike costs the solar park 25% of its revenue.
+
 ## [0.6.0] (Step 6, ticket PPA-6)
 
 ### Added

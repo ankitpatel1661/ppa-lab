@@ -13,7 +13,7 @@ that step is written.
 | PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | **Done** |
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | **Done** |
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | **Done** |
-| PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | To do |
+| PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | **Done** |
 | PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | To do |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | To do |
 
@@ -91,6 +91,19 @@ that the negative correlation between renewable output and price is in every PPA
 - [x] Checks: correlation wind vs price as in history (−0.60 vs −0.58); 2025 capture rates
       inside the simulated ranges; Monte Carlo standard error (±0.8 EUR/MWh).
 - [x] Report, per-scenario results for Step 7, learning-track page, notebook section, exercises.
+
+## PPA-7: Pricing and risk (Step 7)
+
+**Story:** As a pricing analyst I want a defensible PPA price with its risk premium and the
+risk we keep, so that origination can make an offer and Risk can approve it.
+
+**Acceptance criteria**
+- [x] All structures on the joint scenarios: fair price, expected and P5 revenue, CFaR95.
+- [x] Buyer's premium after a baseload hedge, split into profile and volume; unhedged for comparison.
+- [x] Price stack from the forward to an indicative price with stated cost assumptions.
+- [x] Ten-year price with discounting, degradation and sensitivities (trend, forward, pool).
+- [x] Analog-pool decision in the configuration; results in `ppa_pricing.json` for Step 9.
+- [x] Report, learning-track page, notebook section, exercises.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 
