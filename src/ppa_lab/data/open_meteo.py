@@ -11,7 +11,7 @@ Time conventions (the trap of this source):
 - radiation values are the MEAN OF THE PRECEDING HOUR: the value labelled 11:00 is the
   average over 10:00-11:00;
 - temperature and wind are INSTANTANEOUS values at the label time.
-The project stores interval-beginning hourly values (Day 1 convention), so
+The project stores interval-beginning hourly values (Step 1 convention), so
 `to_interval_beginning` moves radiation back by one hour and averages each pair of
 instants. `radiation_timing_offset` checks the result against the sun's position.
 """

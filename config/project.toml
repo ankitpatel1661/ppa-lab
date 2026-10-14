@@ -35,17 +35,17 @@ min_eur_mwh = -600.0
 max_eur_mwh = 4000.0
 
 [price_model]
-# Day 5: stochastic hourly price model (src/ppa_lab/prices/model.py), calibrated on the
+# Step 5: stochastic hourly price model (src/ppa_lab/prices/model.py), calibrated on the
 # recent regime (deep solar dips, many negative prices, 15-minute products since Oct 2025).
 calibration_start = 2024-01-01
 calibration_end = 2026-09-30
-# s in y = arcsinh(P / s), EUR/MWh. Chosen by validation over 30-300 (learning track Day 5,
+# s in y = arcsinh(P / s), EUR/MWh. Chosen by validation over 30-300 (learning track Step 5,
 # section 4.3): from 120 on, 7 of 11 statistics fall inside the simulated range (80: 5);
 # larger s only makes the negative tail heavier. 120 is the smallest robust choice.
 scale_eur_mwh = 120.0
 n_paths = 500
 seed = 2026
-# Illustrative delivery year and forward price until Day 8 brings market forwards
+# Illustrative delivery year and forward price until Step 8 brings market forwards
 # (85 EUR/MWh is the number used in the preparation guide's price stack).
 delivery_year = 2027
 forward_eur_mwh = 85.0
@@ -53,10 +53,21 @@ forward_eur_mwh = 85.0
 # 85 EUR/MWh forward, one standard deviation is about 18 EUR/MWh on the level.
 level_volatility = 0.12
 
+[scenarios]
+# Step 6: joint weather x price scenarios for [price_model].delivery_year
+# (src/ppa_lab/scenarios/). Each complete weather year gets the same number of price paths,
+# simulated FOR that year's weather (weather-price link) and, for comparison, without it.
+weather_last_year = 2025          # weather years: [weather].first_year .. this year
+paths_per_weather_year = 16       # 31 weather years x 16 paths = 496 scenarios
+analog_window_days = 30           # intraday patterns from days within +-30 days of the date
+analog_k = 10                     # ... drawn among the 10 with the closest weather
+validation_exclusion_days = 7     # in-sample check: analogs at least a week from the day
+seed = 2027
+
 [weather]
 # ERA5 reanalysis (ECMWF / Copernicus) through the free Open-Meteo archive API.
 base_url = "https://archive-api.open-meteo.com/v1"
-# 31 complete weather years (1995-2025) for P50/P90 and the Day 6 simulation.
+# 31 complete weather years (1995-2025) for P50/P90 and the Step 6 simulation.
 first_year = 1995
 # Requests of a whole year count as many API calls; 4 s between requests keeps us
 # well inside the free limits (600 calls/min, 5,000/hour).
@@ -80,9 +91,9 @@ reports = "reports"
 reference = "data/reference"
 
 # -----------------------------------------------------------------------------
-# Day 3: PPA back-tests. Illustrative parks from the project brief (50 MW solar,
+# Step 3: PPA back-tests. Illustrative parks from the project brief (50 MW solar,
 # 30 MW onshore wind). They use the national generation profile of their technology,
-# scaled to capacity x full-load hours each year; Day 4 replaces this with site models.
+# scaled to capacity x full-load hours each year; Step 4 replaces this with site models.
 # A contract for delivery year Y is signed at Y-1's fair price (naive forward proxy).
 # -----------------------------------------------------------------------------
 [pricing]
@@ -95,8 +106,8 @@ floor_eur_mwh = 0.0
 technology = "solar"
 capacity_mw = 50          # DC peak capacity (MWp)
 # German ground-mounted PV yields roughly 950-1,050 MWh per MWp and year.
-full_load_hours = 1000    # Day 3 back-test only (national profile scaled)
-# Day 4 site model (pvlib). A real location in a large German PV region.
+full_load_hours = 1000    # Step 3 back-test only (national profile scaled)
+# Step 4 site model (pvlib). A real location in a large German PV region.
 site = "Lusatia, Brandenburg"
 latitude = 51.75
 longitude = 14.25
@@ -109,8 +120,8 @@ losses_pct = 10           # soiling, mismatch, wiring, availability (before the 
 technology = "wind_onshore"
 capacity_mw = 30
 # Onshore fleet average is below 2,000 h; modern turbines reach 2,500 h and more.
-full_load_hours = 2000    # Day 3 back-test only (national profile scaled)
-# Day 4 site model (windpowerlib). Windy inland North Frisia (near Viol), on LAND:
+full_load_hours = 2000    # Step 3 back-test only (national profile scaled)
+# Step 4 site model (windpowerlib). Windy inland North Frisia (near Viol), on LAND:
 # the ERA5 cell at 54.50 N 9.00 E has 0 m elevation (partly Wadden Sea) and gave
 # offshore-like winds (3,961 full-load hours); 0.25 deg inland: 30 m, 5 % less wind.
 site = "North Frisia, Schleswig-Holstein"
@@ -172,7 +183,7 @@ tolerance = 5
 source = "DGS evaluation: 301 h in 2023"
 
 # -----------------------------------------------------------------------------
-# Day 2: official annual market values ("Jahresmarktwerte", JW) published by the
+# Step 2: official annual market values ("Jahresmarktwerte", JW) published by the
 # German TSOs on netztransparenz.de, retrieved 8 Oct 2026. Legal formula (EEG 2023
 # Anlage 1 Nr. 4.3): sum over all quarter-hours of spot price x generation from the
 # TSOs' online extrapolation, divided by total generation, i.e. a capture price.

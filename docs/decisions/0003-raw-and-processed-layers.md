@@ -18,7 +18,7 @@ capture rate, we must be able to show which data produced it.
   when downloaded are fetched again).
 - **Processed layer** (`data/processed/*.parquet`): cleaned, de-duplicated,
   restricted to the configured range, enriched with interval length and hourly views.
-- Format: Parquet (typed, compressed, fast). A SQL layer (DuckDB) follows on Day 13.
+- Format: Parquet (typed, compressed, fast). A SQL layer (DuckDB) may follow later.
 
 ## Consequences
 

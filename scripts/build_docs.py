@@ -1,7 +1,7 @@
 """Render the learning-track Markdown pages to PDF.
 
     python scripts/build_docs.py            # all pages in docs/learning_track/
-    python scripts/build_docs.py day01      # pages whose file name contains "day01"
+    python scripts/build_docs.py step01      # pages whose file name contains "step01"
 
 Markdown -> HTML with Python-Markdown (+ Pygments for code), then HTML -> PDF with
 headless Google Chrome. The Markdown files stay the source of truth (they render

@@ -1,10 +1,10 @@
 # Backlog
 
-Tickets follow the 14-day sprint in the Encavis preparation guide (Section 4.2).
-Each ticket has acceptance criteria (AC): it is done only when all AC are met,
-tests pass and the learning-track page for that day is written.
+The project is built in steps, one ticket per step. Each ticket has acceptance criteria
+(AC): it is done only when all AC are met, tests pass and the learning-track page for
+that step is written.
 
-| Ticket | Day | Title | Status |
+| Ticket | Step | Title | Status |
 |---|---|---|---|
 | PPA-1 | 1 | Market-data foundation: repo, API client, raw cache, DQ checks, reconciliation | **Done** |
 | PPA-2 | 2 | Capture prices and capture rates for German solar and wind | **Done** |
@@ -12,12 +12,12 @@ tests pass and the learning-track page for that day is written.
 | PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | **Done** |
 | PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | **Done** |
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | **Done** |
-| PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | To do |
+| PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | **Done** |
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | To do |
 | PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | To do |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | To do |
 
-## PPA-2: Capture prices and capture rates (Day 2)
+## PPA-2: Capture prices and capture rates (Step 2)
 
 **Story:** As a pricing analyst I want monthly and annual capture prices for German
 solar and wind, so I can see how much of the baseload price each technology earns.
@@ -29,11 +29,11 @@ solar and wind, so I can see how much of the baseload price each technology earn
 - [x] Reconcile the 2025 annual solar capture price with the official
       "Jahresmarktwert Solar" 4.508 ct/kWh (netztransparenz.de) and explain any difference.
       Result: 4.595 ct/kWh, inside the ±0.10 tolerance; the gap grows with negative-price
-      curtailment (learning track Day 2, section 4.3).
+      curtailment (learning track Step 2, section 4.3).
 - [x] Chart: capture rate by month and technology; short written interpretation.
-- [x] Learning-track page `docs/learning_track/day02_capture_prices.md`.
+- [x] Learning-track page `docs/learning_track/step02_capture_prices.md`.
 
-## PPA-3: PPA structures and pricing maths (Day 3)
+## PPA-3: PPA structures and pricing maths (Step 3)
 
 **Story:** As a pricing analyst I want the cash flows and fair prices of the standard PPA
 structures in one tested library, so that every later price and risk number is built
@@ -49,7 +49,7 @@ from the same, documented building blocks.
 - [x] Back-test 2024-2025 (50 MW solar, 30 MW wind) with prior-year strikes, plan and surprise.
 - [x] Learning-track page, notebook section, exercises.
 
-## PPA-4: Weather to power (Day 4)
+## PPA-4: Weather to power (Step 4)
 
 **Story:** As a pricing analyst I want hourly generation of our own parks over many weather
 years, so that volume risk (P50/P90) and the site's shape can enter the PPA price.
@@ -62,7 +62,7 @@ years, so that volume risk (P50/P90) and the site's shape can enter the PPA pric
 - [x] Checks against national generation: hourly correlation, monthly shares, capture rate.
 - [x] Report, learning-track page, notebook section, exercises.
 
-## PPA-5: Stochastic price model (Day 5)
+## PPA-5: Stochastic price model (Step 5)
 
 **Story:** As a pricing analyst I want many plausible hourly price years that agree with the
 forward price and behave like real prices, so that PPA values come with a distribution and
@@ -77,6 +77,20 @@ not just one historical outcome.
 - [x] Validation against history: distribution, negative hours, autocorrelation; gaps
       documented (7 of 11 statistics inside the 5-95% range).
 - [x] Report, learning-track page, notebook section, exercises.
+
+## PPA-6: Joint weather and price scenarios (Step 6)
+
+**Story:** As a pricing analyst I want volumes and prices simulated from the same weather, so
+that the negative correlation between renewable output and price is in every PPA number.
+
+**Acceptance criteria**
+- [x] Daily weather features per site; generation as day x hour matrices; calendar mapping.
+- [x] Weather-price link: daily level responds to weather anomalies; hourly patterns from
+      analog days. Parameter recovery on synthetic data.
+- [x] 31 weather years x 16 price paths for 2027, one level for all; independent variant.
+- [x] Checks: correlation wind vs price as in history (−0.60 vs −0.58); 2025 capture rates
+      inside the simulated ranges; Monte Carlo standard error (±0.8 EUR/MWh).
+- [x] Report, per-scenario results for Step 7, learning-track page, notebook section, exercises.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 
@@ -103,12 +117,14 @@ extrapolation, which keeps more energy in cheap hours.
 
 ## Later ideas (not scheduled)
 
+- Scenarios v2: recency-weighted analog pool or a fundamental view of 2027 solar capacity;
+  national and neighbour-country weather; curtailment at negative prices; wind 2024 gap.
 - Price model v2: a soft floor just below zero for negative prices; block bootstrap or a
   weather link for multi-day patterns; out-of-sample and rolling-window validation; a
   monthly forward curve instead of one annual level.
 - Secret scanning in CI (e.g. gitleaks) after the `.env.example` near-miss on 8 Oct 2026.
-- Day 3 back-test re-run with the Day 4 site profiles instead of scaled national profiles.
+- Step 3 back-test re-run with the Step 4 site profiles instead of scaled national profiles.
 - Grid curtailment (redispatch) and availability in the wind model; air-density correction.
 - ENTSO-E cross-check over the full 2023-2026 range as a report (client and one-day check done).
-- DuckDB views over the processed Parquet files (Day 13 in the guide).
+- DuckDB views over the processed Parquet files (Step 13 in the guide).
 - Pre-commit hooks (ruff) once the repository is on GitHub.

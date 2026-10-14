@@ -8,15 +8,39 @@ combines German power prices, generation and weather data, simulates them
 together, and prices power purchase agreements (PPAs) with their market, shape
 and volume risks.
 
-> **Status: Day 5 of 14 (ticket PPA-5, version 0.5.0).** Done so far: the
-> market-data foundation (Day 1), capture prices reconciled against the official
-> German market values (Day 2), the PPA structures with their pricing maths and a
-> 2024-2025 back-test (Day 3, [methodology](METHODOLOGY.md)), site generation from
-> 31 years of ERA5 weather with P50/P90 volumes (Day 4), and a stochastic hourly price
-> model calibrated to a forward price and validated against history (Day 5).
+> **Status: Step 6 of 9 (ticket PPA-6, version 0.6.0).** Done so far: the
+> market-data foundation (Step 1), capture prices reconciled against the official
+> German market values (Step 2), the PPA structures with their pricing maths and a
+> 2024-2025 back-test (Step 3, [methodology](METHODOLOGY.md)), site generation from
+> 31 years of ERA5 weather with P50/P90 volumes (Step 4), a stochastic hourly price
+> model calibrated to a forward price (Step 5), and joint weather and price scenarios in
+> which prices respond to the weather (Step 6).
 > See the [backlog](docs/BACKLOG.md) for what comes next.
 
-## Day 5 results: thousands of plausible price years
+## Step 6 results: prices that see the weather
+
+Every weather year 1995-2025 is paired with 16 price paths for 2027 (496 scenarios). Prices
+are simulated **for** that weather: the daily level responds to solar, wind and temperature
+anomalies (a regression per season), and the hourly shape comes from historical days with
+similar weather (analog days).
+
+| 2027, forward 85 EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
+|---|---|---|
+| Fair pay-as-produced price, prices independent of weather (Step 5) | 51.76 EUR/MWh | 87.00 EUR/MWh |
+| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **48.66 EUR/MWh** | **75.35 EUR/MWh** |
+| Capture rate 5/50/95%, linked | 0.40 / 0.57 / 0.66 | 0.83 / 0.88 / 0.92 |
+| 2025 history inside the linked range? | yes (0.555) | yes (0.881; independent: 0.99-1.05) |
+
+- **Ignoring the link is a gift to the seller:** 12 EUR/MWh (13%) for wind, 3 EUR/MWh for
+  solar. Within a month, the correlation of wind with the daily price is −0.58 in history,
+  −0.60 in the Step 6 model and 0.00 in the Step 5 model.
+- **The biggest open assumption** is which historical days represent 2027: with analogs from
+  the last 12 months only, the solar price drops from 48.7 to 41.1 EUR/MWh (deeper midday dips
+  as solar capacity grows). Reported as a sensitivity; Step 7 decides.
+
+Full report: [`reports/step06_joint_scenarios.md`](reports/step06_joint_scenarios.md).
+
+## Step 5 results: thousands of plausible price years
 
 An hourly model of German day-ahead prices, fitted on 2024-01 to 2026-09 (24,095 hours):
 arcsinh-transformed prices = monthly level + daily shape (season x day type x hour, with
@@ -37,11 +61,11 @@ process + intraday patterns resampled as whole historical days.
   (5 to 7 statistics inside).
 - **The gap that matters:** within a month, sunnier days have cheaper middays (correlation
   −0.30 in 2025); in the model it is 0.00. Independent prices overstate what solar earns.
-  Day 6 links weather and prices.
+  Step 6 links weather and prices.
 
-Full report: [`reports/day05_price_model.md`](reports/day05_price_model.md).
+Full report: [`reports/step05_price_model.md`](reports/step05_price_model.md).
 
-## Day 4 results: how much the parks produce, and how much that varies
+## Step 4 results: how much the parks produce, and how much that varies
 
 Two illustrative parks at real locations, modelled hour by hour from ERA5 reanalysis
 weather (1995-2025) with pvlib and windpowerlib:
@@ -56,16 +80,16 @@ weather (1995-2025) with pvlib and windpowerlib:
 | Hourly correlation with the national fleet | 0.92 | 0.72-0.75 |
 
 - **Checks instead of a tie-out:** nobody publishes these parks' output, so the models are
-  checked against national generation (Day 1) and priced like Day 2: the site capture
+  checked against national generation (Step 1) and priced like Step 2: the site capture
   rates are close to the national ones (solar 2025: 0.555 vs 0.516).
 - **Two traps found and fixed:** ERA5 radiation from Open-Meteo is labelled at the end of
   its hour (shifted, and verified against the sun's position on every build), and the
   first wind site sat in an ERA5 cell that is partly sea (0 m elevation, offshore-like
   3,961 full-load hours); the park now sits 16 km inland.
 
-Full report: [`reports/day04_generation.md`](reports/day04_generation.md).
+Full report: [`reports/step04_generation.md`](reports/step04_generation.md).
 
-## Day 3 results: what each PPA structure would have earned
+## Step 3 results: what each PPA structure would have earned
 
 A 50 MW solar park and a 30 MW wind park (national profiles, scaled) sign each contract
 at the end of the previous year at last year's fair price, and deliver in 2024 and 2025.
@@ -85,10 +109,10 @@ Revenue per MWh produced; cash flows to the producer:
 - **A negative-price clause cost solar 11.26 EUR/MWh in 2025** (24% of the energy unpaid);
   the right to curtail at negative prices was worth 3.30 EUR/MWh.
 
-Full report: [`reports/day03_ppa_structures.md`](reports/day03_ppa_structures.md);
+Full report: [`reports/step03_ppa_structures.md`](reports/step03_ppa_structures.md);
 the maths: [`METHODOLOGY.md`](METHODOLOGY.md).
 
-## Day 2 results: what solar and wind really earn
+## Step 2 results: what solar and wind really earn
 
 The capture price is the energy-weighted price a technology earns:
 sum(price x energy) / sum(energy) per quarter-hour. The capture rate divides it by the
@@ -114,13 +138,13 @@ baseload price.
   data versus the TSOs' online extrapolation. These references are deliberately left
   outside tolerance until that is tested (backlog PPA-2b).
 
-![Capture rate by month](reports/figures/day02_capture_rate_monthly.png)
+![Capture rate by month](reports/figures/step02_capture_rate_monthly.png)
 
-Full report: [`reports/day02_capture_prices.md`](reports/day02_capture_prices.md).
+Full report: [`reports/step02_capture_prices.md`](reports/step02_capture_prices.md).
 How it was built and investigated:
-[learning track, Day 2](docs/learning_track/day02_capture_prices.md).
+[learning track, Step 2](docs/learning_track/step02_capture_prices.md).
 
-## Day 1 results
+## Step 1 results
 
 | DE-LU day-ahead | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
 |---|---|---|---|---|
@@ -136,17 +160,17 @@ negative-hour counts match published figures within 2 hours. Data quality: 23 ch
 days complete.
 
 The full numbers, the data-quality report and four charts are in
-[`reports/day01_market_data.md`](reports/day01_market_data.md).
+[`reports/step01_market_data.md`](reports/step01_market_data.md).
 
 ## Quickstart
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 167 offline tests, about 8 seconds
+make test      # 194 offline tests, about 12 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 ```
 
-Explore the data interactively in the playground notebook (one section per sprint day):
+Explore the data interactively in the playground notebook (one section per step):
 
 ```bash
 make notebook       # opens notebooks/ppa_lab_playground.ipynb in JupyterLab
@@ -160,11 +184,12 @@ Or step by step with the command-line tool:
 .venv/bin/ppa-lab fetch     # download monthly raw files (cached, rate-limit aware)
 .venv/bin/ppa-lab build     # build processed Parquet datasets
 .venv/bin/ppa-lab check     # data-quality checks; exit code 1 on failure
-.venv/bin/ppa-lab report    # reports/day01_market_data.md + figures
-.venv/bin/ppa-lab capture   # reports/day02_capture_prices.md + figures
-.venv/bin/ppa-lab ppa       # reports/day03_ppa_structures.md + figures
-.venv/bin/ppa-lab weather   # ERA5 weather -> park generation -> reports/day04_generation.md
-.venv/bin/ppa-lab prices    # price model: fit, validate, simulate -> reports/day05_price_model.md
+.venv/bin/ppa-lab report    # reports/step01_market_data.md + figures
+.venv/bin/ppa-lab capture   # reports/step02_capture_prices.md + figures
+.venv/bin/ppa-lab ppa       # reports/step03_ppa_structures.md + figures
+.venv/bin/ppa-lab weather   # ERA5 weather -> park generation -> reports/step04_generation.md
+.venv/bin/ppa-lab prices    # price model: fit, validate, simulate -> reports/step05_price_model.md
+.venv/bin/ppa-lab scenarios # weather x price scenarios -> reports/step06_joint_scenarios.md
 ```
 
 The first download takes 10 to 15 minutes because the free API is rate limited;
@@ -182,11 +207,11 @@ src/ppa_lab/
   data/pipeline.py           fetch months, build processed datasets
   data/quality.py            data-quality checks (DST-aware completeness, price limits, physics)
   analysis/reconcile.py      annual statistics and tie-out against published figures
-  analysis/day01_report.py   Day 1 report and charts
+  analysis/step01_report.py   Step 1 report and charts
   analysis/capture.py        capture prices and rates, official market-value comparison
-  analysis/day02_report.py   Day 2 report and charts
+  analysis/step02_report.py   Step 2 report and charts
   analysis/plotting.py       shared chart style
-  analysis/day03_report.py   Day 3 report and charts
+  analysis/step03_report.py   Step 3 report and charts
   pricing/contracts.py       cash flows of every PPA structure, fair prices, discounting
   pricing/backtest.py        historical back-test: parks, prior-year strikes, plan and surprise
   data/http.py               shared JSON client: timeouts, retries, Retry-After
@@ -195,11 +220,15 @@ src/ppa_lab/
   weather/pv.py, wind.py     pvlib solar park, windpowerlib wind park
   weather/yields.py          annual energy per weather year, P50/P90
   analysis/generation.py     trend and checks against national data
-  analysis/day04_report.py   Day 4 report and charts
+  analysis/step04_report.py   Step 4 report and charts
   prices/calendar.py         local hour, season, day type, German holidays (Easter computed)
   prices/model.py            arcsinh price model: fit, simulate, calibrate the level to a forward
   prices/validation.py       simulated vs historical statistics
-  analysis/day05_report.py   Day 5 report and charts
+  analysis/step05_report.py   Step 5 report and charts
+  scenarios/weather.py       daily weather features, day x hour generation, calendar mapping
+  scenarios/link.py          weather-price link: response per season + analog days
+  scenarios/generator.py     weather years x price paths, fair price
+  analysis/step06_report.py   Step 6 report and charts
   cli.py                     `ppa-lab` command
 tests/                       offline tests with real API fixtures
 notebooks/                   ppa_lab_playground.ipynb: interactive, one section per day
@@ -207,7 +236,7 @@ data/reference/              small published reference data (official market val
 exercises/                   hands-on exercises with automatic checks
 METHODOLOGY.md               the pricing maths, conventions, assumptions and limitations
 docs/decisions/              architecture decision records (ADRs)
-docs/learning_track/         day-by-day explanations of what was built and why
+docs/learning_track/         step-by-step explanations of what was built and why
 reports/                     generated reports and figures
 scripts/build_docs.py        learning-track Markdown -> PDF (`make docs`)
 ```

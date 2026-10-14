@@ -90,3 +90,15 @@ def test_price_model_window_must_lie_inside_the_market_data(tmp_path):
     path.write_text(bad)
     with pytest.raises(ValueError, match="calibration"):
         load_settings(path)
+
+
+def test_scenarios_use_complete_weather_years_and_need_the_price_model(tmp_path):
+    s = load_settings()
+    sc = s.scenarios
+    assert s.weather_first_year <= sc.weather_last_year
+    assert sc.paths_per_weather_year > 0 and sc.analog_k > 0
+    bad = DEFAULT_CONFIG.read_text().replace("weather_last_year = 2025", "weather_last_year = 1990")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="weather_last_year"):
+        load_settings(path)

@@ -20,7 +20,7 @@ The annual level is set so that the average simulated price matches a forward pr
 
 Version note: a first, single-factor version (hourly AR(1)) reverted within about ten
 hours; validation showed far too little day-to-day memory (autocorrelation at 24 h of
-0.48 vs 0.70 in history) and too few negative hours. See learning track Day 5, section 4.
+0.48 vs 0.70 in history) and too few negative hours. See learning track Step 5, section 4.
 """
 
 from __future__ import annotations
@@ -229,7 +229,7 @@ def _daily_factor(model: PriceModel, days: pd.DatetimeIndex, picks: np.ndarray,
     return d
 
 
-def _streams(seed: int) -> tuple[np.random.Generator, np.random.Generator]:
+def random_streams(seed: int) -> tuple[np.random.Generator, np.random.Generator]:
     """Independent random streams for residuals and level shocks (reproducible)."""
     residual, level = np.random.SeedSequence(seed).spawn(2)
     return np.random.default_rng(residual), np.random.default_rng(level)
@@ -238,7 +238,7 @@ def _streams(seed: int) -> tuple[np.random.Generator, np.random.Generator]:
 def simulate_daily_factor(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int,
                           seed: int = 0, bootstrap: bool = True) -> np.ndarray:
     """The daily factor D only, shape (paths, days)."""
-    rng = _streams(seed)[0]
+    rng = random_streams(seed)[0]
     _, days, _ = _days(index, tz)
     picks = _draw_pool_days(model, days, n_paths, rng)
     return _daily_factor(model, days, picks, rng, bootstrap)
@@ -247,7 +247,7 @@ def simulate_daily_factor(model: PriceModel, index: pd.DatetimeIndex, tz: str, n
 def simulate_residuals(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int,
                        seed: int = 0, bootstrap: bool = True) -> np.ndarray:
     """Random part D + u of y, shape (paths, hours)."""
-    return _residuals(model, index, tz, n_paths, _streams(seed)[0], bootstrap)
+    return _residuals(model, index, tz, n_paths, random_streams(seed)[0], bootstrap)
 
 
 def _residuals(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int,
@@ -263,7 +263,7 @@ def simulate(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int,
              annual_level: float | None = None, seed: int = 0, level_volatility: float = 0.0,
              bootstrap: bool = True) -> np.ndarray:
     """Simulated hourly prices in EUR/MWh, shape (paths, hours)."""
-    residual_rng, level_rng = _streams(seed)
+    residual_rng, level_rng = random_streams(seed)
     mu = seasonal_mean(model, index, tz, annual_level)
     x = _residuals(model, index, tz, n_paths, residual_rng, bootstrap)
     shift = level_volatility * level_rng.standard_normal((n_paths, 1)) if level_volatility else 0.0
@@ -279,10 +279,19 @@ def calibrate_level(model: PriceModel, index: pd.DatetimeIndex, tz: str, target_
     """
     mu0 = seasonal_mean(model, index, tz, annual_level=0.0)
     x = simulate_residuals(model, index, tz, n_paths, seed, bootstrap)
+    return solve_level(mu0, x, model.scale, target_price)
+
+
+def solve_level(mu0: np.ndarray, x: np.ndarray, scale: float, target_price: float) -> float:
+    """Level L with mean(inverse(mu0 + L + x)) = target_price, by bisection.
+
+    mu0: deterministic part without the level (hours); x: random part (paths x hours).
+    The average price rises monotonically with L, so halving [-10, 10] converges.
+    """
     low, high = -10.0, 10.0
     for _ in range(100):
         mid = 0.5 * (low + high)
-        if inverse(mu0[None, :] + mid + x, model.scale).mean() < target_price:
+        if inverse(mu0[None, :] + mid + x, scale).mean() < target_price:
             low = mid
         else:
             high = mid

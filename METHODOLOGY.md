@@ -3,11 +3,11 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 0.2** (ticket PPA-5): cash flows and fair prices of the standard structures,
-applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), and a
-stochastic hourly price model calibrated to a forward price (PPA-5, section 8). Later
-versions add joint weather and price scenarios (PPA-6), risk premia (PPA-7) and hedging
-(PPA-8).
+**Version 0.3** (ticket PPA-6): cash flows and fair prices of the standard structures,
+applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
+stochastic hourly price model calibrated to a forward price (PPA-5, section 8), and joint
+weather and price scenarios (PPA-6, section 9). Later versions add risk premia (PPA-7) and
+hedging (PPA-8).
 
 ---
 
@@ -50,7 +50,7 @@ c = \frac{\bar P^{cap}}{\bar P}, \qquad
 $$
 
 This is the formula of the official German market values (EEG 2023, Anlage 1,
-Nr. 3.3 and 4.3, per quarter-hour), which the project reconciles against (Day 2).
+Nr. 3.3 and 4.3, per quarter-hour), which the project reconciles against (Step 2).
 The **profile cost** of a period is $(\bar P - \bar P^{cap}) \sum_t q_t$.
 
 Why solar earns less than baseload, in one line: over a period of $n$ intervals,
@@ -146,7 +146,7 @@ $$
 
 ## 6. Historical back-test (version 0)
 
-Implemented in `pricing/backtest.py`; report `reports/day03_ppa_structures.md`.
+Implemented in `pricing/backtest.py`; report `reports/step03_ppa_structures.md`.
 
 - **Parks:** 50 MW solar (1,000 full-load hours) and 30 MW onshore wind (2,000 h), using
   the national profile of their technology, scaled per year to capacity × full-load hours.
@@ -210,7 +210,7 @@ figure exists for an illustrative park.
 ## 8. Prices: the stochastic model (PPA-5)
 
 Code: `src/ppa_lab/prices/` (`calendar.py`, `model.py`, `validation.py`); report
-`reports/day05_price_model.md`; parameters `data/processed/price_model.json`.
+`reports/step05_price_model.md`; parameters `data/processed/price_model.json`.
 
 **Transform.** Hourly day-ahead prices (quarter-hours averaged) in arcsinh space,
 
@@ -271,24 +271,87 @@ is convex, setting the level from $\operatorname{arcsinh}(F/s)$ would overshoot 
 levels. For each statistic (mean, standard deviation, 1/5/50/95/99% quantiles, share of
 negative hours, autocorrelation at 1, 24 and 168 hours) history should lie inside the 5-95%
 range across paths. Version 2 meets 7 of 11; the misses (1% quantile, negative share,
-autocorrelation at 1 and 24 hours) are explained in the report and in learning track Day 5,
+autocorrelation at 1 and 24 hours) are explained in the report and in learning track Step 5,
 section 4.4. Version 1, a single hourly AR(1), failed on day-to-day memory and was replaced.
 
-## 9. Assumptions and limitations
+---
+
+## 9. Joint weather and price scenarios (PPA-6)
+
+Code: `src/ppa_lab/scenarios/` (`weather.py`, `link.py`, `generator.py`); report
+`reports/step06_joint_scenarios.md`; per-scenario results `data/processed/scenarios_<year>.parquet`.
+
+**Why.** A park's revenue is $\sum_t q_t P_t$ and $E[qP] = E[q]\,E[P] + \operatorname{Cov}(q, P)$.
+For renewables the covariance is negative; prices simulated independently of the weather set it
+to zero and overstate the capture price.
+
+**Weather features.** Per local day $d$: $w_d = (\text{CF}^{solar}_d, \text{CF}^{wind}_d, T_d)$,
+the capacity factors of the two parks (mean MW / capacity, Step 4 site models) and the mean 2 m
+temperature at the solar site. Climatology $\bar w_m$: the mean per calendar month over the
+weather years (1995-2025).
+
+**Link.** On the Step 5 calibration window, with $D_d$ the daily mean of $y - L - S$:
+
+$$
+D_d = c_{s(d)} + \beta_{s(d)}^\top a_d + r_d, \qquad
+r_d = \phi_r\, r_{d-1} + \sigma_{r, s(d)}\, \xi_d,
+$$
+
+with one least-squares regression per season $s$. The anomaly $a_d$ is $w_d$ minus the mean of
+its calendar month in the calibration window (the fitted monthly levels already contain each
+month's weather); for a future year it is $w_d - \bar w_{m(d)}$, so that an unusually windy month
+lowers prices. $\phi_r$ uses consecutive days only.
+
+**Analog days.** For a simulated day with weather $w$, candidates are the complete historical
+days $j$ within $\pm 30$ days of the same date (any year of the window), at distance
+$\sum_f \left((w_f - w_{j,f}) / \text{sd}_f\right)^2$ with $\text{sd}_f$ over the pool. Each path
+draws one of the $k = 10$ nearest and takes its 24-hour pattern $u_j$ and its shock $\xi_j$:
+
+$$
+y_t = \mu_t + E_d + r_d + u_{j, h(t)}, \qquad E_d = c_{s(d)} + \beta_{s(d)}^\top a_d,
+$$
+
+with $r$ started in its stationary state. In-sample validation excludes analogs within 7 days of
+the simulated day.
+
+**Scenarios.** Scenario $(Y, n)$: the parks' output in weather year $Y$ placed date by date and
+local hour by local hour on the delivery calendar (29 February → 28 February), and price path $n$
+simulated for that weather. All scenarios have equal weight; one annual level $\lambda$ makes the
+average price over all scenarios equal the forward (section 8), then the level uncertainty adds
+one shift per scenario. Fair pay-as-produced price over $S$ scenarios:
+
+$$
+K^\star = \frac{\sum_s \sum_t q_{s,t} P_{s,t}}{\sum_s \sum_t q_{s,t}}, \qquad
+\text{SE}(K^\star) \approx \frac{\operatorname{sd}_s\!\left(R_s - K^\star Q_s\right)}{\sqrt{S}\;\bar Q},
+$$
+
+with $R_s$ and $Q_s$ the revenue and energy of scenario $s$.
+
+**Checks.** In-sample with the real weather: the validation statistics of section 8, capture
+rates per historical year inside the simulated range, the within-month correlation between
+wind and the daily price (history −0.58, Step 6 −0.60, Step 5 0.00). Sensitivity: the period of
+the analog pool (solar fair price 48.7 / 44.9 / 41.1 EUR/MWh for pools from 2024, 2025 and the
+last 12 months).
+
+## 10. Assumptions and limitations
 
 | Assumption | Effect | Addressed in |
 |---|---|---|
-| National profile instead of a site profile (Day 3 back-test) | Smoother output, no site-specific volume risk | PPA-4 site models; back-test re-run later |
+| National profile instead of a site profile (Step 3 back-test) | Smoother output, no site-specific volume risk | PPA-4 site models; back-test re-run later |
 | Hourly ERA5 at a ~0.25° grid point | Smooths gusts and local terrain; coastal cells mix land and sea | site chosen on land; v2: downscaling or measured data |
 | Site models give potential output | No grid curtailment (heavy in Schleswig-Holstein), outages or degradation | v2 |
 | Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
 | Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5/PPA-8 (price model, futures) |
 | One history, no scenarios | No distribution, no risk premium | PPA-5 (price paths); PPA-6/PPA-7 (joint Monte Carlo, premia) |
 | Price model: symmetric transform, no soft floor at zero | Too few hours just below 0 EUR/MWh, too many deep negative hours | v2 of the price model |
-| Price paths independent of weather (PPA-5) | Solar capture rate overstated (0.61 simulated vs 0.555 in 2025) | PPA-6 |
+| Price paths independent of weather (PPA-5) | Capture rates overstated (wind 1.02 vs 0.88, solar 0.62 vs 0.555 in 2025) | Done in PPA-6 (section 9) |
+| Two sites stand in for national weather | National solar and wind, and weather abroad, are only proxied; weather explains about half of daily price moves | v2: national and neighbour weather |
+| Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
+| Linear daily response per season | No saturation (e.g. once prices hit zero, more wind changes little) | Analog patterns carry part of it; v2 |
+| Parks produce their potential output | No curtailment at negative prices; a candidate for the wind 2024 gap | v2 |
 | One calibration window (2024-2026), in-sample validation only | Regime changes and out-of-sample errors not tested | v2: rolling, out-of-sample validation |
 | One illustrative annual forward (85 EUR/MWh), no monthly forward curve | Level and its seasonality not market-implied | PPA-8 |
-| Measured generation is after curtailment | Slightly higher capture prices than official market values (Day 2) | Backlog PPA-2b |
+| Measured generation is after curtailment | Slightly higher capture prices than official market values (Step 2) | Backlog PPA-2b |
 | No balancing, imbalance, route-to-market or credit costs | Fair prices are upper bounds | PPA-7 |
 | Negative-price clause assumes curtailment | No cost of producing at negative prices | – |
 | Option premiums not included in cash flows | Floors and caps shown as payoffs only | PPA-7 |
@@ -302,3 +365,4 @@ section 4.4. Version 1, a single hourly AR(1), failed on day-to-day memory and w
 - **v0.1, PPA-4:** volume section (weather conversion, solar and wind models, P50/P90).
 - **v0.2, PPA-5:** stochastic price model (section 8); four LaTeX commands in section 7 that
   had been saved as control characters (`\t`, `\a`, `\f`, `\r`) restored.
+- **v0.3, PPA-6:** joint weather and price scenarios (section 9); limitations updated.

@@ -19,7 +19,7 @@ at the native market resolution, for several years. Candidate sources:
 ## Decision
 
 Use the Energy-Charts API as the primary source for the learning project, and
-add ENTSO-E later (Day 4+) as an independent second source to cross-check prices.
+add ENTSO-E in a later step as an independent second source to cross-check prices.
 
 ## Consequences
 

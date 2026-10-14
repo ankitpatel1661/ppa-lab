@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture ppa weather prices all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -34,22 +34,25 @@ build:  ## build processed datasets from the raw cache
 check:  ## run data-quality checks (fails on any FAIL)
 	$(PY) -m ppa_lab check
 
-report:  ## write reports/day01_market_data.md and figures
+report:  ## write reports/step01_market_data.md and figures
 	$(PY) -m ppa_lab report
 
-capture:  ## write reports/day02_capture_prices.md and figures
+capture:  ## write reports/step02_capture_prices.md and figures
 	$(PY) -m ppa_lab capture
 
-ppa:  ## write reports/day03_ppa_structures.md and figures (PPA back-test)
+ppa:  ## write reports/step03_ppa_structures.md and figures (PPA back-test)
 	$(PY) -m ppa_lab ppa
 
-weather:  ## ERA5 weather per site -> park generation -> reports/day04_generation.md
+weather:  ## ERA5 weather per site -> park generation -> reports/step04_generation.md
 	$(PY) -m ppa_lab weather
 
-prices:  ## calibrate + validate the price model -> reports/day05_price_model.md
+prices:  ## calibrate + validate the price model -> reports/step05_price_model.md
 	$(PY) -m ppa_lab prices
 
-all: data build check report capture ppa weather prices  ## the whole pipeline (Days 1-5)
+scenarios:  ## joint weather x price scenarios -> reports/step06_joint_scenarios.md
+	$(PY) -m ppa_lab scenarios
+
+all: data build check report capture ppa weather prices scenarios  ## the whole pipeline (Steps 1-6)
 
 docs:  ## render docs/learning_track/*.md to PDF (needs Google Chrome)
 	$(PY) -m pip install --quiet -e ".[docs]"

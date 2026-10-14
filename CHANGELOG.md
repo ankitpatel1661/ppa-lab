@@ -6,7 +6,42 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.5.0] (Day 5, ticket PPA-5)
+## [0.6.0] (Step 6, ticket PPA-6)
+
+### Added
+- Weather inputs for scenarios (`ppa_lab.scenarios.weather`): daily capacity factors and
+  temperature, generation as local day x hour matrices (23/25-hour days handled), calendar
+  mapping of weather years (29 February), monthly climatology.
+- Weather-price link (`ppa_lab.scenarios.link`): regression of the daily price level on
+  weather anomalies per season, AR(1) residual, analog days (k nearest within ±30 days),
+  `simulate_linked`, `calibrate_linked_level`, `restrict_pool`.
+- Scenario generator (`ppa_lab.scenarios.generator`): weather years x price paths with one
+  level for all, linked or independent prices, per-scenario table and fair price.
+- Step 6 report (`ppa-lab scenarios`, `make scenarios`, part of `make all`) with three charts,
+  an analog-pool sensitivity and `data/processed/scenarios_2027.parquet` for Step 7;
+  `[scenarios]` settings.
+- Step 6 learning-track page, notebook section (6.1-6.6, "My solutions"), exercises;
+  METHODOLOGY v0.3 (section 9); data dictionary entries.
+
+### Changed
+- The project is organised in **steps** instead of sprint days: learning-track pages,
+  exercises, reports, figures, report modules (`analysis/stepNN_report.py`,
+  `write_stepNN_report`), tests, notebook sections and docs now say "Step N" (files moved
+  with history). Report numbers are unchanged.
+- `prices.model`: the level bisection is `solve_level` and the random streams are public
+  (`random_streams`), both reused by the scenarios. `analysis.step05_report` exposes
+  `calibration_history`.
+
+### Found
+- With independent prices the wind park earns the baseload price (capture rate 1.00-1.02);
+  linked to the weather 0.87-0.89, history 0.83-0.88. 2027 fair price: wind 87.00 -> 75.35,
+  solar 51.76 -> 48.66 EUR/MWh.
+- The analog pool mixes years with different solar capacity: 2024 solar falls below its
+  history in-sample (0.54 vs 0.62; 0.64 with a 2024-only pool), and the 2027 solar fair price
+  drops to 41.08 EUR/MWh with analogs from the last 12 months.
+- Wind 2024 stays outside the simulated range with any pool (open item).
+
+## [0.5.0] (Step 5, ticket PPA-5)
 
 ### Added
 - Price calendar (`ppa_lab.prices.calendar`): local hour, season and day type with the nine
@@ -17,9 +52,9 @@ All notable changes to this project are documented here. The format follows
   common random numbers; optional level volatility; JSON save/load.
 - Validation against history (`ppa_lab.prices.validation`): quantiles, negative share and
   autocorrelation with a 5-95% range across paths.
-- Day 5 report (`ppa-lab prices`, `make prices`, part of `make all`) with three charts and
-  `data/processed/price_model.json` for Day 6; `[price_model]` settings.
-- Day 5 learning-track page, notebook section (5.1-5.7, "My solutions"), exercises;
+- Step 5 report (`ppa-lab prices`, `make prices`, part of `make all`) with three charts and
+  `data/processed/price_model.json` for Step 6; `[price_model]` settings.
+- Step 5 learning-track page, notebook section (5.1-5.7, "My solutions"), exercises;
   METHODOLOGY v0.2 (price model); data dictionary entries.
 
 ### Changed
@@ -41,7 +76,7 @@ All notable changes to this project are documented here. The format follows
 - Prices independent of weather overstate the solar capture rate: 0.612 simulated vs 0.555
   real (2025 output); within a month, sunnier days have cheaper middays (correlation -0.30).
 
-## [0.4.0] (Day 4, ticket PPA-4)
+## [0.4.0] (Step 4, ticket PPA-4)
 
 ### Added
 - ERA5 weather through the Open-Meteo archive API (`ppa_lab.data.open_meteo`): pure
@@ -52,10 +87,10 @@ All notable changes to this project are documented here. The format follows
 - Site models: pvlib solar park (`ppa_lab.weather.pv`) and windpowerlib wind park with
   hourly shear (`ppa_lab.weather.wind`); P50/P90 and trends (`ppa_lab.weather.yields`,
   `ppa_lab.analysis.generation`).
-- Day 4 report (`ppa-lab weather`, `make weather`, part of `make all`) with two charts.
+- Step 4 report (`ppa-lab weather`, `make weather`, part of `make all`) with two charts.
 - Sites and model specs in `[pricing.parks.*]`, `[weather]` settings; pvlib and
   windpowerlib as dependencies.
-- Day 4 learning-track page, notebook section (4.1-4.6, "My solutions"), exercises;
+- Step 4 learning-track page, notebook section (4.1-4.6, "My solutions"), exercises;
   METHODOLOGY v0.1 (volume section); data dictionary entries.
 
 ### Changed
@@ -68,7 +103,7 @@ All notable changes to this project are documented here. The format follows
 - The first wind site (54.50 N, 9.00 E) was an ERA5 cell with 0 m elevation (partly sea):
   3,961 full-load hours. Moved 0.25° inland (30 m): 3,668.
 
-## [0.3.0] - 2026-10-08 (Day 3, ticket PPA-3)
+## [0.3.0] - 2026-10-08 (Step 3, ticket PPA-3)
 
 ### Added
 - `ppa_lab.pricing.contracts`: cash flows per interval to the producer for merchant,
@@ -77,11 +112,11 @@ All notable changes to this project are documented here. The format follows
   (ratio of expectations, with discounting); works on pandas Series and NumPy scenarios.
 - `ppa_lab.pricing.backtest`: illustrative parks from national profiles, strikes fixed
   from the previous year, plan (same terms on the previous year) and surprise.
-- Day 3 report (`ppa-lab ppa`, `make ppa`, part of `make all`; skipped with a warning when
+- Step 3 report (`ppa-lab ppa`, `make ppa`, part of `make all`; skipped with a warning when
   the data range has no complete previous year) with two charts.
 - `[pricing]` configuration (parks, delivery years, floor), validated on load.
 - `METHODOLOGY.md` version 0: the pricing maths, conventions, assumptions, limitations.
-- Day 3 learning-track page, notebook section (3.1-3.6 and "My solutions"), exercises.
+- Step 3 learning-track page, notebook section (3.1-3.6 and "My solutions"), exercises.
 
 ### Changed
 - Data dictionary: contract cash flows and back-test tables.
@@ -90,7 +125,7 @@ All notable changes to this project are documented here. The format follows
 - Monthly revenue spread within a year measures seasonality, not risk (a PaP PPA looked
   riskier than merchant); replaced by the surprise against plan.
 
-## [0.2.0] - 2026-10-08 (Day 2, ticket PPA-2)
+## [0.2.0] - 2026-10-08 (Step 2, ticket PPA-2)
 
 ### Added
 - Capture prices and capture rates (`ppa_lab.analysis.capture`): the legal quarter-hour
@@ -101,9 +136,9 @@ All notable changes to this project are documented here. The format follows
   wind onshore and offshore; 2023/2024 spot; Vermarktungsmenge).
 - `Reference.note` and the status "explained difference": a documented cause for a
   difference beyond tolerance (known-breaks register).
-- Day 2 report (`ppa-lab capture`, `make capture`, part of `make all`) with three charts.
-- Day 2 exercises with automatic checks; learning-track page and PDF.
-- `notebooks/ppa_lab_playground.ipynb`: living playground notebook (Day 1 and Day 2
+- Step 2 report (`ppa-lab capture`, `make capture`, part of `make all`) with three charts.
+- Step 2 exercises with automatic checks; learning-track page and PDF.
+- `notebooks/ppa_lab_playground.ipynb`: living playground notebook (Step 1 and Step 2
   sections, play cells, open ideas, and a "My solutions" block per day that imports the
   exercise files, runs their checks and extends the results); `make notebook`,
   `make notebook-run`; optional dependency group `notebook`.
@@ -118,19 +153,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 - Chart style moved to `ppa_lab.analysis.plotting`, shared by both reports.
-- The Day 1 report only shows the references it computes and lists documented causes.
+- The Step 1 report only shows the references it computes and lists documented causes.
 
 ### Found
 - 2024 spot difference (−0.95 EUR/MWh) is the SDAC partial decoupling of 26 June 2024.
 - Wind capture prices are systematically above the official values (open, PPA-2b).
 
 ### Fixed
-- Day 2 report crashed on real data (`Period` with an f-string date format); covered
+- Step 2 report crashed on real data (`Period` with an f-string date format); covered
   by a new test.
 - ENTSO-E returns two day-ahead series for DE-LU (`classificationSequence` 1 and 2);
   merging them doubled the rows. The client now keeps sequence 1 by default.
 
-## [0.1.0] - 2026-10-07 (Day 1, ticket PPA-1)
+## [0.1.0] - 2026-10-07 (Step 1, ticket PPA-1)
 
 ### Added
 - Project skeleton: `src/` layout, `pyproject.toml`, Makefile, CI workflow, MIT licence.
@@ -141,7 +176,7 @@ All notable changes to this project are documented here. The format follows
 - Raw monthly Parquet cache with manifests (parameters, checksum, licence, completeness).
 - Processed datasets: native-resolution prices, hourly prices, 15-minute and hourly generation.
 - DST-aware data-quality checks, including a night-time solar check that catches time-zone bugs.
-- Annual statistics, reconciliation against published figures, Day 1 report with four charts.
+- Annual statistics, reconciliation against published figures, Step 1 report with four charts.
 - 52 offline tests using real API fixtures (94% coverage); one opt-in live contract test.
 - `make docs`: learning-track pages rendered to PDF with headless Chrome.
 

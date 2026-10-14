@@ -1,7 +1,7 @@
 """Analysis of site generation: long-term trend and checks against national data.
 
-A site model cannot be reconciled with an official number the way prices were on Day 1
-and Day 2, because nobody publishes this park's output. Instead we check that it
+A site model cannot be reconciled with an official number the way prices were in Step 1
+and Step 2, because nobody publishes this park's output. Instead we check that it
 behaves like the real fleet: the hour-by-hour pattern correlates with national
 generation of the same technology, the seasonal shape matches, and the capture rate is
 in the same range.

@@ -45,7 +45,7 @@ class Park:
     name: str
     technology: str  # a key of ppa_lab.analysis.capture.TECHNOLOGIES
     capacity_mw: float
-    full_load_hours: float  # MWh per MW and year (Day 3 national-profile back-test)
+    full_load_hours: float  # MWh per MW and year (Step 3 national-profile back-test)
     site: str = ""
     latitude: float | None = None
     longitude: float | None = None
@@ -55,7 +55,7 @@ class Park:
 
 @dataclass(frozen=True)
 class PriceModelSettings:
-    """Calibration window and simulation settings of the stochastic price model (Day 5)."""
+    """Calibration window and simulation settings of the stochastic price model (Step 5)."""
 
     calibration_start: date
     calibration_end: date
@@ -65,6 +65,18 @@ class PriceModelSettings:
     delivery_year: int
     forward_eur_mwh: float
     level_volatility: float
+
+
+@dataclass(frozen=True)
+class ScenarioSettings:
+    """Joint weather x price scenarios for the price model's delivery year (Step 6)."""
+
+    weather_last_year: int           # weather years: weather.first_year .. this year
+    paths_per_weather_year: int
+    analog_window_days: int          # analog days within +-window of the same date
+    analog_k: int                    # draw among the k nearest analog days
+    validation_exclusion_days: int   # in-sample check: analogs at least this far away
+    seed: int
 
 
 @dataclass(frozen=True)
@@ -98,6 +110,7 @@ class Settings:
     weather_pause_s: float = 4.0
     weather_license: str = ""
     price_model: PriceModelSettings | None = None
+    scenarios: ScenarioSettings | None = None
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -154,6 +167,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         weather_pause_s=float(weather.get("pause_s", 4.0)),
         weather_license=weather.get("license", ""),
         price_model=PriceModelSettings(**raw["price_model"]) if "price_model" in raw else None,
+        scenarios=ScenarioSettings(**raw["scenarios"]) if "scenarios" in raw else None,
     )
     _validate(settings)
     return settings
@@ -185,6 +199,12 @@ def _validate(s: Settings) -> None:
             raise ValueError("price_model calibration window must lie inside market.start..end")
         if pm.delivery_year <= pm.calibration_end.year:
             raise ValueError("price_model.delivery_year must come after the calibration window")
+    sc = s.scenarios
+    if sc is not None:
+        if pm is None:
+            raise ValueError("[scenarios] needs [price_model]")
+        if sc.weather_last_year < s.weather_first_year:
+            raise ValueError("scenarios.weather_last_year must not be before weather.first_year")
     if s.weather_first_year > s.start.year:
         raise ValueError("weather.first_year must not be after market.start")
     for y in s.delivery_years:

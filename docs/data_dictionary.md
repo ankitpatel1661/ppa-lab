@@ -7,6 +7,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 [Layers](#data-layers) · [prices_native](#prices_nativeparquet) ·
 [prices_hourly](#prices_hourlyparquet) · [power_15min / power_hourly](#power_15minparquet-and-power_hourlyparquet) ·
 [weather / generation](#weather_parkparquet-day-4) · [price_model.json](#price_modeljson-day-5) ·
+[scenarios_2027](#scenarios_yearparquet-day-6) ·
 [Reference data](#reference-data) · [Derived tables](#derived-tables-computed-in-code-not-stored) (capture, contracts, back-test, volumes, price paths) ·
 [Loading](#how-to-load-the-data)
 
@@ -32,7 +33,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 |---|---|---|---|---|
 | Raw | `data/raw/energy_charts/<dataset>/<YYYY-MM>.parquet` + `.json` manifest | No | `ppa-lab fetch` | Exactly what the API returned, one file per month, with checksum, parameters and licence |
 | Raw (weather) | `data/raw/open_meteo/weather_<park>/<YYYY>.parquet` + `.json` manifest | No | `ppa-lab weather` | ERA5 weather per site and year exactly as Open-Meteo labels it, with the ERA5 grid point used |
-| Processed | `data/processed/*.parquet`, `price_model.json` | No | `ppa-lab build`, `ppa-lab weather`, `ppa-lab prices` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters (files below) |
+| Processed | `data/processed/*.parquet`, `price_model.json` | No | `ppa-lab build`, `weather`, `prices`, `scenarios` | Cleaned, de-duplicated, restricted to the configured range; calibrated model parameters; scenario results (files below) |
 | Reference | `data/reference/*.csv` | **Yes** | by hand, with provenance in the file header | Small published datasets used for reconciliation |
 
 Rebuild everything with `make all` (first download of prices about 10-15 minutes and of
@@ -119,10 +120,10 @@ Notes:
   `load_mw` is about 3 GW larger than generation + net import + pumping.
 - Wind and solar are **measured feed-in after curtailment** (grid redispatch and
   negative-price shutdowns). The TSOs' official market values use an online
-  extrapolation instead; see learning track Day 2, section 4.2.
+  extrapolation instead; see learning track Step 2, section 4.2.
 - Physics check in `ppa-lab check`: no solar output at night (catches time-zone shifts).
 
-## `weather_<park>.parquet` (Day 4)
+## `weather_<park>.parquet` (Step 4)
 
 ERA5 reanalysis weather at the park's site, hourly, **interval beginning** (converted from
 the API's labels). One file per park: `weather_solar_park.parquet`,
@@ -146,7 +147,7 @@ Notes:
 - Licence: CC BY 4.0 Open-Meteo.com; contains modified Copernicus Climate Change Service
   information (ERA5).
 
-## `generation_<park>.parquet` (Day 4)
+## `generation_<park>.parquet` (Step 4)
 
 Modelled output of each illustrative park, hourly, interval beginning, same index as the
 weather file.
@@ -164,7 +165,7 @@ No grid curtailment, outages or degradation are modelled (potential output).
 
 ---
 
-## `price_model.json` (Day 5)
+## `price_model.json` (Step 5)
 
 The calibrated stochastic price model (`ppa_lab.prices.model.PriceModel`), written by
 `ppa-lab prices` and read back with `PriceModel.load(path)`. Plain JSON, about 0.3 MB. All
@@ -185,6 +186,30 @@ values except `scale` are in **transformed units** y = arcsinh(P / scale), not E
 
 Only complete 24-hour local days enter the pool (days with a daylight-saving change have 23
 or 25 hours and are left out).
+
+---
+
+## `scenarios_<year>.parquet` (Step 6)
+
+Joint weather x price scenarios for the delivery year of `[price_model]`, written by
+`ppa-lab scenarios`; input for Step 7. One row per scenario, twice: once with prices linked to
+the weather, once with prices independent of it (Step 5 model). Default: 31 weather years x
+16 paths = 496 scenarios per variant.
+
+| Column | Unit | Meaning |
+|---|---|---|
+| `scenario` (index) | – | 0 .. S-1 within each variant; scenarios of one weather year are consecutive |
+| `prices` | text | `linked` (Step 6) or `independent` (Step 5) |
+| `weather_year` | year | Weather year whose output and (if linked) weather the scenario uses |
+| `base_price` | EUR/MWh | Time-weighted average price of the delivery year in this scenario |
+| `<park>_mwh` | MWh | Energy of the park in the delivery year (`solar_park`, `wind_park`) |
+| `<park>_revenue_eur` | EUR | Merchant revenue: sum over hours of MWh x price |
+| `<park>_capture_price` | EUR/MWh | `revenue / mwh` |
+| `<park>_capture_rate` | – | `capture_price / base_price` |
+
+Fair pay-as-produced price over all scenarios: `sum(revenue) / sum(mwh)`, not the mean of
+the capture prices (`ppa_lab.scenarios.generator.fair_price`). Hourly prices are not stored
+(496 x 8,760 values); rebuild them with `build_scenarios` and the same seed.
 
 ---
 
@@ -281,6 +306,19 @@ of an illustrative park with the national profile shape, scaled per local year.
 
 The same `seed` always gives the same paths. A simulated row is one possible delivery year,
 not a forecast of a particular hour.
+
+### Joint scenarios (`ppa_lab.scenarios`)
+
+| Function | Returns |
+|---|---|
+| `daily_features(solar_mw, wind_mw, temp_c, ...)` | per local day: `solar`, `wind` (capacity factors, 0-1), `temp` (°C) |
+| `day_hour_matrix(mw, tz)` | local day x 24 local hours (25-hour days averaged, 23-hour days interpolated) |
+| `monthly_climatology(features, first, last)` | month (1-12) x feature: average weather over the weather years |
+| `fit_link(model, prices, features, climatology, tz, window_days, k)` | `WeatherLink`: `beta` (season x const/solar/wind/temp, transformed units per unit of feature), `r_squared`, `phi`, `sigma`, analog pool (`pool_days`, `pool_features`, `pool_xi`, `pool_u`) |
+| `analog_days(link, day, weather_row, exclude_days)` | pool indices of the k nearest days within ±window of the date |
+| `simulate_linked(model, link, index, tz, weather, n_paths, annual_level, seed, ...)` | paths x hours, EUR/MWh, for the given daily weather |
+| `build_scenarios(...)` | `Scenarios`: `prices` (S x hours), `generation` (weather years x hours per park), `weather_years`, `year_row`, `level`, `linked` |
+| `scenario_table(scenarios, parks)` | the columns of `scenarios_<year>.parquet` |
 
 ### `annual_price_stats(prices, tz)` (`ppa_lab.analysis.reconcile`)
 

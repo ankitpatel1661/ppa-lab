@@ -14,6 +14,7 @@ from __future__ import annotations
 import dataclasses
 import json
 from datetime import date
+from functools import cache
 from pathlib import Path
 
 import numpy as np
@@ -131,3 +132,62 @@ class FakeClient:
 
     def sleep(self, seconds: float) -> None:  # no waiting in tests
         pass
+
+
+# --------------------------------------------------------------------------- #
+# Synthetic weather-driven market (Step 6 tests)
+# --------------------------------------------------------------------------- #
+WIND_RESPONSE, PHI_R, SIGMA_R = -1.5, 0.5, 0.1
+SOLAR_CLIM = {m: 0.05 + 0.2 * np.sin(np.pi * (m - 0.5) / 12) for m in range(1, 13)}
+
+
+def _ar1(phi: float, sigma: float, n: int, seed: int) -> np.ndarray:
+    x = np.zeros(n)
+    eps = np.random.default_rng(seed).normal(0, sigma, n)
+    for t in range(1, n):
+        x[t] = phi * x[t - 1] + eps[t]
+    return x
+
+
+def _midday_bump(hours: np.ndarray) -> np.ndarray:
+    g = np.clip(np.cos(np.pi * (hours - 13) / 8), 0, None)
+    return g - g.mean()
+
+
+@cache
+def weather_market() -> dict:
+    """Three years (2023-2025) of synthetic daily weather and hourly prices with KNOWN links:
+    the daily level falls by WIND_RESPONSE per unit of wind capacity factor above the month's
+    mean, the rest of the daily level is an AR(1) (PHI_R, SIGMA_R), and sunshine above the
+    month's normal deepens the midday dip. Also day x hour generation of both parks."""
+    from ppa_lab.prices.model import fit, inverse
+
+    idx = pd.date_range("2023-01-01", "2026-01-01", freq="h", tz=TZ, inclusive="left")
+    idx = idx.tz_convert("UTC").rename("ts_utc")
+    local = idx.tz_convert(TZ)
+    codes, days = pd.factorize(local.normalize().tz_localize(None))
+    days = pd.DatetimeIndex(days, name="day")
+    rng = np.random.default_rng(31)
+    clim_solar = np.array([SOLAR_CLIM[m] for m in days.month])
+    wind = np.clip(0.3 + 0.12 * _ar1(0.6, 0.8, len(days), seed=32), 0.02, 0.95)
+    solar = np.clip(clim_solar + rng.normal(0, 0.05, len(days)), 0.0, 0.6)
+    temp = 10 + 8 * np.sin(2 * np.pi * (days.dayofyear - 110) / 365) + rng.normal(0, 2, len(days))
+    features = pd.DataFrame({"solar": solar, "wind": wind, "temp": temp}, index=days)
+    month_mean = features["wind"].groupby([days.year, days.month]).transform("mean").to_numpy()
+    daily = WIND_RESPONSE * (wind - month_mean) + _ar1(PHI_R, SIGMA_R, len(days), seed=33)
+    hours = local.hour.to_numpy()
+    bump = _midday_bump(np.arange(24))[hours]
+    y = (1.2 + 0.4 * np.sin(2 * np.pi * hours / 24) + daily[codes]
+         - 4.0 * (solar - clim_solar)[codes] * bump + rng.normal(0, 0.05, len(idx)))
+    prices = pd.Series(inverse(y, 50.0), index=idx, name="price_eur_mwh")
+
+    shape = np.clip(np.sin(np.pi * (np.arange(24) - 6) / 14), 0, None)
+    shape = shape / shape.mean()                         # daily mean 1
+    generation = {
+        "solar_park": pd.DataFrame(50.0 * solar[:, None] * shape[None, :], index=days,
+                                   columns=range(24)),
+        "wind_park": pd.DataFrame(np.repeat(30.0 * wind[:, None], 24, axis=1), index=days,
+                                  columns=range(24)),
+    }
+    return {"prices": prices, "features": features, "generation": generation,
+            "model": fit(prices, TZ, 50.0)}

@@ -5,7 +5,7 @@ been fair for Y-1 (a naive stand-in for the forward price, which we do not have)
 delivered in year Y. What did each structure earn, and how volatile were its monthly
 cash flows?
 
-The park uses the national generation profile of its technology (Day 4 replaces it with
+The park uses the national generation profile of its technology (Step 4 replaces it with
 a site model), scaled so that it produces capacity x full-load hours in every year: that
 removes the growth of the national fleet but keeps the real hour-by-hour shape.
 """

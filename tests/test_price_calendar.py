@@ -10,7 +10,7 @@ TZ = "Europe/Berlin"
 
 
 def test_easter_sunday_known_years():
-    # Easter Sunday 2026 was the day solar earned -62 EUR/MWh (Day 2 notebook).
+    # Easter Sunday 2026 was the day solar earned -62 EUR/MWh (Step 2 notebook).
     assert easter_sunday(2024) == date(2024, 3, 31)
     assert easter_sunday(2025) == date(2025, 4, 20)
     assert easter_sunday(2026) == date(2026, 4, 5)
