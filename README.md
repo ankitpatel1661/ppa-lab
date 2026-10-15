@@ -77,8 +77,8 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 
 | Step | Question | Key result | Report | Learn |
 |---|---|---|---|---|
-| 1 | Can we trust the market data? | 2025 mean price 89.32 EUR/MWh = published | [report](reports/step01_market_data.md) | [page](docs/learning_track/step01_market_data_foundation.md) |
-| 2 | What do solar and wind really earn? | Solar capture rate 0.76 → 0.51 (2023 → 2025), matches official market values | [report](reports/step02_capture_prices.md) | [page](docs/learning_track/step02_capture_prices.md) |
+| 1 | Can we trust the market data? | Mean prices 2021-2025 match the published values, incl. 235.45 EUR/MWh in 2022 | [report](reports/step01_market_data.md) | [page](docs/learning_track/step01_market_data_foundation.md) |
+| 2 | What do solar and wind really earn? | Solar capture rate 0.94 in the 2022 gas crisis → 0.51 in 2025, matches official market values | [report](reports/step02_capture_prices.md) | [page](docs/learning_track/step02_capture_prices.md) |
 | 3 | How does each PPA structure move risk? | Pay-as-produced removes price surprise; baseload leaves shape risk | [report](reports/step03_ppa_structures.md) | [page](docs/learning_track/step03_ppa_structures.md) |
 | 4 | How much do the parks produce? | Borrentin P50 121 GWh, Everswinkel 64 GWh (calibrated to the published yields); P90 −6 to −9% | [report](reports/step04_generation.md) | [page](docs/learning_track/step04_weather_to_power.md) |
 | 5 | Which price years are plausible? | Prices forget in about a day; validated against history | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
@@ -269,7 +269,7 @@ pvlib and windpowerlib:
 | P90, one year / 10-year average | −5.9% / −1.9% vs mean | −9.2% / −2.9% vs mean |
 | Worst / best weather year | 1998: −8.9% / 2018: +10.1% | 2010: −13.5% / 1998: +13.6% |
 | Trend 1995-2025 | +2.1% per decade (brightening) | −1.7% per decade |
-| Hourly correlation with the national fleet | 0.92 | 0.86-0.88 |
+| Hourly correlation with the national fleet | 0.91-0.93 | 0.86-0.88 |
 
 - **Calibrated to the published yields:** the physical models gave 124.3 GWh for solar
   (+2.8%) and 76.5 GWh for wind (+19.5%). As a pricing desk combines a yield assessment (the
@@ -278,7 +278,8 @@ pvlib and windpowerlib:
   and bat curtailment, common in NRW, a stand-in power curve (no Nordex N149 curve in the
   library) and ERA5 winds extrapolated to a 164 m hub.
 - **Checked against national data** and priced like Step 2: site capture rates close to the
-  national ones (solar 0.648 vs 0.622, wind 0.831 vs 0.837, average of the check years).
+  national ones in every year 2021-2025, the 2022 crisis included (average: solar 0.731 vs
+  0.718, wind 0.805 vs 0.812).
 - **A trap found and fixed:** ERA5 radiation from Open-Meteo is labelled at the end of its
   hour (shifted, and verified against the sun's position on every build).
 
@@ -318,25 +319,31 @@ The capture price is the energy-weighted price a technology earns:
 sum(price x energy) / sum(energy) per quarter-hour. The capture rate divides it by the
 baseload price.
 
-| Capture rate (capture price, EUR/MWh) | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
-|---|---|---|---|---|
-| Baseload price | 95.18 | 78.51 | 89.32 | 107.72 |
-| Solar | 0.76 (72.25) | 0.59 (46.48) | 0.51 (45.95) | 0.52 (55.68) |
-| Wind onshore | 0.82 (78.44) | 0.82 (64.54) | 0.87 (77.27) | 0.89 (95.37) |
-| Wind offshore | 0.91 (86.56) | 0.91 (71.40) | 0.96 (85.53) | 0.94 (101.65) |
-| Solar energy sold at negative prices | 8.3% | 18.3% | 24.2% | 22.8% |
+| Capture rate (capture price, EUR/MWh) | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
+|---|---|---|---|---|---|---|
+| Baseload price | 96.85 | 235.45 | 95.18 | 78.51 | 89.32 | 107.72 |
+| Solar | 0.79 (75.99) | 0.94 (220.99) | 0.76 (72.25) | 0.59 (46.48) | 0.51 (45.95) | 0.52 (55.68) |
+| Wind onshore | 0.83 (80.74) | 0.71 (168.31) | 0.82 (78.44) | 0.82 (64.54) | 0.87 (77.27) | 0.89 (95.37) |
+| Wind offshore | 0.95 (92.36) | 0.83 (194.47) | 0.91 (86.56) | 0.91 (71.40) | 0.96 (85.53) | 0.94 (101.65) |
+| Solar energy sold at negative prices | 4.2% | 1.6% | 8.3% | 18.3% | 24.2% | 22.8% |
 
-- **Solar cannibalisation:** in two years solar's capture rate fell from 0.76 to 0.51.
-  In 2025 German solar earned EUR 3.0 billion less than the same energy at baseload.
+- **Solar cannibalisation:** from 0.79 in 2021 to 0.51 in 2025 as capacity grew. In 2025
+  German solar earned EUR 3.0 billion less than the same energy at baseload.
+- **The 2022 gas crisis turned it around for a year:** with gas setting the price, midday
+  hours were expensive too and solar's capture rate rose to 0.94, while wind's fell to 0.71
+  (the most expensive months were the calm summer ones). That history is the test bed for
+  how capture rates move with the price level (backlog PPA-8d).
 - **Reconciliation with the official market values** (netztransparenz.de, legally the
-  same formula): solar matches within 0.03 ct/kWh in 2023-2024 and 0.09 ct/kWh in
-  2025 (tolerance ±0.10, fixed in advance). The spot price matches in 43 of 44 months.
-  The one exception is June 2024, caused by the SDAC partial decoupling on
+  same formula): solar matches within 0.05 ct/kWh in 2021 and 2023-2024 and 0.09 ct/kWh in
+  2025 (tolerance ±0.10, fixed in advance). 2022 differs by −0.21: every month matches, but
+  the official monthly weights (the TSOs' extrapolated solar output) differ from the measured
+  feed-in, which shows when monthly prices range from 12 to 40 ct/kWh. The spot price matches
+  in 67 of 68 months; the exception is June 2024, caused by the SDAC partial decoupling on
   26 June 2024.
-- **Open investigation:** wind capture prices are 0.16 to 0.49 ct/kWh above the official
-  values in every year. The evidence points to curtailment in the measured generation
-  data versus the TSOs' online extrapolation. These references are deliberately left
-  outside tolerance until that is tested (backlog PPA-2b).
+- **Open investigation:** wind capture prices are 0.16 to 1.10 ct/kWh above the official
+  values in every year (largest in 2022). The evidence points to curtailment in the measured
+  generation data versus the TSOs' online extrapolation. These references are deliberately
+  left outside tolerance until that is tested (backlog PPA-2b).
 
 ![Capture rate by month](reports/figures/step02_capture_rate_monthly.png)
 
@@ -346,18 +353,19 @@ How it was built and investigated:
 
 ### Step 1 results
 
-| DE-LU day-ahead | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
-|---|---|---|---|---|
-| Mean price (EUR/MWh, time-weighted) | 95.18 | 78.51 | 89.32 | 107.72 |
-| Hours with negative prices | 301 | 457 | 576 | 471 |
-| Longest negative streak (hours) | 36 | 18 | 20 | 18 |
-| Lowest / highest price (EUR/MWh) | -500.00 / 524.27 | -135.45 / 936.28 | -250.32 / 583.40 | -499.99 / 747.10 |
+| DE-LU day-ahead | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 (Jan-Sep) |
+|---|---|---|---|---|---|---|
+| Mean price (EUR/MWh, time-weighted) | 96.85 | 235.45 | 95.18 | 78.51 | 89.32 | 107.72 |
+| Hours with negative prices | 139 | 69 | 301 | 457 | 576 | 471 |
+| Longest negative streak (hours) | 17 | 8 | 36 | 18 | 20 | 18 |
+| Lowest / highest price (EUR/MWh) | -69.00 / 620.00 | -19.04 / 871.00 | -500.00 / 524.27 | -135.45 / 936.28 | -250.32 / 583.40 | -499.99 / 747.10 |
 
-Reconciliation: the 2023 and 2025 mean prices match the official values exactly
+Reconciliation: the 2021, 2022, 2023 and 2025 mean prices match the official values exactly
 (2024 differs by −0.95 EUR/MWh, fully explained by the 26 June 2024 decoupling), and the
 negative-hour counts match published figures within 2 hours. Data quality: 23 checks pass,
-1 warning (one real interval at the -500 EUR/MWh floor), 0 failures; all 1,369 delivery
-days complete.
+1 warning (one real interval at the -500 EUR/MWh floor), 0 failures; all 2,099 delivery
+days complete, checked against the exchange's price limits in force on each day (+3,000
+EUR/MWh until 10 May 2022, then +4,000).
 
 The full numbers, the data-quality report and four charts are in
 [`reports/step01_market_data.md`](reports/step01_market_data.md).

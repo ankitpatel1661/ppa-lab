@@ -17,7 +17,8 @@ that step is written.
 | PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | **Done** |
 | PPA-8b | 8b | Anchor the price level to the market forward curve | **Done** (v1.1) |
 | PPA-8c | 8c | Quarterly forward curve (market winter premium); solar cannibalisation trend | **Done** (v1.2) |
-| PPA-8d | later | Capture rate vs price level on 2021-2022 (gas crisis) data | To do |
+| PPA-1b | 1b | History from 2021: the 2022 gas crisis in Steps 1-2 | **Done** (v1.4) |
+| PPA-8d | next | Capture rate vs price level on 2021-2022 (gas crisis) data | To do (data ready, v1.4) |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
@@ -187,6 +188,9 @@ so that the results speak to its portfolio.
 **Finding (8 Oct 2026):** our wind capture prices are above the official
 Jahresmarktwerte in every year (onshore +0.16 to +0.29, offshore +0.36 to +0.49 ct/kWh)
 and in 43 of 44 months. Spot prices match, so the volumes differ.
+**Update (v1.4, 15 Oct 2026):** the gap is also there in 2021 and 2022 (onshore +0.22 and
++0.56, offshore +0.22 and +1.10 ct/kWh), largest in the 2022 crisis, when prices were high
+in exactly the months and hours that matter most.
 
 **Hypothesis:** Energy-Charts generation is measured feed-in after curtailment
 (redispatch and negative prices); the official values use the TSOs' online

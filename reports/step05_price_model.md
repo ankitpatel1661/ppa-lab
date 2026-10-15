@@ -1,6 +1,6 @@
 # Step 5 report: stochastic price model
 
-Generated 2026-10-15 07:40 UTC by `ppa-lab prices`.
+Generated 2026-10-15 16:27 UTC by `ppa-lab prices`.
 Data: CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE). Hourly day-ahead prices (quarter-hours averaged).
 
 ## 1. Model and calibration
@@ -52,7 +52,7 @@ Forward: **EEX German Power Cal-27 base 140.21 EUR/MWh (quote of 2026-10-09, via
 
 ## 4. Teaser for Step 6: what solar earns under these prices
 
-The solar park's 2025 weather year priced with the simulated 2027 paths gives a capture rate of **0.719** (5-95%: 0.659 to 0.757). With the real 2025 prices it was **0.555**. The model knows the average midday dip, but not that sunny days are cheaper than cloudy ones: prices and weather are still independent. Step 6 links them. Part of the gap is the level: the paths average 140 EUR/MWh, 2025 averaged 89, and in this model the capture rate rises with the level (Step 7 shows the sensitivity).
+The solar park's 2025 weather year priced with the simulated 2027 paths gives a capture rate of **0.708** (5-95%: 0.645 to 0.749). With the real 2025 prices it was **0.542**. The model knows the average midday dip, but not that sunny days are cheaper than cloudy ones: prices and weather are still independent. Step 6 links them. Part of the gap is the level: the paths average 140 EUR/MWh, 2025 averaged 89, and in this model the capture rate rises with the level (Step 7 shows the sensitivity).
 
 ## 5. Charts
 

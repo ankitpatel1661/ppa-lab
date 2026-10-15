@@ -1,5 +1,12 @@
 # Step 2: Capture prices and capture rates (ticket PPA-2)
 
+> **Data range on this page (update for v1.4).** This page was written for 2023-2026. Since
+> v1.4 the history starts in January 2021, so it covers the 2022 gas crisis (mean price
+> 235.45 EUR/MWh). The new years reconcile exactly (mean prices 96.85 and 235.45 EUR/MWh,
+> 139 and 69 negative hours), solar's capture rate rose to 0.94 in 2022 while wind's fell to
+> 0.71, and the wind gap to the official market values (backlog PPA-2b) is there in every year.
+> The methods and lessons are unchanged; current numbers are in the reports and the README.
+
 > **Time needed:** about 5 hours. Concepts take 75 minutes, the code tour and the
 > investigation stories 75 minutes, hands-on and exercises 2 hours, to-dos 30 minutes.
 > **You will be able to:** explain why solar earns far less than the baseload price,

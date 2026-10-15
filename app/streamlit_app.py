@@ -186,7 +186,7 @@ with tab_hedge:
 
 with tab_built:
     steps = pd.DataFrame([
-        (1, "Market data", "Prices and generation since 2023, checked and reconciled",
+        (1, "Market data", "Prices and generation since 2021, checked and reconciled",
          "step01_market_data.md"),
         (2, "Capture prices", "What solar and wind earn vs the official market values",
          "step02_capture_prices.md"),

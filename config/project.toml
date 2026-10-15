@@ -15,17 +15,26 @@ timezone = "Europe/Berlin"
 bidding_zone = "DE-LU"
 # Country code used by the Energy-Charts generation endpoint.
 country = "de"
-# Inclusive range of delivery days to download and analyse.
-start = 2023-01-01
+# Inclusive range of delivery days to download and analyse. Since v1.4 from 2021, so that the
+# history covers the 2022 gas crisis (annual prices of about 97, 235 and 95 EUR/MWh in
+# 2021-2023): the range of price levels needed to test how capture rates move with the level.
+start = 2021-01-01
 end = 2026-09-30
 
 # SDAC harmonised clearing-price limits (EUR/MWh) used as hard sanity bounds.
 # A price outside the limit in force on that delivery day cannot be a real
 # auction result, so it signals a data or parsing error.
-# Source: NEMO Committee / EXAA notice: minimum lowered from -500 to -600 EUR/MWh
-# from trading day 28 May 2026 (delivery day 29 May 2026); maximum +4000 EUR/MWh.
+# Sources: maximum raised from +3000 to +4000 EUR/MWh from trading day 10 May 2022 (delivery
+# day 11 May 2022), after French prices passed 60% of the cap on 4 Apr 2022 (EPEX SPOT and
+# EXAA notices); NEMO Committee / EXAA notice: minimum lowered from -500 to -600 EUR/MWh
+# from trading day 28 May 2026 (delivery day 29 May 2026).
 [[market.price_limits]]
-effective_from = 2023-01-01
+effective_from = 2021-01-01
+min_eur_mwh = -500.0
+max_eur_mwh = 3000.0
+
+[[market.price_limits]]
+effective_from = 2022-05-11
 min_eur_mwh = -500.0
 max_eur_mwh = 4000.0
 
@@ -273,6 +282,20 @@ tolerance = 0.5
 source = "netztransparenz.de Jahresmarktwert JW 2023 = 9.518 ct/kWh"
 
 [[reconciliation]]
+metric = "mean_price_eur_mwh"
+year = 2022
+value = 235.45
+tolerance = 0.5
+source = "netztransparenz.de Jahresmarktwert JW 2022 = 23.545 ct/kWh (retrieved 15 Oct 2026)"
+
+[[reconciliation]]
+metric = "mean_price_eur_mwh"
+year = 2021
+value = 96.85
+tolerance = 0.5
+source = "netztransparenz.de Jahresmarktwert JW 2021 = 9.685 ct/kWh (retrieved 15 Oct 2026)"
+
+[[reconciliation]]
 metric = "negative_hours"
 year = 2025
 value = 575
@@ -293,9 +316,23 @@ value = 301
 tolerance = 5
 source = "DGS evaluation: 301 h in 2023"
 
+[[reconciliation]]
+metric = "negative_hours"
+year = 2022
+value = 69
+tolerance = 5
+source = "EPEX SPOT Q&A on negative prices: 69 h on 12 days in 2022 (0.79% of hours)"
+
+[[reconciliation]]
+metric = "negative_hours"
+year = 2021
+value = 139
+tolerance = 5
+source = "Energy Brainpool for ZfK: 139 h with negative day-ahead prices in 2021"
+
 # -----------------------------------------------------------------------------
 # Step 2: official annual market values ("Jahresmarktwerte", JW) published by the
-# German TSOs on netztransparenz.de, retrieved 8 Oct 2026. Legal formula (EEG 2023
+# German TSOs on netztransparenz.de, retrieved 8 Oct 2026 (2021-2022: 15 Oct 2026). Legal formula (EEG 2023
 # Anlage 1 Nr. 4.3): sum over all quarter-hours of spot price x generation from the
 # TSOs' online extrapolation, divided by total generation, i.e. a capture price.
 # Tolerance 0.10 ct/kWh (= 1 EUR/MWh) was fixed BEFORE comparing; differences in the
@@ -323,6 +360,27 @@ tolerance = 0.10
 source = "netztransparenz.de JW Solar 2023"
 
 [[reconciliation]]
+metric = "capture_price_solar_ct_kwh"
+year = 2022
+value = 22.306
+tolerance = 0.10
+source = "netztransparenz.de JW Solar 2022 (retrieved 15 Oct 2026)"
+note = """The monthly solar market values match within 0.05 ct/kWh in 11 of 12 months \
+(December +0.21). Weighting the official monthly values with our monthly solar energy gives \
+22.104 ct/kWh, almost exactly our 22.099: the whole gap is in how much energy each month \
+carries. In 2022 monthly prices ranged from 12 to 40 ct/kWh, so the TSOs' online \
+extrapolation of solar output (the official weights) must carry relatively more energy in \
+the expensive months than Energy-Charts' measured feed-in; with flatter prices (2021, \
+2023-2025) the same weighting difference stays inside the tolerance."""
+
+[[reconciliation]]
+metric = "capture_price_solar_ct_kwh"
+year = 2021
+value = 7.552
+tolerance = 0.10
+source = "netztransparenz.de JW Solar 2021 (retrieved 15 Oct 2026)"
+
+[[reconciliation]]
 metric = "capture_price_wind_onshore_ct_kwh"
 year = 2025
 value = 7.441
@@ -344,6 +402,20 @@ tolerance = 0.10
 source = "netztransparenz.de JW Wind an Land 2023"
 
 [[reconciliation]]
+metric = "capture_price_wind_onshore_ct_kwh"
+year = 2022
+value = 16.272
+tolerance = 0.10
+source = "netztransparenz.de JW Wind an Land 2022 (retrieved 15 Oct 2026)"
+
+[[reconciliation]]
+metric = "capture_price_wind_onshore_ct_kwh"
+year = 2021
+value = 7.854
+tolerance = 0.10
+source = "netztransparenz.de JW Wind an Land 2021 (retrieved 15 Oct 2026)"
+
+[[reconciliation]]
 metric = "capture_price_wind_offshore_ct_kwh"
 year = 2025
 value = 8.059
@@ -363,6 +435,20 @@ year = 2023
 value = 8.187
 tolerance = 0.10
 source = "netztransparenz.de JW Wind auf See 2023"
+
+[[reconciliation]]
+metric = "capture_price_wind_offshore_ct_kwh"
+year = 2022
+value = 18.349
+tolerance = 0.10
+source = "netztransparenz.de JW Wind auf See 2022 (retrieved 15 Oct 2026)"
+
+[[reconciliation]]
+metric = "capture_price_wind_offshore_ct_kwh"
+year = 2021
+value = 9.017
+tolerance = 0.10
+source = "netztransparenz.de JW Wind auf See 2021 (retrieved 15 Oct 2026)"
 
 # Share of energy produced at non-negative prices ("Vermarktungsmenge"). Secondary
 # source (Roedl & Partner, Feb 2026, based on netztransparenz.de data), published as

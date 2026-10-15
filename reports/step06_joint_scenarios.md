@@ -1,6 +1,6 @@
 # Step 6 report: joint weather and price scenarios
 
-Generated 2026-10-15 14:09 UTC by `ppa-lab scenarios`.
+Generated 2026-10-15 16:27 UTC by `ppa-lab scenarios`.
 
 Data: CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE); ERA5 via Open-Meteo (CC BY 4.0 - Open-Meteo.com; contains modified Copernicus Climate Change Service information (ERA5)).
 

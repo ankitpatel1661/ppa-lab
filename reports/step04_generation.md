@@ -1,6 +1,6 @@
 # Step 4 report: weather to power
 
-Generated 2026-10-15 14:09 UTC by `ppa-lab weather`.
+Generated 2026-10-15 16:27 UTC by `ppa-lab weather`.
 Weather: CC BY 4.0 - Open-Meteo.com; contains modified Copernicus Climate Change Service information (ERA5). Hourly ERA5 reanalysis per site; radiation converted from
 end-of-hour to interval-beginning labels (checked against the sun's position).
 
@@ -47,17 +47,21 @@ and priced with the same hourly day-ahead prices (capture rate as in Step 2).
 
 | Park       |   Year |   Hourly correlation with national |   Capture rate, site |   Capture rate, national |   Site capture price (EUR/MWh) |
 |:-----------|-------:|-----------------------------------:|---------------------:|-------------------------:|-------------------------------:|
+| Solar Park |   2021 |                               0.91 |                0.776 |                    0.785 |                          75.2  |
+| Solar Park |   2022 |                               0.93 |                0.934 |                    0.939 |                         219.96 |
 | Solar Park |   2023 |                               0.92 |                0.799 |                    0.759 |                          76.06 |
 | Solar Park |   2024 |                               0.92 |                0.601 |                    0.592 |                          47.22 |
 | Solar Park |   2025 |                               0.92 |                0.542 |                    0.516 |                          48.38 |
+| Wind Park  |   2021 |                               0.86 |                0.829 |                    0.834 |                          80.31 |
+| Wind Park  |   2022 |                               0.88 |                0.703 |                    0.715 |                         165.6  |
 | Wind Park  |   2023 |                               0.88 |                0.82  |                    0.824 |                          78    |
 | Wind Park  |   2024 |                               0.86 |                0.818 |                    0.822 |                          64.26 |
 | Wind Park  |   2025 |                               0.87 |                0.855 |                    0.865 |                          76.34 |
 
 ## 4. What the numbers say
 
-- **Solar Park:** P50 1,061 kWh/kWp; one year in ten falls below -5.9% of the mean, the worst year (1998) was -8.9%; trend +2.1% per decade. Hourly correlation with the national fleet 0.92-0.92; capture rate site 0.647 vs national 0.622 (average of the check years).
-- **Wind Park:** P50 2,245 full-load hours; one year in ten falls below -9.2% of the mean, the worst year (2010) was -13.5%; trend -1.7% per decade. Hourly correlation with the national fleet 0.86-0.88; capture rate site 0.831 vs national 0.837 (average of the check years).
+- **Solar Park:** P50 1,061 kWh/kWp; one year in ten falls below -5.9% of the mean, the worst year (1998) was -8.9%; trend +2.1% per decade. Hourly correlation with the national fleet 0.91-0.93; capture rate site 0.731 vs national 0.718 (average of the check years).
+- **Wind Park:** P50 2,245 full-load hours; one year in ten falls below -9.2% of the mean, the worst year (2010) was -13.5%; trend -1.7% per decade. Hourly correlation with the national fleet 0.86-0.88; capture rate site 0.805 vs national 0.812 (average of the check years).
 
 ## 5. Charts
 

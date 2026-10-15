@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] (ticket PPA-1b: history from 2021, the 2022 gas crisis)
+
+### Changed
+- Market data from 1 Jan 2021 (`[market] start`): 24 more months of day-ahead prices and
+  generation from Energy-Charts; 2,099 complete delivery days.
+- Price limits per period: +3000 EUR/MWh until 10 May 2022, +4000 from delivery day
+  11 May 2022 (SDAC HMMCP increase), −500 until 28 May 2026.
+- Reconciliation for 2021-2022 (netztransparenz.de Jahresmarktwerte, EPEX and Energy
+  Brainpool negative hours) and 24 more official monthly market values in
+  `data/reference/`.
+- Tests that assumed the first data year was 2023 now use the configured start year.
+
+### Findings
+- Mean prices 96.85 (2021) and 235.45 EUR/MWh (2022) and negative hours (139, 69) match the
+  published values exactly; the spot price matches in 67 of 68 months.
+- In the 2022 crisis solar's capture rate rose to 0.94 (2021: 0.79) while wind's fell to
+  0.71: the history needed to test how capture rates move with the price level (PPA-8d).
+- Solar 2022 differs from the official value by −0.21 ct/kWh although every month matches:
+  a monthly weighting effect (explained difference). The wind gap (PPA-2b) is there in
+  every year, largest in 2022.
+- Pricing results (Steps 5-9) are unchanged: the price model is calibrated on 2024-2026.
+
 ## [1.3.0] (ticket PPA-4b: two Encavis parks)
 
 ### Changed

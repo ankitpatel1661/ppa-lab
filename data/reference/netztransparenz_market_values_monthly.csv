@@ -1,10 +1,35 @@
 # Official monthly market values ("Monatsmarktwerte", MW) of the German TSOs, in ct/kWh.
-# Source: netztransparenz.de > EEG > Marktpraemie > Marktwertuebersicht, retrieved 8 Oct 2026.
+# Source: netztransparenz.de > EEG > Marktpraemie > Marktwertuebersicht, retrieved 8 Oct 2026
+# (2021-2022 retrieved 15 Oct 2026).
 # spot = monthly mean day-ahead price ("Spotmarktpreis"); the other columns are the
 # technology market values (Wind an Land, Wind auf See, Solar) = capture prices.
 # May 2026 solar is the corrected value (3.296; first published 3.163, an error in the
 # TSOs' online extrapolation of solar generation on 1 May 2026).
 month,spot_ct_kwh,wind_onshore_ct_kwh,wind_offshore_ct_kwh,solar_ct_kwh
+2021-01,5.282,4.645,4.816,5.543
+2021-02,4.870,4.361,4.742,4.499
+2021-03,4.716,3.395,3.892,4.105
+2021-04,5.361,4.353,4.481,4.551
+2021-05,5.335,4.134,3.944,4.187
+2021-06,7.408,6.330,6.884,6.864
+2021-07,8.137,6.808,7.252,7.409
+2021-08,8.270,7.253,7.531,7.681
+2021-09,12.837,11.754,12.250,11.715
+2021-10,13.949,10.982,12.556,12.804
+2021-11,17.615,14.056,15.649,18.307
+2021-12,22.106,16.077,18.426,27.075
+2022-01,16.773,12.883,14.476,17.838
+2022-02,12.880,10.825,11.845,11.871
+2022-03,25.201,19.766,20.701,20.712
+2022-04,16.573,12.703,13.353,14.566
+2022-05,17.748,13.242,14.024,15.132
+2022-06,21.803,19.692,19.909,18.940
+2022-07,31.500,27.824,28.687,26.093
+2022-08,46.518,46.092,47.611,39.910
+2022-09,34.612,28.238,29.358,31.673
+2022-10,15.260,12.715,13.694,12.904
+2022-11,17.363,13.718,14.414,15.374
+2022-12,25.162,14.164,20.054,24.661
 2023-01,11.783,8.726,9.650,12.291
 2023-02,12.831,10.620,11.051,12.343
 2023-03,10.252,8.515,8.955,8.883

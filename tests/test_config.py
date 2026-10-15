@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 import pandas as pd
@@ -30,7 +31,8 @@ def test_price_limits_change_on_29_may_2026():
 
 def test_inverted_date_range_is_rejected(tmp_path):
     text = DEFAULT_CONFIG.read_text()
-    bad = text.replace("start = 2023-01-01", "start = 2027-01-01")
+    bad, n = re.subn(r"^start = \S+", "start = 2027-01-01", text, flags=re.M)
+    assert n == 1                                   # exactly the [market] start date
     path = tmp_path / "bad.toml"
     path.write_text(bad)
     with pytest.raises(ValueError, match="after"):
@@ -60,11 +62,12 @@ def test_backtest_parks_are_configured():
 
 
 def test_a_delivery_year_needs_the_previous_year_in_the_data_range(tmp_path):
+    first = load_settings().start.year                      # no data before this year
     text = DEFAULT_CONFIG.read_text()
-    bad = text.replace("delivery_years = [2024, 2025]", "delivery_years = [2023, 2024]")
+    bad = text.replace("delivery_years = [2024, 2025]", f"delivery_years = [{first}, 2025]")
     path = tmp_path / "bad.toml"
     path.write_text(bad)
-    with pytest.raises(ValueError, match="2022"):
+    with pytest.raises(ValueError, match=str(first - 1)):
         load_settings(path)
 
 
@@ -125,7 +128,7 @@ def test_hedging_backtest_needs_the_previous_year_and_quotes_name_known_products
     assert {q.product for q in hg.market_quotes} <= {"cal_base", "cal_peak"}
     assert all(q.source.startswith("http") for q in hg.market_quotes)
     bad = DEFAULT_CONFIG.read_text().replace("backtest_years = [2024, 2025]",
-                                             "backtest_years = [2023, 2025]")
+                                             f"backtest_years = [{s.start.year}, 2025]")
     path = tmp_path / "bad.toml"
     path.write_text(bad)
     with pytest.raises(ValueError, match="backtest"):

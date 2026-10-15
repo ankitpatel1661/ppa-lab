@@ -24,7 +24,7 @@ Update this page whenever a dataset or column is added (part of the definition o
 | Daylight saving | Local days have 23, 24 or 25 hours; UTC has no gaps or repeats, so every row is unique |
 | Power vs energy | Columns ending `_mw` are the **average power** over the interval. Energy (MWh) = MW x interval length in hours: x 1 in the hourly files, x 0.25 in the 15-minute files |
 | Prices | EUR/MWh. 1 ct/kWh = 10 EUR/MWh |
-| Coverage | Delivery days 1 Jan 2023 to 30 Sep 2026 (`config/project.toml`, `[market]`) |
+| Coverage | Delivery days 1 Jan 2021 to 30 Sep 2026 (`config/project.toml`, `[market]`; from 2021 since v1.4, to include the 2022 gas crisis) |
 | Missing values | Kept as NaN, never filled silently. Only `nuclear_mw` has NaNs (see below) |
 | Licence | Prices and generation: CC BY 4.0, Bundesnetzagentur / SMARD.de, via Energy-Charts (Fraunhofer ISE) |
 
@@ -264,8 +264,8 @@ Strict JSON. Same scenarios as `ppa_pricing.json`. Prices EUR/MWh, revenues EUR,
 
 ### `data/reference/netztransparenz_market_values_monthly.csv`
 
-Official monthly market values (Monatsmarktwerte) of the German TSOs, Jan 2023 to Aug
-2026, retrieved 8 Oct 2026 from netztransparenz.de. Lines starting with `#` are
+Official monthly market values (Monatsmarktwerte) of the German TSOs, Jan 2021 to Aug
+2026, retrieved 8 Oct 2026 (2021-2022: 15 Oct 2026) from netztransparenz.de. Lines starting with `#` are
 provenance comments. Index: `month` (`YYYY-MM`).
 
 | Column | Unit | Meaning |

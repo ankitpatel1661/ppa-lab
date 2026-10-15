@@ -1,6 +1,6 @@
 # Step 3 report: PPA structures back-tested
 
-Generated 2026-10-15 14:26 UTC by `ppa-lab ppa`.
+Generated 2026-10-15 16:27 UTC by `ppa-lab ppa`.
 Data: CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE).
 Delivery years: 2024, 2025.
 
