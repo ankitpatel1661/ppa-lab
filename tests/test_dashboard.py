@@ -58,6 +58,19 @@ def test_the_whole_window_pool_and_a_forward_shift():
     assert shifted["stack"]["risk_premium"] == 5.0
 
 
+def test_the_offer_follows_the_forward_curve_and_the_shift_moves_all_of_it():
+    r = results_fixture()
+    r["forward_curve"] = {"2028": 60.0, "2029": 50.0}                    # JSON keys are text
+    a = default_assumptions(r, "solar_park")
+    years = offer(r, "solar_park", a)["years"]
+    assert years["forward_eur_mwh"].tolist() == [80.0, 60.0] + [50.0] * 8
+    assert years.loc[2029, "fair_price_eur_mwh"] == pytest.approx(25.0)   # capture rate 0.5
+    shifted = offer(r, "solar_park", Assumptions(**{**a.__dict__, "forward_shift": 0.1}))
+    assert shifted["years"]["forward_eur_mwh"].tolist() == pytest.approx(
+        [88.0, 66.0] + [55.0] * 8)
+    assert shifted["stack"]["trend"] < 0                                 # a falling curve
+
+
 def test_missing_results_say_how_to_make_them(tmp_path):
     with pytest.raises(FileNotFoundError, match="ppa-lab memo"):
         load_results(tmp_path / "results.json")

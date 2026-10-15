@@ -21,6 +21,7 @@ from ppa_lab.config import Settings
 from ppa_lab.prices.calendar import SEASONS
 from ppa_lab.prices.model import PriceModel, calibrate_level, fit, simulate
 from ppa_lab.prices.validation import compare_with_history
+from ppa_lab.pricing.forwards import describe_forward
 from ppa_lab.timeutils import to_hourly
 
 log = logging.getLogger(__name__)
@@ -128,12 +129,18 @@ def _capture_teaser(settings: Settings, prices: pd.Series, paths: np.ndarray,
     sim = paths[:, : len(q_arr)]
     rates = (sim * q_arr).sum(axis=1) / q_arr.sum() / sim.mean(axis=1)
     p5, p50, p95 = np.percentile(rates, [5, 50, 95])
+    forward = settings.price_model.forward_eur_mwh
+    level = ""
+    if abs(forward / p.mean() - 1.0) > 0.1:
+        level = (f" Part of the gap is the level: the paths average {forward:.0f} EUR/MWh, "
+                 f"{year} averaged {p.mean():.0f}, and in this model the capture rate rises "
+                 "with the level (Step 7 shows the sensitivity).")
     return (
         f"The solar park's {year} weather year priced with the simulated "
         f"{settings.price_model.delivery_year} paths gives a capture rate of **{p50:.3f}** "
         f"(5-95%: {p5:.3f} to {p95:.3f}). With the real {year} prices it was **{hist_rate:.3f}**. "
         "The model knows the average midday dip, but not that sunny days are cheaper than "
-        "cloudy ones: prices and weather are still independent. Step 6 links them."
+        "cloudy ones: prices and weather are still independent. Step 6 links them." + level
     )
 
 
@@ -185,6 +192,9 @@ def write_step05_report(settings: Settings) -> dict[str, Path | None]:
     }
     outside = [LABELS[k] for k, ok in table["inside_range"].items() if not ok]
     sigma = ", ".join(f"{s} {v:.3f}" for s, v in model.sigma.items())
+    forward = {"price_eur_mwh": pm.forward_eur_mwh, "source": pm.forward_source,
+               "date": str(pm.forward_date) if pm.forward_date else None}
+    forward_text = describe_forward(forward, {}, pm.delivery_year).split(";")[0]
     report = f"""# Step 5 report: stochastic price model
 
 Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC by `ppa-lab prices`.
@@ -216,8 +226,8 @@ Outside the range: {", ".join(outside) if outside else "none"}.
 
 ## 3. Delivery year {pm.delivery_year}
 
-Forward assumption **{pm.forward_eur_mwh:.1f} EUR/MWh** (illustrative until Step 8), level
-uncertainty {pm.level_volatility:.2f} (transformed units), {pm.n_paths} paths.
+Forward: **{forward_text}**; level uncertainty {pm.level_volatility:.2f} (transformed units),
+{pm.n_paths} paths.
 
 | Item | Value |
 |---|---|

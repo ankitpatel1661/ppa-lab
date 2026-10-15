@@ -130,3 +130,16 @@ def test_hedging_backtest_needs_the_previous_year_and_quotes_name_known_products
     path.write_text(bad)
     with pytest.raises(ValueError, match="backtest"):
         load_settings(path)
+
+
+def test_the_forward_names_its_source_and_the_curve_covers_later_years(tmp_path):
+    s = load_settings()
+    pm, ppa = s.price_model, s.ppa
+    assert pm.forward_date is not None and pm.forward_source.startswith("http")
+    assert ppa.forward_curve and all(isinstance(y, int) for y in ppa.forward_curve)
+    assert all(ppa.start_year < y < ppa.start_year + ppa.tenor_years for y in ppa.forward_curve)
+    bad = DEFAULT_CONFIG.read_text().replace("2028 = 104.75", "2027 = 104.75")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="forward_curve"):
+        load_settings(path)

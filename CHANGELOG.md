@@ -6,6 +6,36 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] (ticket PPA-8b: the forward is the market's)
+
+### Changed
+- The price level is the market's: `[price_model] forward_eur_mwh` = 140.21 EUR/MWh, the EEX
+  German Power Cal-27 base quote of 9 Oct 2026 (with `forward_date` and `forward_source`),
+  instead of the illustrative 85 EUR/MWh; later contract years follow `[ppa.forward_curve]`
+  (Cal-28 104.75, Cal-29 87.58), held flat after the last quote (`tenor_price`). The forward
+  sensitivities and the dashboard's forward knob shift the whole curve.
+- Reports, memo and dashboard name the forward's source (`ppa_lab.pricing.forwards`); the
+  results carry `forward` and `forward_curve` instead of `forward_assumption`.
+- The memo's price table runs from the 2027 forward through the later years to the ten-year
+  indicative price; its market line reports how far the quotes moved.
+- `[hedging.market_quotes]`: five Cal-27 base quotes from 31 Jul to 9 Oct 2026 (104.24 to
+  140.21); the stale August peak quote was dropped.
+- Exercise checks for Steps 6, 7 and 9 updated to the new scenario data (reference solutions
+  re-verified on the old data first).
+
+### Added
+- Step 7 sensitivity "Capture rate of the recent price level": scenarios rebuilt at the analog
+  pool's average price (104 EUR/MWh) and scaled to the forward (the shape-factor view), because
+  in the arcsinh model the capture rate rises with the level; memo lever and METHODOLOGY v1.1.
+- Steps 5 and 6 say when the comparison with the latest historical year mixes in the level.
+
+### Findings
+- Solar ten-year indicative price 50.6 EUR/MWh (fair 61.1; 2027 alone 89.1), wind 80.1; at the
+  recent level's capture rate solar would be 43.1.
+- The curve matters as much as the level: the weighted forward over ten years is 96.7 EUR/MWh.
+- Hedging holds: Cal base at 83% (solar) / 91% (wind) of output cuts merchant CFaR95 by 78% /
+  68%; the buyer's premium with the minimum-variance band is 4.8 instead of 8.0 (solar).
+
 ## [1.0.0] (Step 8, ticket PPA-8; all steps done)
 
 ### Added

@@ -1,5 +1,10 @@
 # Step 8: Hedging with power futures (ticket PPA-8)
 
+> **Numbers on this page (update for v1.1).** Sections 1-4.5 were written with the
+> illustrative forward of 85 EUR/MWh (v1.0). The market check led to a decision: since v1.1 the
+> model uses the market forward curve. Section 4.6 shows what changed; the current numbers are
+> in `reports/step08_hedging.md`. The methods and lessons are unchanged.
+
 > **Time needed:** about 4.5 hours. Concepts take 60 minutes, code tour and findings
 > 45 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
 > **You will be able to:** explain how German power futures hedge a renewable park, compute a
@@ -10,7 +15,8 @@
 [1. Concepts](#1-concepts-you-need-today) ·
 [2. Architecture](#2-what-was-built-architecture) ·
 [3. Code tour](#3-code-tour) ·
-[4. Findings](#4-five-real-findings) ·
+[4. Findings](#4-five-real-findings) (and
+[4.6 the v1.1 update](#46-update-v11-the-forward-is-now-the-markets)) ·
 [5. Hands-on](#5-hands-on-run-it-yourself) ·
 [6. Results](#6-results-what-the-hedges-do) ·
 [7. Exercises](#7-exercises) ·
@@ -199,6 +205,47 @@ of 68.4. These are secondary web sources, not EEX settlement files; they are in 
 with date and URL so they can be replaced. The decision whether to re-anchor the model to the
 market is recorded in the backlog: it moves every headline number.
 
+### 4.6 Update (v1.1): the forward is now the market's
+
+The market check led to a decision (backlog PPA-8b): the model's price level is now the
+market's. When the quotes were checked again, Cal-27 base had risen further, from 113.45
+(28 Aug) to **140.21 EUR/MWh** (9 Oct 2026, the year's high, driven by gas and weak French
+nuclear output), and the curve falls steeply: **Cal-28 104.75**, **Cal-29 87.58**. A ten-year
+PPA therefore follows the curve (`[ppa.forward_curve]`), with the years after 2029 held flat
+at the Cal-29 quote (long-dated years trade too little for a quote).
+
+| 10-year pay-as-produced PPA (2027-2036) | v1.0: 85 flat | v1.1: market curve |
+|---|---|---|
+| Solar: forward × capture rate = fair price 2027 | 85.4 × 0.48 = 41.1 | 141.0 × 0.63 = 89.1 |
+| Solar: fair price, 10 years | 41.1 | **61.1** |
+| Solar: buyer's risk premium after the hedge | 5.3 | 8.0 |
+| Solar: indicative price, 10 years | 33.3 | **50.6** |
+| Wind: indicative price, 10 years | 68.4 | **80.1** |
+
+Three lessons:
+
+1. **The curve matters as much as the level.** 2027 alone is at 141, but the discount- and
+   energy-weighted forward over the ten years is 96.7 EUR/MWh: the ten-year price sits much
+   closer to Cal-28 and Cal-29 than to Cal-27. A flat 140 would have overstated it badly.
+2. **The capture rate moved with the level: check it.** The arcsinh price model (Step 5) raises
+   all hours together in transformed units, so hours near zero are lifted too: the solar
+   capture rate rises from 0.48 (at 85) to 0.63 (at 141), and the share of solar output at
+   negative prices falls from 25% to 9%. History supports the direction for one step: from 2025
+   to 2026 (January to September) the level rose from 88 to 108 EUR/MWh, prices in the sunniest
+   10% of hours rose from 8 to 23 (the model predicts about +16), and the park's capture rate
+   held at 0.51 although solar capacity kept growing. But 141 lies outside the data, so Step 7
+   now also shows the usual shape-factor view (the capture rate of the recent level,
+   104 EUR/MWh, with all prices scaled to the forward): solar indicative **43.1 instead of
+   50.6**; wind barely moves (78.6 vs 80.1). That gap belongs in the conversation with Risk.
+3. **The market's seasonal shape is steeper than the model's.** Q1-27 traded at 179.47 and
+   Q2-27 at 114.04 EUR/MWh (14 Sep 2026), against the model's 141.4 and 124.3: the market prices
+   a winter gas risk that 2024-2026 history does not contain. A quarterly forward curve is the
+   next step (v2).
+
+The hedging lessons hold at the new level: Cal base at 83% (solar) and 91% (wind) of the
+average output cuts the merchant CFaR95 by 78% and 68%, and the PPA buyer's premium with the
+minimum-variance band is 4.8 instead of 8.0 EUR/MWh (solar).
+
 ---
 
 ## 5. Hands-on: run it yourself
@@ -371,7 +418,7 @@ back-test ratio.
       what is the hedge P&L? (EUR 0.44 m.)
 - [ ] In the notebook, 8.2: find the hedge size where the solar park's CFaR is lowest.
 - [ ] Exercises 1-4 in `exercises/step08_hedging.py`; check them in "My solutions: Step 8".
-- [ ] Decide with me whether to re-anchor the forward to the market (see the backlog).
+- [x] Decide whether to re-anchor the forward to the market: done in v1.1 (section 4.6).
 - [ ] **Commit Step 8** (commands below).
 - [ ] **German vocabulary of this step:** die Absicherung, das Termingeschäft, der Terminkontrakt
       (Future), das Grundlastprodukt (Base), das Spitzenlastprodukt (Peak), die Absicherungsquote

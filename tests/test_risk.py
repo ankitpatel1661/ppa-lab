@@ -118,3 +118,9 @@ def test_tenor_price_can_follow_a_forward_curve():
     assert t["forward_eur_mwh"].tolist() == [80.0, 100.0]
     assert t["fair_price_eur_mwh"].tolist() == pytest.approx([40.0, 50.0])  # same capture rate
     assert isinstance(t, pd.DataFrame)
+
+
+def test_tenor_price_holds_the_last_quoted_year_flat():
+    t = tenor_price(fair_price=40.0, forward=140.0, energy_mwh=100.0, start_year=2027, years=5,
+                    discount_rate=0.0, forward_curve={2029: 90.0, 2028: 105.0})
+    assert t["forward_eur_mwh"].tolist() == [140.0, 105.0, 90.0, 90.0, 90.0]

@@ -33,6 +33,7 @@ from ppa_lab.hedging.hedge import (
     model_forwards,
 )
 from ppa_lab.hedging.products import MONTHS, QUARTERS, product_masks
+from ppa_lab.pricing.forwards import describe_forward
 from ppa_lab.weather.yields import annual_energy, p_values
 
 log = logging.getLogger(__name__)
@@ -102,6 +103,31 @@ def _strategies_md(tables: dict[str, pd.DataFrame], names: dict[str, str]) -> st
                 "Variance removed": f"{r['effectiveness']:.0%}",
             })
     return pd.DataFrame(rows).to_markdown(index=False)
+
+
+def _market_text(market: dict, market_rows: list[str], pricing: dict | None, hg, ppa) -> str:
+    """The market check in words: anchored to the latest quote, or how far off the model is."""
+    if not market or pricing is None:
+        return "Run `ppa-lab pricing` first for the market check."
+    if abs(market["quote"] / market["model_forward"] - 1.0) > 0.05:
+        return ("The model's forward differs from the latest published quote. At the latest "
+                "market quote, with the same capture rate, premium and costs (the dashboard's "
+                "forward knob):\n\n" + "\n".join(market_rows))
+    quotes = sorted((x for x in hg.market_quotes
+                     if x.product == "cal_base" and x.delivery_year == ppa.start_year),
+                    key=lambda x: x.date)
+    lead = next(iter(pricing["parks"].values()))
+    sens = {r["case"]: r["indicative"] for r in lead["tenor"]["sensitivity"]}
+    lever = abs(sens.get("Forward +10%", 0.0) - sens.get("Base case", 0.0))
+    forward = describe_forward(pricing.get("forward") or {
+        "price_eur_mwh": pricing.get("forward_assumption")}, pricing.get("forward_curve") or {},
+        ppa.start_year)
+    return (f"The model's forward is the market: {forward}. The quotes show how fast the level "
+            f"moves: between {min(x.price_eur_mwh for x in quotes):.2f} and "
+            f"{max(x.price_eur_mwh for x in quotes):.2f} EUR/MWh from {quotes[0].date} to "
+            f"{quotes[-1].date}. A 10% move of the whole curve changes the solar park's "
+            f"ten-year indicative price by {lever:.1f} EUR/MWh (Step 7), so an offer must be "
+            "refreshed with the curve on the day of signing.")
 
 
 def _market_md(quotes, forwards: dict[str, float], year: int) -> str:
@@ -232,6 +258,7 @@ def write_step08_report(settings: Settings) -> dict[str, Path | None]:
                    f"**{r['market_check']['indicative_market']:.1f} EUR/MWh** at the market quote "
                    f"{r['market_check']['quote']:.2f} ({r['market_check']['date']})"
                    for p, r in results.items() if r["market_check"]]
+    market_text = _market_text(results[lead]["market_check"], market_rows, pricing, hg, ppa)
     spreads = []
     for park, r in results.items():
         b = pd.DataFrame(r["backtest"]).T
@@ -255,11 +282,7 @@ so every hedge is fair in expectation and only changes the spread.
 
 {_market_md(hg.market_quotes, forwards, ppa.start_year)}
 
-The model is calibrated to the assumed forward of {settings.price_model.forward_eur_mwh:.0f}
-EUR/MWh; the published quotes are higher. At the latest market quote, with the same capture
-rate, premium and costs (the dashboard's forward knob):
-
-{chr(10).join(market_rows) if market_rows else "Run `ppa-lab pricing` first for the market check."}
+{market_text}
 
 ## 2. Hedging merchant output
 

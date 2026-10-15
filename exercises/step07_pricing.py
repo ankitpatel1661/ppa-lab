@@ -90,10 +90,10 @@ def buyer_premium(prices: np.ndarray, volumes: np.ndarray, hedge: bool) -> float
 # --------------------------------------------------------------------------- #
 # Exercise 4 (written, no code): the price negotiation
 # --------------------------------------------------------------------------- #
-# The buyer offers 33 EUR/MWh for ten years of the solar park's output. Your CFO says the
-# fair price is 41 and asks why you would ever accept less. In 3-5 sentences: what are the
-# 8 EUR/MWh between the two numbers, why is the premium AFTER the baseload hedge the right
-# one to concede (and not the 25 EUR/MWh without it), and which assumption in the Step 7
+# The buyer offers 51 EUR/MWh for ten years of the solar park's output. Your CFO says the
+# fair price is 61 and asks why you would ever accept less. In 3-5 sentences: what are the
+# 10.5 EUR/MWh between the two numbers, why is the premium AFTER the baseload hedge the right
+# one to concede (and not the 28.5 EUR/MWh without it), and which assumption in the Step 7
 # sensitivity table would you challenge first before signing?
 #
 # Your answer:

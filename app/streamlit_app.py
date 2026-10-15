@@ -26,6 +26,7 @@ from ppa_lab.dashboard import (  # noqa: E402
     offer,
     structures_table,
 )
+from ppa_lab.pricing.forwards import describe_forward  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "https://github.com/ankitpatel1661/ppa-lab/blob/main"
@@ -43,8 +44,8 @@ except FileNotFoundError as err:
 
 
 def stack_figure(s: dict) -> plt.Figure:
-    layers = [("Forward", s["forward"], "total"), ("Shape", s["shape"], "step"),
-              ("Trend over\nthe tenor", s["trend"], "step"),
+    layers = [("Forward\nfirst year", s["forward"], "total"), ("Shape", s["shape"], "step"),
+              ("Later years:\ncurve, trend", s["trend"], "step"),
               ("Risk premium", -s["risk_premium"], "step"),
               ("Balancing,\nroute to market", -s["balancing"], "step"),
               ("Credit,\nliquidity", -s["credit"], "step"),
@@ -81,7 +82,11 @@ with st.sidebar:
     pool = st.radio("Which past represents the delivery year?",
                     ["Last 12 months (base case)", "Whole 2024-2026 window"],
                     help="Midday solar dips deepen as capacity grows: recent days are deeper.")
-    forward_shift = st.slider("Forward vs the assumed 85 EUR/MWh (%)", -30, 30, 0, 5) / 100
+    forward_text = describe_forward(results.get("forward") or {
+        "price_eur_mwh": results.get("forward_assumption")}, results.get("forward_curve") or {},
+        results["delivery_year"])
+    forward_shift = st.slider("Shift of the forward curve (%)", -30, 30, 0, 5,
+                              help=f"Base case: {forward_text}.") / 100
     drift = st.slider("Capture-rate trend (pp per year)", -3.0, 2.0, d.drift * 100, 0.5) / 100
     tenor = st.slider("Tenor (years)", 1, 15, d.tenor_years)
     rate = st.slider("Discount rate (%)", 0.0, 12.0, d.discount_rate * 100, 0.5) / 100
@@ -167,12 +172,17 @@ with tab_hedge:
             f"{h['buyer']['premium_min_variance']:.1f} EUR/MWh with the minimum-variance hedge "
             f"({h['buyer']['min_variance_ratio']:.0%} of the average output).")
         m = h.get("market_check") or {}
-        if m:
+        if m and abs(m["quote"] / m["model_forward"] - 1) > 0.05:
             st.warning(
-                f"Market check: a published Cal base quote of {m['quote']:.2f} EUR/MWh "
-                f"({m['date']}) is above the assumed forward ({m['model_forward']:.1f}). Use the "
-                f"forward knob: at the quote the indicative price is {m['indicative_market']:.1f} "
-                f"EUR/MWh.")
+                f"Market check: the latest Cal base quote, {m['quote']:.2f} EUR/MWh "
+                f"({m['date']}), differs from the model's forward ({m['model_forward']:.1f}). At "
+                f"the quote the indicative price is {m['indicative_market']:.1f} EUR/MWh.")
+        quotes = [q for q in results["hedging"].get("market_quotes", [])
+                  if q["product"] == "cal_base" and q["delivery_year"] == start]
+        if quotes:
+            st.caption("Published Cal-" + str(start)[2:] + " base quotes (EUR/MWh): " + ", ".join(
+                f"{q['price_eur_mwh']:.2f} ({q['date']})"
+                for q in sorted(quotes, key=lambda q: q["date"])) + ".")
 
 with tab_built:
     steps = pd.DataFrame([
@@ -209,8 +219,10 @@ with tab_method:
 - **Risk premium** = 5% shortfall of the buyer's value per expected MWh, after selling a baseload
   forward for the expected average output.
 - **Tenor price**: energy- and discount-weighted average of yearly fair prices.
-- **Limits**: the forward is an assumption, balancing and credit costs are illustrative, prices
-  are calibrated on 2024-2026 (one market regime), the parks produce their potential output.
+- **Forward**: {forward_text}.
+- **Limits**: forwards are published quotes from secondary sources (not EEX files), balancing and
+  credit costs are illustrative, the price shape is calibrated on 2024-2026 (one market regime),
+  the parks produce their potential output.
 
 Code, tests and methodology: [github.com/ankitpatel1661/ppa-lab](https://github.com/ankitpatel1661/ppa-lab)
 · [METHODOLOGY.md]({REPO}/METHODOLOGY.md) · [one-page memo]({REPO}/reports/step09_memo.md)

@@ -1,5 +1,12 @@
 # Step 5: A stochastic price model (ticket PPA-5)
 
+> **Numbers on this page (update for v1.1).** This page was written with the illustrative
+> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
+> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
+> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), so
+> prices and fair prices are higher. The methods and lessons are unchanged; current numbers
+> are in the reports and the README, and the exercise checks use the current data.
+
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.
 > **You will be able to:** explain why a PPA needs simulated prices and not only history,

@@ -1,5 +1,12 @@
 # Step 6: Weather and prices together (ticket PPA-6)
 
+> **Numbers on this page (update for v1.1).** This page was written with the illustrative
+> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
+> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
+> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), so
+> prices and fair prices are higher. The methods and lessons are unchanged; current numbers
+> are in the reports and the README, and the exercise checks use the current data.
+
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
 > **You will be able to:** explain why volumes and prices must be simulated together, build
@@ -431,9 +438,10 @@ the wind one is far outside the independent range.
 2. Filter by circular day-of-year gap ≤ 30, drop |days| < `exclude`, scale by the column
    standard deviations over all rows, sum squares, sort stably. Without exclusion the first
    analog is 15 June 2025 itself; with `exclude=8` the first is 26 June 2024.
-3. `groupby("prices")` and Σ revenue / Σ MWh: solar 51.76 → 48.66, wind 87.00 → 75.35. The mean
-   of the capture prices gives 48.70 and 75.47: years with more energy count more in the fair
-   price, and for wind those are the cheaper years.
+3. `groupby("prices")` and Σ revenue / Σ MWh: solar 100.99 → 97.45, wind 142.84 → 128.54 with
+   the v1.1 market forward (at 85: 51.76 → 48.66 and 87.00 → 75.35). The mean of the capture
+   prices gives 97.49 and 128.68: years with more energy count more in the fair price, and for
+   wind those are the cheaper years.
 4. Cov(q, P) < 0 for wind: windy hours are cheap, so an independent model pays every MWh the
    average price (capture rate about 1.0 instead of 0.88). For solar Step 5 already knew the
    average midday dip, so only the day-to-day part (sunny days deeper) was missing. But the

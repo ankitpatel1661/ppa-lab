@@ -3,7 +3,8 @@
 The dashboard reads `reports/results.json`, a committed copy of the Step 7 results written
 by `ppa-lab memo`, so it runs without downloading any data. From those numbers it rebuilds
 the offer for any assumptions the viewer chooses: costs, capture-rate trend, degradation,
-discount rate, tenor, a forward shift and which historical days represent the delivery year.
+discount rate, tenor, a shift of the forward curve and which historical days represent the
+delivery year.
 """
 
 from __future__ import annotations
@@ -51,9 +52,10 @@ def default_assumptions(results: dict, park: str) -> Assumptions:
 def offer(results: dict, park: str, a: Assumptions) -> dict:
     """Price stack and year-by-year table of the pay-as-produced offer.
 
-    Layers (EUR/MWh): forward, shape (first year), trend over the tenor, risk premium,
-    balancing, credit; indicative = forward + shape + trend - premium - balancing - credit.
-    The premium and costs per MWh are applied to every year, as in Step 7.
+    Layers (EUR/MWh): forward, shape (first year), trend over the tenor (forward curve,
+    capture-rate trend, degradation), risk premium, balancing, credit; indicative = forward +
+    shape + trend - premium - balancing - credit. The forward shift moves the whole curve. The
+    premium and costs per MWh are applied to every year, as in Step 7.
     """
     r = results["parks"][park]
     stack0 = r["stack_eur_mwh"]
@@ -63,9 +65,10 @@ def offer(results: dict, park: str, a: Assumptions) -> dict:
         fair1, premium = stack0["fair_price"], stack0["risk_premium"]
     scale = 1.0 + a.forward_shift
     forward, fair1 = stack0["forward"] * scale, fair1 * scale
+    curve = {int(y): f_y * scale for y, f_y in (results.get("forward_curve") or {}).items()}
     years = tenor_price(fair1, forward, r["energy_mwh_expected"], results["delivery_year"],
                         a.tenor_years, a.discount_rate, capture_rate_drift=a.drift,
-                        degradation=a.degradation)
+                        degradation=a.degradation, forward_curve=curve)
     tenor_fair = years.attrs["price"]
     stack = {"forward": forward, "shape": fair1 - forward, "fair_price": fair1,
              "trend": tenor_fair - fair1, "tenor_fair_price": tenor_fair,

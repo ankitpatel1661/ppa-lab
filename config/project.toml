@@ -45,12 +45,16 @@ calibration_end = 2026-09-30
 scale_eur_mwh = 120.0
 n_paths = 500
 seed = 2026
-# Illustrative delivery year and forward price until Step 8 brings market forwards
-# (85 EUR/MWh is the number used in the preparation guide's price stack).
+# Delivery year and its forward: the EEX German Power Cal-27 base quote of 9 Oct 2026 (via
+# tacto.ai). Until v1.0 the model used an illustrative 85 EUR/MWh (the preparation guide's
+# price stack); Step 8's market check showed the market far above it (backlog PPA-8b).
+# Later years: [ppa.forward_curve]. Refresh all three with the quotes of the pricing day.
 delivery_year = 2027
-forward_eur_mwh = 85.0
-# Uncertainty of the annual level, in transformed units (depends on s): with s = 120 and an
-# 85 EUR/MWh forward, one standard deviation is about 18 EUR/MWh on the level.
+forward_eur_mwh = 140.21
+forward_date = 2026-10-09
+forward_source = "https://www.tacto.ai/en/energy/electricity-price"
+# Uncertainty of the annual level, in transformed units (depends on s): with s = 120 and a
+# 140 EUR/MWh forward, one standard deviation is about 22 EUR/MWh on the level.
 level_volatility = 0.12
 
 [scenarios]
@@ -75,6 +79,13 @@ risk_quantile = 0.05              # premia and cash flow at risk at the 5% quant
 # Step 6, section 4.3): the most recent 12 months, because solar's midday dips deepen
 # year by year as capacity grows. The whole window is reported as a sensitivity.
 analog_pool_start = 2025-10-01
+
+[ppa.forward_curve]
+# Cal base forwards of the later contract years (EEX German Power, EUR/MWh); a year after the
+# last one keeps it (flat): long-dated years trade too little for a quote. Cal-28: 9 Oct 2026
+# (tacto.ai); Cal-29: 14 Sep 2026 (power2market.com, the latest quote found).
+2028 = 104.75
+2029 = 87.58
 
 [ppa.parks.solar_park]
 balancing_eur_mwh = 1.5           # balancing and route to market
@@ -112,11 +123,25 @@ date = 2026-08-28
 source = "https://www.power2market.com/en/markets"
 
 [[hedging.market_quotes]]
-product = "cal_peak"
+product = "cal_base"
 delivery_year = 2027
-price_eur_mwh = 119.48
-date = 2026-08-28
-source = "https://www.power2market.com/en/markets"
+price_eur_mwh = 135.80
+date = 2026-09-14
+source = "https://www.power2market.com/de/markets/de/termin"
+
+[[hedging.market_quotes]]
+product = "cal_base"
+delivery_year = 2027
+price_eur_mwh = 126.47
+date = 2026-09-29
+source = "https://www.tacto.ai/en/energy/electricity-price"
+
+[[hedging.market_quotes]]
+product = "cal_base"
+delivery_year = 2027
+price_eur_mwh = 140.21
+date = 2026-10-09
+source = "https://www.tacto.ai/en/energy/electricity-price"
 
 [weather]
 # ERA5 reanalysis (ECMWF / Copernicus) through the free Open-Meteo archive API.

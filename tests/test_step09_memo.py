@@ -35,10 +35,15 @@ def pricing_fixture() -> dict:
                           {"case": "Forward +10%", "fair_price": fair + 4,
                            "indicative": indicative + 4},
                           {"case": "Analog days from the whole window", "fair_price": fair + 7,
-                           "indicative": indicative + 7}]},
+                           "indicative": indicative + 7},
+                          {"case": "Capture rate of the recent price level",
+                           "fair_price": fair - 6, "indicative": indicative - 6}]},
         }
     return {"delivery_year": 2027, "tenor_years": 10, "discount_rate": 0.06,
-            "analog_pool_start": "2025-10-01", "scenarios": 496, "forward_assumption": 85.0,
+            "analog_pool_start": "2025-10-01", "scenarios": 496,
+            "forward": {"price_eur_mwh": 85.0, "date": "2026-10-09",
+                        "source": "https://www.tacto.ai/en/energy/electricity-price"},
+            "forward_curve": {"2028": 70.0, "2029": 60.0}, "recent_level_eur_mwh": 104.0,
             "parks": {"solar_park": park(40.0, 5.0, 32.5, 1.4e6, 0.2e6, 55_000.0),
                       "wind_park": park(75.0, 3.5, 68.5, 3.0e6, 0.7e6, 110_000.0)}}
 
@@ -56,6 +61,9 @@ def test_memo_states_the_answer_and_publishes_the_results(settings):
     assert "6.0 EUR/MWh" in text                             # premium + credit vs merchant
     assert "25% of the solar output" in text                 # clause: 1 - 1.65 / 2.2
     assert "±3.0 EUR/MWh" in text and "+7.0 EUR/MWh" in text # the levers
+    assert "Cal-27 base 85.00 EUR/MWh (quote of 2026-10-09, via tacto.ai)" in text
+    assert "recent price level (104 EUR/MWh) instead of rising with the forward: **−6.0" in text
+    assert "2028: 70.00, 2029: 60.00" in text and "Later years: forward curve falls" in text
     assert len(text.splitlines()) < 75                        # one page
     published = json.loads(out["results"].read_text())
     assert published["parks"]["solar_park"]["stack_eur_mwh"]["indicative"] == 32.5
@@ -96,3 +104,19 @@ def test_memo_uses_the_hedging_results_when_present(settings):
     assert len(text.splitlines()) < 80
     published = json.loads(out["results"].read_text())
     assert published["hedging"]["parks"]["solar_park"]["buyer"]["premium_min_variance"] == 4.2
+
+
+def test_memo_anchored_to_the_market_says_how_far_the_forward_moved(settings):
+    settings.processed_dir.mkdir(parents=True, exist_ok=True)
+    (settings.processed_dir / "ppa_pricing.json").write_text(json.dumps(pricing_fixture()))
+    hedging = hedging_fixture()
+    for park in hedging["parks"].values():
+        park["market_check"] = {**park["market_check"], "quote": 85.2, "model_forward": 85.4}
+    hedging["market_quotes"] = [
+        {"product": "cal_base", "delivery_year": 2027, "price_eur_mwh": p, "date": d}
+        for p, d in ((104.24, "2026-07-31"), (140.21, "2026-10-09"), (119.48, "2026-08-28"))]
+    (settings.processed_dir / "hedging.json").write_text(json.dumps(hedging))
+
+    text = write_step09_memo(settings, pdf=False)["memo"].read_text()
+    assert "moved between 104 and 140 EUR/MWh since 2026-07-31" in text
+    assert "differs from the model" not in text

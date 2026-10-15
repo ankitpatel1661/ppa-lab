@@ -129,7 +129,8 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
                 forward_curve: dict[int, float] | None = None) -> pd.DataFrame:
     """One price for a multi-year pay-as-produced PPA from the first year's fair price.
 
-    Year y: forward F_y (flat unless `forward_curve` gives it), capture rate
+    Year y: forward F_y = `forward` in the first year, then `forward_curve` where it gives the
+    year; a year after the last quoted one keeps that quote (flat). Capture rate
     c_y = c_0 + drift * (y - start) with c_0 = fair_price / forward, fair price F_y c_y,
     energy E_y = energy * (1 - degradation)^(y - start), discount factor (1 + r)^-(y - start
     + 0.5) at mid-year. The tenor price is sum D E K / sum D E. Returned per year, with the
@@ -138,9 +139,10 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
     forward_curve = forward_curve or {}
     c0 = fair_price / forward
     rows = []
+    f_y = forward
     for i in range(years):
         y = start_year + i
-        f_y = forward_curve.get(y, forward)
+        f_y = forward_curve.get(y, f_y)
         rows.append({
             "year": y, "forward_eur_mwh": f_y, "capture_rate": c0 + capture_rate_drift * i,
             "energy_mwh": energy_mwh * (1.0 - degradation) ** i,

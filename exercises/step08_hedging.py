@@ -83,10 +83,10 @@ def effectiveness(cash: np.ndarray, payoff: np.ndarray, mw: float) -> float:
 # Exercise 4 (written, no code): "just hedge 100%"
 # --------------------------------------------------------------------------- #
 # Your CFO says: "Sell 100% of the expected output forward, it is the simplest." In 3-5
-# sentences: why is the minimum-variance amount for solar below 100% (89% in the Step 8
+# sentences: why is the minimum-variance amount for solar below 100% (83% in the Step 8
 # report), what does selling 100% do in a sunny, cheap year, what does the 2024-2025
-# back-test teach about judging a hedge by one year's P&L, and what changes if the market
-# forward (about 113 EUR/MWh) is far above our expected price (85)?
+# back-test teach about judging a hedge by one year's P&L, and why did the project anchor its
+# forward to the market (Cal-27 140, Cal-28 105 EUR/MWh) instead of keeping its own 85?
 #
 # Your answer:
 #

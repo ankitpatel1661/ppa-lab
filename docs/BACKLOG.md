@@ -15,7 +15,8 @@ that step is written.
 | PPA-6 | 6 | Joint Monte Carlo: weather years x price paths with preserved correlation | **Done** |
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | **Done** |
 | PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | **Done** |
-| PPA-8b | later | Anchor the price level to the market forward (decision pending) | To do |
+| PPA-8b | 8b | Anchor the price level to the market forward curve | **Done** (v1.1) |
+| PPA-8c | later | Quarterly forward curve (market winter premium) and capture rate vs level | To do |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
 ## PPA-2: Capture prices and capture rates (Step 2)
@@ -135,16 +136,31 @@ which product, and whether our model's forward matches the market.
 - [x] Back-test on 2024-2025 and a market check against published quotes.
 - [x] Report, `hedging.json` for the memo and the dashboard, learning page, notebook, exercises.
 
-## PPA-8b: Anchor the price level to the market forward (decision pending)
+## PPA-8b: Anchor the price level to the market forward (done in v1.1)
 
 **Finding (Step 8):** published Cal-27 base quotes are 104.24 EUR/MWh (31 Jul 2026, tacto.ai)
 and 113.45 (28 Aug 2026, power2market), peak 119.48; the model uses the assumed 85 EUR/MWh.
 At 113.45 the indicative prices would be 46.8 (solar) and 93.0 (wind) instead of 33.3 and 68.4.
 
 **Acceptance criteria**
-- [ ] Decide the level: a verified market quote (ideally an EEX settlement) or the assumption.
-- [ ] If changed: `[price_model] forward_eur_mwh`, re-run `make prices scenarios pricing hedging memo`,
-      update the README, memo and learning pages that quote the headline numbers.
+- [x] Decide the level: the market curve (decided 15 Oct 2026). By then Cal-27 base had risen
+      to 140.21 EUR/MWh (9 Oct, tacto.ai); Cal-28 104.75 (9 Oct); Cal-29 87.58 (14 Sep,
+      power2market), held flat after 2029.
+- [x] `[price_model] forward_eur_mwh`, `forward_date`, `forward_source`, `[ppa.forward_curve]`;
+      re-run `make prices scenarios pricing hedging memo`; README, memo, learning pages updated.
+- [x] Check the capture rate's dependence on the level (arcsinh lift); sensitivity added.
+
+## PPA-8c: Quarterly forward curve and the capture rate vs the level (open)
+
+**Finding (v1.1):** the market prices a steeper winter than the model (Q1-27 179.47 vs
+Q2-27 114.04 EUR/MWh on 14 Sep 2026; model 141.4 vs 124.3), and the model's solar capture rate
+rises with the level (0.48 at 85, 0.63 at 141), which history supports only for one step
+(2025 to 2026).
+
+**Acceptance criteria**
+- [ ] Calibrate quarterly (or monthly) levels to market quarter forwards.
+- [ ] Test the capture rate vs level on more history (2022 gas crisis, 2023) and decide
+      between the arcsinh lift and the shape-factor view.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 

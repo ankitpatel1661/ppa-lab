@@ -62,3 +62,21 @@ def test_step07_report_explains_missing_weather(settings):
 
     assert "run `ppa-lab weather` first" in out["report"].read_text()
     assert out["results"] is None
+
+
+def test_tenor_rows_follow_the_curve_and_add_the_scaled_shape_case():
+    from ppa_lab.analysis.step07_report import SCALED_SHAPE, tenor_rows
+    from ppa_lab.config import PpaParkSettings
+    priced = {"stack": {"forward": 100.0, "fair_price": 60.0, "risk_premium": 5.0,
+                        "balancing": 1.5, "credit": 1.0}, "energy_mwh": 1000.0}
+    cost = PpaParkSettings(balancing_eur_mwh=1.5, credit_eur_mwh=1.0, capture_rate_drift=0.0,
+                           degradation=0.0)
+    flat = tenor_rows(priced, cost, 2027, 3, 0.0)
+    curve = tenor_rows(priced, cost, 2027, 3, 0.0, curve={2028: 70.0}, scaled_shape_fair=50.0)
+    assert flat[0]["fair_price"] == pytest.approx(60.0)
+    assert curve[0]["fair_price"] == pytest.approx((60.0 + 42.0 + 42.0) / 3)   # 0.6 x 70, flat
+    up = next(r for r in curve if r["case"] == "Forward +10%")
+    assert up["fair_price"] == pytest.approx(1.1 * curve[0]["fair_price"])    # whole curve
+    scaled = next(r for r in curve if r["case"] == SCALED_SHAPE)
+    assert scaled["fair_price"] == pytest.approx((50.0 + 35.0 + 35.0) / 3)     # capture rate 0.5
+    assert scaled["indicative"] == pytest.approx(scaled["fair_price"] - 7.5)

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from ppa_lab.analysis.step05_report import calibration_history
 from ppa_lab.analysis.step06_report import complete_weather_years, load_weather_inputs, parks
 from ppa_lab.config import PpaParkSettings, Settings
 from ppa_lab.prices.model import fit
+from ppa_lab.pricing.forwards import describe_forward
 from ppa_lab.pricing.risk import (
     buyer_value,
     risk_premia,
@@ -64,14 +66,22 @@ def price_park(prices: np.ndarray, volumes: np.ndarray, cost: PpaParkSettings,
 
 
 def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate: float,
-               alternative_fair: float | None = None) -> list[dict]:
-    """The tenor price under the base assumptions and the sensitivities."""
+               alternative_fair: float | None = None,
+               curve: dict[int, float] | None = None,
+               scaled_shape_fair: float | None = None) -> list[dict]:
+    """The tenor price under the base assumptions and the sensitivities.
+
+    `curve` gives the forwards of later contract years (see `tenor_price`); the forward
+    sensitivities shift the whole curve.
+    """
     stack = priced["stack"]
     deductions = stack["risk_premium"] + stack["balancing"] + stack["credit"]
+    curve = curve or {}
 
-    def row(label: str, fair: float, forward: float, drift: float) -> dict:
+    def row(label: str, fair: float, forward: float, drift: float, scale: float = 1.0) -> dict:
         t = tenor_price(fair, forward, priced["energy_mwh"], start, years, rate,
-                        capture_rate_drift=drift, degradation=cost.degradation)
+                        capture_rate_drift=drift, degradation=cost.degradation,
+                        forward_curve={y: scale * f_y for y, f_y in curve.items()})
         return {"case": label, "fair_price": t.attrs["price"],
                 "indicative": t.attrs["price"] - deductions}
 
@@ -79,11 +89,43 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
     rows = [row("Base case", k, f, d)]
     for step in (-0.02, -0.01, 0.01):
         rows.append(row(f"Capture rate {step * 100:+.0f} pp per year", k, f, d + step))
-    rows.append(row("Forward −10%", 0.9 * k, 0.9 * f, d))
-    rows.append(row("Forward +10%", 1.1 * k, 1.1 * f, d))
+    rows.append(row("Forward −10%", 0.9 * k, 0.9 * f, d, 0.9))
+    rows.append(row("Forward +10%", 1.1 * k, 1.1 * f, d, 1.1))
     if alternative_fair is not None:
         rows.append(row("Analog days from the whole window", alternative_fair, f, d))
+    if scaled_shape_fair is not None:
+        rows.append(row(SCALED_SHAPE, scaled_shape_fair, f, d))
     return rows
+
+
+SCALED_SHAPE = "Capture rate of the recent price level"
+
+
+def recent_level(settings: Settings) -> float:
+    """Average day-ahead price of the analog pool (the recent regime), EUR/MWh."""
+    history = calibration_history(settings)
+    local_day = history.index.tz_convert(settings.timezone).normalize().tz_localize(None)
+    return float(history[local_day >= pd.Timestamp(settings.ppa.analog_pool_start)].mean())
+
+
+def scaled_shape_fair_prices(settings: Settings, inputs: dict, base: Scenarios,
+                             names) -> tuple[float, dict[str, float]] | None:
+    """Fair prices if the price shape stayed as at the recent price level.
+
+    The scenarios are rebuilt at the recent level (same random draws) and all prices are scaled
+    to the forward: the usual shape-factor view, in which the capture rate does not depend on
+    the level. None when the forward is within 2% of the recent level.
+    """
+    level = recent_level(settings)
+    pm = settings.price_model
+    if abs(pm.forward_eur_mwh / level - 1.0) < 0.02:
+        return None
+    ref = scenario_set(replace(settings, price_model=replace(pm, forward_eur_mwh=level)), inputs,
+                       pd.Timestamp(settings.ppa.analog_pool_start))
+    scale = float(base.prices.mean() / ref.prices.mean())
+    fair = {park: scale * float((ref.prices * ref.volume(park)).sum() / ref.volume(park).sum())
+            for park in names}
+    return level, fair
 
 
 def scenario_set(settings: Settings, inputs: dict, pool_start: pd.Timestamp) -> Scenarios:
@@ -270,6 +312,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     if pd.Timestamp(ppa.analog_pool_start) > pd.Timestamp(pm.calibration_start):
         whole = scenario_set(settings, inputs, pd.Timestamp(pm.calibration_start))
 
+    scaled = scaled_shape_fair_prices(settings, inputs, base, names)
+
     priced, tenors, results = {}, {}, {}
     end_year = ppa.start_year + ppa.tenor_years - 1
     for park in names:
@@ -281,7 +325,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             alt = whole_premia["fair_price"]
             whole_window = {"fair_price": alt, "premium": whole_premia["joint"]}
         tenors[park] = tenor_rows(priced[park], cost, ppa.start_year, ppa.tenor_years,
-                                  ppa.discount_rate, alt)
+                                  ppa.discount_rate, alt, ppa.forward_curve,
+                                  scaled[1][park] if scaled else None)
         annual = annual_energy(inputs["gen"][park], tz).loc[
             settings.weather_first_year:settings.scenarios.weather_last_year]
         pv = p_values(annual)
@@ -302,12 +347,17 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
                       "sensitivity": tenors[park]},
         }
 
+    forward = {"price_eur_mwh": pm.forward_eur_mwh,
+               "date": str(pm.forward_date) if pm.forward_date else None,
+               "source": pm.forward_source or None}
     out_json = settings.processed_dir / "ppa_pricing.json"
     out_json.write_text(json.dumps(to_strict_json({
         "generated_utc": f"{datetime.now(UTC):%Y-%m-%d %H:%M}", "delivery_year": ppa.start_year,
         "tenor_years": ppa.tenor_years, "discount_rate": ppa.discount_rate,
         "analog_pool_start": str(ppa.analog_pool_start),
-        "scenarios": int(base.prices.shape[0]), "forward_assumption": pm.forward_eur_mwh,
+        "scenarios": int(base.prices.shape[0]), "forward": forward,
+        "recent_level_eur_mwh": scaled[0] if scaled else None,
+        "forward_curve": {str(y): f_y for y, f_y in sorted(ppa.forward_curve.items())},
         "parks": results}), indent=1, allow_nan=False))
 
     fig_dir = settings.reports_dir / "figures"
@@ -340,12 +390,18 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         f"{merchant_cfar / 1e6:.2f} m (merchant) to EUR {pap_cfar / 1e6:.2f} m per year: only "
         f"volume risk is left.")
 
+    scaled_note = "" if scaled is None else (
+        f"\nLast row: the capture rate of the recent price level ({scaled[0]:.1f} EUR/MWh, the "
+        "analog pool's average), with all prices scaled to the forward (the usual shape-factor "
+        "view). In the model the capture rate rises with the level, because hours near zero are "
+        "lifted too; the forward lies outside the levels in the data, so both are shown "
+        "(METHODOLOGY, section 12).\n")
     report = header + f"""Inputs: the Step 6 joint scenarios for {ppa.start_year}
 ({base.prices.shape[0]} scenarios: {len(set(base.weather_years))} weather years x
 {settings.scenarios.paths_per_weather_year} price paths), with intraday patterns from analog days
 from **{ppa.analog_pool_start}** on (the most recent regime; the whole window is a sensitivity).
-Forward assumption {pm.forward_eur_mwh:.1f} EUR/MWh; the scenarios average
-{base.prices.mean():.2f} EUR/MWh. Risk measures at the {q:.0%} quantile.
+Forward: {describe_forward(forward, ppa.forward_curve, ppa.start_year)}. The scenarios average
+{base.prices.mean():.2f} EUR/MWh in {ppa.start_year}. Risk measures at the {q:.0%} quantile.
 
 ## 1. What each structure leaves with the producer ({ppa.start_year})
 
@@ -372,12 +428,12 @@ Balancing and credit costs are stated assumptions (`[ppa.parks.*]` in `config/pr
 
 ## 4. {ppa.tenor_years}-year price ({span})
 
-Discounted at {ppa.discount_rate:.0%} (mid-year), energy-weighted; flat forward and capture rate
-unless stated; solar output degrades {ppa.parks[lead].degradation:.1%} per year. The risk premium
-and costs per MWh of the first year are applied to every year (a simplification).
+Discounted at {ppa.discount_rate:.0%} (mid-year), energy-weighted; forwards as above, capture
+rate flat unless stated; solar output degrades {ppa.parks[lead].degradation:.1%} per year. The risk
+premium and costs per MWh of the first year are applied to every year (a simplification).
 
 {_tenor_md(tenors, names)}
-
+{scaled_note}
 ## 5. The answer
 
 {answer}

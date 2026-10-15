@@ -63,8 +63,10 @@ class PriceModelSettings:
     n_paths: int
     seed: int
     delivery_year: int
-    forward_eur_mwh: float
+    forward_eur_mwh: float            # Cal base forward of the delivery year
     level_volatility: float
+    forward_date: date | None = None  # trading day of the forward quote
+    forward_source: str = ""          # where the quote was published (URL)
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,8 @@ class PpaSettings:
     risk_quantile: float
     analog_pool_start: date          # historical days that represent the delivery year
     parks: dict[str, PpaParkSettings]
+    # Cal base forwards of later contract years; a year after the last one keeps it (flat)
+    forward_curve: dict[int, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -165,7 +169,9 @@ class Settings:
 
 def _ppa(raw: dict) -> PpaSettings:
     parks = {name: PpaParkSettings(**values) for name, values in raw.get("parks", {}).items()}
-    return PpaSettings(**{k: v for k, v in raw.items() if k != "parks"}, parks=parks)
+    curve = {int(year): float(price) for year, price in raw.get("forward_curve", {}).items()}
+    return PpaSettings(**{k: v for k, v in raw.items() if k not in ("parks", "forward_curve")},
+                       parks=parks, forward_curve=curve)
 
 
 def _hedging(raw: dict) -> HedgingSettings:
@@ -269,6 +275,11 @@ def _validate(s: Settings) -> None:
                              "year)")
         if not pm.calibration_start <= ppa.analog_pool_start <= pm.calibration_end:
             raise ValueError("ppa.analog_pool_start must lie inside the calibration window")
+        last = ppa.start_year + ppa.tenor_years - 1
+        for year, price in ppa.forward_curve.items():
+            if not ppa.start_year < year <= last or price <= 0:
+                raise ValueError(f"ppa.forward_curve: {year} = {price} must be a later year of "
+                                 f"the tenor ({ppa.start_year + 1}-{last}) with a positive price")
         unknown = set(ppa.parks) - {p.name for p in s.parks}
         if unknown:
             raise ValueError(f"[ppa.parks] names unknown parks: {sorted(unknown)}")

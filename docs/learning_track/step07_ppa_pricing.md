@@ -1,5 +1,12 @@
 # Step 7: Pricing the PPA and its risk (ticket PPA-7)
 
+> **Numbers on this page (update for v1.1).** This page was written with the illustrative
+> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
+> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
+> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), so
+> prices and fair prices are higher. The methods and lessons are unchanged; current numbers
+> are in the reports and the README, and the exercise checks use the current data.
+
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
 > 45 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
 > **You will be able to:** price the standard PPA structures on joint scenarios, measure
@@ -329,7 +336,8 @@ changes the analog pool.
 <summary>Hints and solution sketches</summary>
 
 1. Linked rows, `K = rev.sum() / mwh.sum()`, PPA revenue `K * mwh`, `mean - quantile(0.05)`:
-   solar EUR 1.38 m vs 0.23 m (the file uses analog days from the whole window).
+   solar EUR 1.64 m vs 0.46 m with the v1.1 market forward (at 85: 1.38 vs 0.23; the file uses
+   analog days from the whole window).
 2. Loop over the years; with a −1 pp drift and 0.5% degradation at 6%: 37.68 EUR/MWh.
 3. `buyer_value` by hand; the toy gives 28.61 without and 9.64 with the hedge.
 4. The 8 EUR/MWh are the premium after the hedge (about 5) and the costs (2.5). Concede the

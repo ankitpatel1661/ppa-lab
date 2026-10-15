@@ -351,6 +351,15 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
         verdict = "inside" if lo <= h.iloc[0] <= hi else "outside"
         coverage.append(f"{label}: {latest} history {h.iloc[0]:.3f}, linked 5-95% "
                         f"{lo:.3f} to {hi:.3f} ({verdict})")
+    level_note = ""
+    if latest is not None:
+        local_year = history.index.tz_convert(tz).year
+        past = float(history[local_year == latest].mean())
+        if abs(pm.forward_eur_mwh / past - 1.0) > 0.1:
+            level_note = (f" The comparison mixes in the price level: {pm.delivery_year} is "
+                          f"simulated at {pm.forward_eur_mwh:.0f} EUR/MWh, {latest} averaged "
+                          f"{past:.0f}, and in this model the capture rate rises with the level "
+                          "(Step 7 shows the sensitivity); the validation above is the test.")
     se = {label: fair_price_standard_error(tables["linked"], park) for park, label in names.items()}
     diff = {label: fair_price(tables["independent"], park) - fair_price(tables["linked"], park)
             for park, label in names.items()}
@@ -404,7 +413,7 @@ History outside the Step 6 range: {", ".join(outside) if outside else "none"}.
 - Monte Carlo standard error of the linked fair prices:
   {", ".join(f"{k.lower()} {v:.2f} EUR/MWh" for k, v in se.items())}.
 - Does the latest historical capture rate fall inside the linked range?
-  {"; ".join(coverage) if coverage else "no complete historical year available"}.
+  {"; ".join(coverage) if coverage else "no complete historical year available"}.{level_note}
 
 Per-scenario results: `data/processed/{scen_path.name}` (input for Step 7).
 

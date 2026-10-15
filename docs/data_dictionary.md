@@ -226,12 +226,14 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 |---|---|
 | `delivery_year`, `tenor_years` | First delivery year and contract length |
 | `analog_pool_start` | First historical day used for intraday patterns (the configured base case) |
-| `scenarios`, `forward_assumption` | Number of joint scenarios; the assumed forward price |
+| `scenarios` | Number of joint scenarios |
+| `forward` | The delivery year's Cal base forward: `price_eur_mwh`, `date` (trading day of the quote) and `source` (URL); `date` and `source` are null for an assumed forward. Results before v1.1 have `forward_assumption` (85.0) instead |
+| `forward_curve` | Cal base forwards of later contract years, `{"2028": ..., "2029": ...}` (EUR/MWh); years after the last one keep it |
 | `parks.<park>.premia_eur_mwh` | `fair_price`, `unhedged`, `joint` (after the baseload hedge), `profile`, `volume` |
 | `parks.<park>.stack_eur_mwh` | `forward` (scenario average), `shape`, `fair_price`, `risk_premium`, `balancing`, `credit`, `indicative` |
 | `parks.<park>.structures.<structure>` | `fair_price_eur_mwh`, `expected_revenue_eur`, `p05_revenue_eur`, `cfar_eur`, `cfar_share`, `floor_value_eur_mwh` for `merchant`, `pay_as_produced`, `pay_as_produced_clause`, `merchant_floor`, `baseload` |
 | `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
-| `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor, and `sensitivity` (one row per case) |
+| `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor (along the forward curve), and `sensitivity` (one row per case; the forward cases shift the whole curve) |
 | `parks.<park>.whole_window` | `fair_price` and `premium` with analog days from the whole calibration window |
 | `parks.<park>.assumptions` | `balancing_eur_mwh`, `credit_eur_mwh`, `capture_rate_drift`, `degradation` (from `[ppa.parks.*]`) |
 | `discount_rate` | annual discount rate of the tenor price |
@@ -375,7 +377,7 @@ not a forecast of a particular hour.
 | `risk_premia(prices, volumes, quantile)` | `fair_price`, `unhedged`, `joint`, `profile`, `volume` (EUR/MWh) |
 | `structure_revenues(prices, volumes, floor)` | structure → (strike, annual revenue per scenario) |
 | `structure_table(prices, volumes, floor, quantile)` | per structure: fair price, expected and P5 revenue, CFaR, CFaR share, floor value |
-| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ...)` | per year: forward, capture rate, fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ..., forward_curve)` | per year: forward (first year, then the curve, flat after its last year), capture rate, fair price, energy, discount factor; tenor price in `.attrs["price"]` |
 
 ### Hedging (`ppa_lab.hedging`)
 

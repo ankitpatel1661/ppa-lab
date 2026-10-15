@@ -19,7 +19,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ppa_lab import __version__
+from ppa_lab.analysis.step07_report import SCALED_SHAPE
 from ppa_lab.config import Settings
+from ppa_lab.pricing.forwards import describe_forward
 
 log = logging.getLogger(__name__)
 
@@ -45,19 +47,33 @@ def _case(rows: list[dict], name: str) -> dict | None:
     return next((r for r in rows if r["case"] == name), None)
 
 
-def _stack_table(s: dict, w: dict, forward: float) -> str:
-    rows = [(f"Forward (assumed {forward:.0f}; average of the scenarios)", "forward", ""),
+def _stack_table(results: dict) -> str:
+    """From the first year's forward to the ten-year indicative price, both parks."""
+    start, years = results["delivery_year"], results["tenor_years"]
+    curve = results.get("forward_curve") or {}
+    later = ("Later years: forward curve falls"
+             if curve and min(curve.values()) < results["forward"]["price_eur_mwh"]
+             else "Later years: forward curve and trend")
+    rows = [(f"Forward {start} (average of the scenarios)", "forward", ""),
             ("Shape: output falls in cheap hours", "shape", ""),
-            ("**= Fair price**", "fair_price", "**"),
+            (f"**= Fair price {start}**", "fair_price", "**"),
+            (f"{later}; degradation", "trend", ""),
+            (f"**= Fair price, {years} years**", "tenor_fair_price", "**"),
             ("Buyer's risk premium after a baseload hedge", "risk_premium", "−"),
             ("Balancing and route to market (assumed)", "balancing", "−"),
             ("Credit and liquidity (assumed)", "credit", "−"),
-            ("**= Indicative price**", "indicative", "**")]
+            (f"**= Indicative price, {years} years**", "indicative", "**")]
+    stacks = []
+    for park in ("solar_park", "wind_park"):
+        r = results["parks"][park]
+        tenor_fair = r["tenor"]["fair_price"]
+        stacks.append({**r["stack_eur_mwh"], "trend": tenor_fair - r["stack_eur_mwh"]["fair_price"],
+                       "tenor_fair_price": tenor_fair, "indicative": r["tenor"]["indicative"]})
     lines = ["| Layer | Solar park | Wind park |", "|---|---|---|"]
     for label, key, mark in rows:
         cells = []
-        for stack in (s, w):
-            value = f"{stack[key]:.1f}".replace("-", "−")
+        for stack in stacks:
+            value = f"{round(stack[key], 1) + 0.0:.1f}".replace("-", "−")
             cells.append(f"**{value}**" if mark == "**" else f"{mark}{value}")
         lines.append(f"| {label} | {cells[0]} | {cells[1]} |")
     return "\n".join(lines)
@@ -66,8 +82,8 @@ def _stack_table(s: dict, w: dict, forward: float) -> str:
 def memo_text(results: dict, settings: Settings) -> str:
     """The memo in Markdown (one A4 page)."""
     parks = {p.name: p for p in settings.parks}
-    solar, wind = results["parks"]["solar_park"], results["parks"]["wind_park"]
-    s, w = solar["stack_eur_mwh"], wind["stack_eur_mwh"]
+    solar = results["parks"]["solar_park"]
+    s = solar["stack_eur_mwh"]
     start, years = results["delivery_year"], results["tenor_years"]
     span = f"{start}-{start + years - 1}"
     cfar_m = solar["structures"]["merchant"]["cfar_eur"]
@@ -77,16 +93,21 @@ def memo_text(results: dict, settings: Settings) -> str:
     sens = solar["tenor"]["sensitivity"]
     base_ind = solar["tenor"]["indicative"]
     levers = []
+    recent = results.get("recent_level_eur_mwh")
     for name, label, sign in (("Analog days from the whole window",
-                               "Older days represent 2027 (whole 2024-2026 window instead of "
-                               "the last 12 months)", "+"),
+                               f"Older days represent {start} (whole 2024-2026 window instead "
+                               "of the last 12 months)", None),
                               ("Capture rate +1 pp per year", "Capture-rate trend ±1 pp per year",
                                "±"),
-                              ("Forward +10%", "Forward ±10%", "±")):
+                              ("Forward +10%", "Forward curve ±10%", "±"),
+                              (SCALED_SHAPE, "The capture rate stays as at the recent price level"
+                               + (f" ({recent:.0f} EUR/MWh)" if recent else "")
+                               + " instead of rising with the forward", None)):
         row = _case(sens, name)
         if row is not None:
-            levers.append(f"- {label}: **{sign}{abs(row['indicative'] - base_ind):.1f} "
-                          "EUR/MWh**")
+            delta = row["indicative"] - base_ind
+            mark = sign or ("+" if delta >= 0 else "−")
+            levers.append(f"- {label}: **{mark}{abs(delta):.1f} EUR/MWh**")
     structures = solar["structures"]
     clause = structures.get("pay_as_produced_clause")
     negative = "a large share"
@@ -104,11 +125,24 @@ def memo_text(results: dict, settings: Settings) -> str:
                       f"output as Cal base futures: it cuts the merchant cash flow at risk by "
                       f"{best['cfar_reduction']:.0%} (solar park).")
         m = h.get("market_check") or {}
-        if m:
-            market_line = (f" Published Cal-{str(start)[2:]} base quotes are higher than the "
-                           f"assumed forward: at {m['quote']:.2f} EUR/MWh ({m['date']}) the solar "
+        quotes = [q for q in hedging.get("market_quotes", [])
+                  if q["product"] == "cal_base" and q["delivery_year"] == start]
+        if m and abs(m["quote"] / m["model_forward"] - 1) > 0.05:
+            market_line = (f" The latest Cal-{str(start)[2:]} base quote differs from the model's "
+                           f"forward: at {m['quote']:.2f} EUR/MWh ({m['date']}) the solar "
                            f"indicative price would be {m['indicative_market']:.1f} instead of "
                            f"{m['indicative_model']:.1f} EUR/MWh.")
+        elif len(quotes) > 1:
+            first = min(quotes, key=lambda q: q["date"])
+            lo = min(q["price_eur_mwh"] for q in quotes)
+            hi = max(q["price_eur_mwh"] for q in quotes)
+            market_line = (f" The Cal-{str(start)[2:]} forward moved between {lo:.0f} and "
+                           f"{hi:.0f} EUR/MWh since {first['date']} (published quotes): refresh "
+                           "the offer with the forward curve on the day of signing.")
+    forward = results.get("forward") or {"price_eur_mwh": results.get("forward_assumption")}
+    forward_text = describe_forward(forward, results.get("forward_curve") or {}, start)
+    forward_limit = ("the forwards are published quotes from secondary sources, not EEX files"
+                     if forward.get("date") else "the forward is an assumption")
     site = parks["solar_park"].site if "solar_park" in parks else "the solar site"
     mwp = parks["solar_park"].capacity_mw if "solar_park" in parks else 50
     return f"""# Indicative price for a {years}-year solar PPA ({site.split(',')[0]}, {mwp:g} MWp)
@@ -123,9 +157,9 @@ before risk. At the indicative price the PPA cuts our 95% cash flow at risk from
 EUR {cfar_m / 1e6:.2f} m to {cfar_p / 1e6:.2f} m per year (**−{1 - cfar_p / cfar_m:.0%}**) for about
 **{give_away:.1f} EUR/MWh** (EUR {give_away_m:.2f} m per year) against selling at spot.
 
-## The price, layer by layer (EUR/MWh, {start})
+## The price, layer by layer (EUR/MWh)
 
-{_stack_table(s, w, results['forward_assumption'])}
+{_stack_table(results)}
 
 ## What we keep and what we give away
 
@@ -139,8 +173,8 @@ EUR {cfar_m / 1e6:.2f} m to {cfar_p / 1e6:.2f} m per year (**−{1 - cfar_p / cf
 
 {chr(10).join(levers)}
 
-The view on solar cannibalisation (which past represents {start}, and the trend) matters
-more than the risk premium and the costs together.
+For comparison, the risk premium and the costs together take
+{s['risk_premium'] + s['balancing'] + s['credit']:.1f} EUR/MWh off the fair price.
 
 ## Recommendations
 
@@ -155,10 +189,10 @@ more than the risk premium and the costs together.
 each with simulated hourly prices that respond to that weather (calibrated on 2024-2026 German
 day-ahead prices, analog days from {results['analog_pool_start']}). Fair price
 = E[Σ q P] / E[Σ q]; premium = 5% shortfall of the buyer's hedged value per MWh; later years by
-a flat forward and capture rate, discounted at {results['discount_rate']:.0%}. Limits: the
-forward is an assumption, the costs are illustrative, the parks produce their potential output
-(no curtailment), and one market regime is in the data.{market_line} Wind park for
-comparison: fair {w['fair_price']:.1f}, indicative {w['indicative']:.1f} EUR/MWh.
+the forward curve and a flat capture rate, discounted at {results['discount_rate']:.0%}. Forward:
+{forward_text}. Limits: {forward_limit}, the costs are illustrative, the parks produce their
+potential output (no curtailment), and the shape comes from one market regime
+(2024-2026).{market_line}
 """
 
 

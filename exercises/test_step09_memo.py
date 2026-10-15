@@ -26,5 +26,5 @@ def test_ex1_the_indicative_price_for_your_costs():
                     reason="scenario results missing: run `make scenarios` first")
 def test_ex2_the_ppa_wins_about_half_of_the_years():
     table = ex.load_scenarios()
-    assert ex.ppa_beats_merchant(table, "solar_park") == pytest.approx(0.5141, abs=1e-4)
-    assert ex.ppa_beats_merchant(table, "wind_park") == pytest.approx(0.5121, abs=1e-4)
+    assert ex.ppa_beats_merchant(table, "solar_park") == pytest.approx(0.5161, abs=1e-4)
+    assert ex.ppa_beats_merchant(table, "wind_park") == pytest.approx(0.5161, abs=1e-4)
