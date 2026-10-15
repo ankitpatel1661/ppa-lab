@@ -16,7 +16,8 @@ that step is written.
 | PPA-7 | 7 | Price a pay-as-produced PPA with profile and volume risk premia, CFaR | **Done** |
 | PPA-8 | 8 | Hedge with baseload futures; minimum-variance hedge ratio; scenario P&L | **Done** |
 | PPA-8b | 8b | Anchor the price level to the market forward curve | **Done** (v1.1) |
-| PPA-8c | later | Quarterly forward curve (market winter premium) and capture rate vs level | To do |
+| PPA-8c | 8c | Quarterly forward curve (market winter premium); solar cannibalisation trend | **Done** (v1.2) |
+| PPA-8d | later | Capture rate vs price level on 2021-2022 (gas crisis) data | To do |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
 ## PPA-2: Capture prices and capture rates (Step 2)
@@ -150,7 +151,7 @@ At 113.45 the indicative prices would be 46.8 (solar) and 93.0 (wind) instead of
       re-run `make prices scenarios pricing hedging memo`; README, memo, learning pages updated.
 - [x] Check the capture rate's dependence on the level (arcsinh lift); sensitivity added.
 
-## PPA-8c: Quarterly forward curve and the capture rate vs the level (open)
+## PPA-8c: Quarterly forward curve and the capture rate vs the level
 
 **Finding (v1.1):** the market prices a steeper winter than the model (Q1-27 179.47 vs
 Q2-27 114.04 EUR/MWh on 14 Sep 2026; model 141.4 vs 124.3), and the model's solar capture rate
@@ -158,9 +159,11 @@ rises with the level (0.48 at 85, 0.63 at 141), which history supports only for 
 (2025 to 2026).
 
 **Acceptance criteria**
-- [ ] Calibrate quarterly (or monthly) levels to market quarter forwards.
-- [ ] Test the capture rate vs level on more history (2022 gas crisis, 2023) and decide
-      between the arcsinh lift and the shape-factor view.
+- [x] Calibrate quarterly levels to market quarter forwards (v1.2: Q1-Q4/27 of 14 Sep 2026,
+      scaled to the Cal forward).
+- [x] Solar capture-rate trend in the base case (v1.2: −1 pp a year).
+- [ ] Test the capture rate vs level on more history (2021-2022 gas crisis) and decide
+      between the arcsinh lift and the shape-factor view (moved to PPA-8d).
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 

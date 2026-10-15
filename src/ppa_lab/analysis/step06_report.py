@@ -21,6 +21,7 @@ from ppa_lab.analysis.step05_report import calibration_history
 from ppa_lab.config import Park, Settings
 from ppa_lab.prices.model import fit, simulate
 from ppa_lab.prices.validation import compare_with_history
+from ppa_lab.pricing.forwards import quarter_forwards
 from ppa_lab.scenarios.generator import build_scenarios, fair_price, scenario_table
 from ppa_lab.scenarios.link import WeatherLink, fit_link, restrict_pool, simulate_linked
 from ppa_lab.scenarios.weather import (
@@ -293,11 +294,17 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
               "Step 6, one path": within_month_daily(sims["step6"][0], history.index, tz)}
 
     # 2. Joint scenarios for the delivery year: linked, and independent for comparison.
+    quarters = quarter_forwards(pm.forward_eur_mwh, pm.quarter_quotes, pm.delivery_year, tz)
+    quarter_text = "" if quarters is None else (
+        " with each quarter at the market's seasonal shape (Q1-Q4: "
+        + " / ".join(f"{v:.1f}" for v in quarters.values())
+        + f" EUR/MWh, quotes of {pm.quarter_quotes.date})")
     tables = {}
     for name, linked in (("linked", True), ("independent", False)):
         scen = build_scenarios(model, link, matrices, features, tz, pm.delivery_year, years,
                                sc.paths_per_weather_year, pm.forward_eur_mwh,
-                               pm.level_volatility, sc.seed, linked=linked)
+                               pm.level_volatility, sc.seed, linked=linked,
+                               quarter_forwards=quarters)
         tables[name] = scenario_table(scen, list(names))
     n_scen = len(tables["linked"])
 
@@ -307,7 +314,8 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
         recent = restrict_pool(link, start)
         scen = build_scenarios(model, recent, matrices, features, tz, pm.delivery_year, years,
                                sc.paths_per_weather_year, pm.forward_eur_mwh,
-                               pm.level_volatility, sc.seed, linked=True)
+                               pm.level_volatility, sc.seed, linked=True,
+                               quarter_forwards=quarters)
         t = scenario_table(scen, list(names))
         row = {"Analog days from": f"{start:%Y-%m-%d} ({label})",
                "Days in pool": f"{len(recent.pool_days):,}"}
@@ -402,7 +410,7 @@ History outside the Step 6 range: {", ".join(outside) if outside else "none"}.
 ## 3. Delivery year {pm.delivery_year}: {n_scen} scenarios
 
 {len(years)} weather years ({years[0]}-{years[-1]}) x {sc.paths_per_weather_year} price paths
-= {n_scen} scenarios; forward {pm.forward_eur_mwh:.1f} EUR/MWh, level uncertainty
+= {n_scen} scenarios; forward {pm.forward_eur_mwh:.1f} EUR/MWh{quarter_text}, level uncertainty
 {pm.level_volatility:.2f}. The same scenarios with prices independent of the weather
 (Step 5 model) for comparison.
 

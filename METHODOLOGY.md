@@ -3,13 +3,15 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.1** (ticket PPA-8b): cash flows and fair prices of the standard structures,
+**Version 1.2** (ticket PPA-8c): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
 on those scenarios (PPA-7, section 10), and hedging with power futures with a market check of
 the forward (PPA-8, section 11). Since version 1.1 the price level is the market's: the Cal-27
 base quote for the delivery year and the published Cal-28 and Cal-29 quotes for later years.
+Since version 1.2 each quarter of the delivery year follows the market's seasonal shape
+(section 9), and the solar park's capture rate falls 1 percentage point a year (section 10).
 
 ---
 
@@ -322,9 +324,14 @@ the simulated day.
 
 **Scenarios.** Scenario $(Y, n)$: the parks' output in weather year $Y$ placed date by date and
 local hour by local hour on the delivery calendar (29 February → 28 February), and price path $n$
-simulated for that weather. All scenarios have equal weight; one annual level $\lambda$ makes the
-average price over all scenarios equal the forward (section 8), then the level uncertainty adds
-one shift per scenario. Fair pay-as-produced price over $S$ scenarios:
+simulated for that weather. All scenarios have equal weight; one level $\lambda_k$ per local
+quarter $k$ makes the average price over all scenarios and the quarter's hours equal the quarter
+forward $F_k = F \cdot Q_k / \bar Q$ (section 8's bisection, per quarter), where $Q_k$ are
+published quarter quotes of one trading day (`[price_model.quarter_quotes]`), $\bar Q$ their
+hour-weighted mean and $F$ the Cal forward: the market's seasonal shape at today's level, and
+the year still averages $F$. Without quarter quotes one annual level is used. Within a quarter
+the monthly and hourly shape comes from history. Then the level uncertainty adds one shift per
+scenario. Fair pay-as-produced price over $S$ scenarios:
 
 $$
 K^\star = \frac{\sum_s \sum_t q_{s,t} P_{s,t}}{\sum_s \sum_t q_{s,t}}, \qquad
@@ -380,7 +387,9 @@ assumptions).
 
 **Tenor.** For years $i = 0, \dots, N-1$: $F_0$ the first year's forward, $F_i$ from
 `[ppa.forward_curve]` where it gives the year, and a year after the last quoted one keeps that
-quote (long-dated years trade too little for a quote); $c_i = c + \delta\, i$,
+quote (long-dated years trade too little for a quote); $c_i = c + \delta\, i$ with the
+capture-rate trend $\delta$ from `[ppa.parks.*]` (base case: solar $-1$ percentage point a year,
+wind 0; history fell faster, but storage and curtailment at negative prices slow it),
 $K_i = F_i c_i$, $E_i = E[\sum_t q_t]\,(1 - g)^i$, $D_i = (1 + r)^{-(i + 1/2)}$, and
 
 $$
@@ -446,7 +455,7 @@ sources and stand in for EEX settlement prices.
 |---|---|---|
 | National profile instead of a site profile (Step 3 back-test) | Smoother output, no site-specific volume risk | PPA-4 site models; back-test re-run later |
 | Hourly ERA5 at a ~0.25° grid point | Smooths gusts and local terrain; coastal cells mix land and sea | site chosen on land; v2: downscaling or measured data |
-| Site models give potential output | No grid curtailment (heavy in Schleswig-Holstein), outages or degradation | v2 |
+| Site models include losses and availability (solar 10% incl. availability; wind 12%: wake ~7%, availability ~3%, electrical ~2%) and degradation in later years, but no grid curtailment | Redispatch in Schleswig-Holstein is heavy but compensated (§13a EnWG), so roughly revenue-neutral for the producer; a PPA must say who bears the undelivered volume | Contract clause; v2: curtailment data |
 | Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
 | Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5 (price model); PPA-8 compares with market quotes |
 | One history, no scenarios | No distribution, no risk premium | PPA-5 (price paths); PPA-6/PPA-7 (joint Monte Carlo, premia) |
@@ -455,13 +464,13 @@ sources and stand in for EEX settlement prices.
 | Two sites stand in for national weather | National solar and wind, and weather abroad, are only proxied; weather explains about half of daily price moves | v2: national and neighbour weather |
 | Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
 | Linear daily response per season | No saturation (e.g. once prices hit zero, more wind changes little) | Analog patterns carry part of it; v2 |
-| Parks produce their potential output | No curtailment at negative prices; a candidate for the wind 2024 gap | v2 |
+| Parks produce at negative prices unless the contract has the clause | Merchant revenue includes negative-price hours (solar: 9% of output at 2027 prices); a rational merchant would curtail | The clause structure (sections 3, 10); v2: curtailment in the merchant case |
 | One delivery year of scenarios; later years by the forward curve, drift and degradation | Later years keep the first year's capture rate (plus drift), although the level differs (2027 140 vs 2029 88 EUR/MWh) | Sensitivities in PPA-7; v2: scenarios per contract year |
 | Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
-| Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (solar premium 4.8 instead of 8.0 EUR/MWh in v1.1); transaction costs v2 |
+| Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (solar premium 5.4 instead of 8.4 EUR/MWh in v1.2); transaction costs v2 |
 | One calibration window (2024-2026), in-sample validation only | Regime changes and out-of-sample errors not tested | v2: rolling, out-of-sample validation |
-| Annual Cal base forwards from published quotes (Cal-27 140.21, Cal-28 104.75, Cal-29 87.58), held flat after 2029; no quarterly or monthly curve | The level is the market's, but the seasonal shape comes from 2024-2026 history: the market prices a steeper winter (Q1-27 179.47 vs Q2-27 114.04 EUR/MWh on 14 Sep 2026); 2030-2036 rest on the Cal-29 quote | v1.1 (PPA-8b); v2: quarterly/monthly curve (HPFC) from EEX settlements |
-| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.48 at 85 EUR/MWh, 0.63 at 141; negative-price share of solar output 25% → 9%. History supports the direction for one step (2025 → 2026: level 88 → 108, prices in the sunniest 10% of hours 8 → 23 EUR/MWh, park capture rate flat at 0.51), but 141 lies outside the data | Step 7 sensitivity at the recent level's capture rate (solar −7.5 EUR/MWh); backlog PPA-8c |
+| Cal base forwards from published quotes (Cal-27 140.21, Cal-28 104.75, Cal-29 87.58), held flat after 2029; quarter shape from Q1-Q4/27 quotes of 14 Sep 2026; months and hours from history | Quotes are a month older than the Cal level and come from secondary sources; later years keep the first year's seasonal shape; 2030-2036 rest on the Cal-29 quote | v1.1-1.2 (PPA-8b, 8c); v2: monthly curve (HPFC) from EEX settlements |
+| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.48 at 85 EUR/MWh, 0.63 at 141; negative-price share of solar output 25% → 9%. History supports the direction for one step (2025 → 2026: level 88 → 108, prices in the sunniest 10% of hours 8 → 23 EUR/MWh, park capture rate flat at 0.51), but 141 lies outside the data | Step 7 sensitivity at the recent level's capture rate (solar −7.2 EUR/MWh in v1.2); backlog PPA-8c |
 | The forward moves fast | Cal-27 base moved between 104 and 140 EUR/MWh from July to October 2026 | Refresh the quotes on the pricing day; forward ±10% sensitivity |
 | Hedges at the model forward, no limits, no costs | Real hedges trade at market prices with bid-ask spreads, margining and position limits; unconstrained monthly hedges can be negative | v2: constraints (no negative sales), costs |
 | Hedge back-test with last year's average as forward | Not a market price; two years only, so it illustrates, not measures | v2: EEX settlement history |
@@ -487,3 +496,6 @@ sources and stand in for EEX settlement prices.
 - **v1.1, PPA-8b:** the price level anchored to the market (Cal-27 base quote of 9 Oct 2026,
   forward curve for later years held flat after the last quote); section 10 tenor and section
   11 market check updated; limitations updated.
+- **v1.2, PPA-8c:** quarterly levels at the market's seasonal shape (section 9); a solar
+  capture-rate trend of −1 pp a year in the base case (section 10); availability and
+  curtailment stated correctly in the limitations.

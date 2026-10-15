@@ -227,7 +227,7 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `delivery_year`, `tenor_years` | First delivery year and contract length |
 | `analog_pool_start` | First historical day used for intraday patterns (the configured base case) |
 | `scenarios` | Number of joint scenarios |
-| `forward` | The delivery year's Cal base forward: `price_eur_mwh`, `date` (trading day of the quote) and `source` (URL); `date` and `source` are null for an assumed forward. Results before v1.1 have `forward_assumption` (85.0) instead |
+| `forward` | The delivery year's Cal base forward: `price_eur_mwh`, `date` (trading day of the quote) and `source` (URL); `date` and `source` are null for an assumed forward. Since v1.2 also `quarters` (quarter `"1"`..`"4"` → forward, EUR/MWh: the market's seasonal shape at the Cal level) and `quarters_date`. Results before v1.1 have `forward_assumption` (85.0) instead |
 | `forward_curve` | Cal base forwards of later contract years, `{"2028": ..., "2029": ...}` (EUR/MWh); years after the last one keep it |
 | `parks.<park>.premia_eur_mwh` | `fair_price`, `unhedged`, `joint` (after the baseload hedge), `profile`, `volume` |
 | `parks.<park>.stack_eur_mwh` | `forward` (scenario average), `shape`, `fair_price`, `risk_premium`, `balancing`, `credit`, `indicative` |

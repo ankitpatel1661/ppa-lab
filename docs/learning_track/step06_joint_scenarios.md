@@ -3,8 +3,10 @@
 > **Numbers on this page (update for v1.1).** This page was written with the illustrative
 > forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
 > base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
-> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), so
-> prices and fair prices are higher. The methods and lessons are unchanged; current numbers
+> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
+> since v1.2 the market's seasonal shape and a solar cannibalisation trend
+> ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
+> so prices and fair prices are higher. The methods and lessons are unchanged; current numbers
 > are in the reports and the README, and the exercise checks use the current data.
 
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
@@ -438,9 +440,9 @@ the wind one is far outside the independent range.
 2. Filter by circular day-of-year gap ≤ 30, drop |days| < `exclude`, scale by the column
    standard deviations over all rows, sum squares, sort stably. Without exclusion the first
    analog is 15 June 2025 itself; with `exclude=8` the first is 26 June 2024.
-3. `groupby("prices")` and Σ revenue / Σ MWh: solar 100.99 → 97.45, wind 142.84 → 128.54 with
-   the v1.1 market forward (at 85: 51.76 → 48.66 and 87.00 → 75.35). The mean of the capture
-   prices gives 97.49 and 128.68: years with more energy count more in the fair price, and for
+3. `groupby("prices")` and Σ revenue / Σ MWh: solar 99.08 → 95.61, wind 145.43 → 131.13 with
+   the market forward curve and seasonal shape of v1.2 (at 85: 51.76 → 48.66 and 87.00 → 75.35).
+   The mean of the capture prices gives 95.66 and 131.25: years with more energy count more in the fair price, and for
    wind those are the cheaper years.
 4. Cov(q, P) < 0 for wind: windy hours are cheap, so an independent model pays every MWh the
    average price (capture rate about 1.0 instead of 0.88). For solar Step 5 already knew the

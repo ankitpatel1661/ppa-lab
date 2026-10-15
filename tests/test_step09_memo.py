@@ -26,9 +26,9 @@ def pricing_fixture() -> dict:
                       "indicative": indicative,
                       "sensitivity": [
                           {"case": "Base case", "fair_price": fair, "indicative": indicative},
-                          {"case": "Capture rate -1 pp per year", "fair_price": fair - 3,
+                          {"case": "Capture-rate trend 1 pp/yr steeper", "fair_price": fair - 3,
                            "indicative": indicative - 3},
-                          {"case": "Capture rate +1 pp per year", "fair_price": fair + 3,
+                          {"case": "Capture-rate trend 1 pp/yr flatter", "fair_price": fair + 3,
                            "indicative": indicative + 3},
                           {"case": "Forward −10%", "fair_price": fair - 4,
                            "indicative": indicative - 4},

@@ -4,7 +4,9 @@ Scenario s = (weather year Y, price path n). Its volumes are the parks' output i
 year Y, placed on the delivery calendar date by date; its prices are simulated FOR that
 weather (`linked=True`, the weather-price link) or independently of it (`linked=False`,
 the Step 5 model, kept for comparison). One annual level is calibrated so that the average
-price over all scenarios equals the forward; level uncertainty is added per scenario.
+price over all scenarios equals the forward, or, with quarterly forwards, one level per
+quarter so that each quarter's average equals its forward (the market's seasonal shape);
+level uncertainty is added per scenario.
 """
 
 from __future__ import annotations
@@ -33,7 +35,8 @@ class Scenarios:
     prices: np.ndarray                      # EUR/MWh, shape (S, hours)
     generation: dict[str, np.ndarray]       # park -> MWh per hour, one row per weather year
     year_row: np.ndarray                    # row of each scenario in the generation matrices
-    level: float                            # calibrated annual level (transformed units)
+    level: float | np.ndarray               # calibrated level (transformed units): one
+                                            # number, or one per hour with quarterly forwards
     linked: bool                            # prices conditioned on the weather?
 
     def volume(self, park: str) -> np.ndarray:
@@ -55,10 +58,12 @@ def build_scenarios(model: PriceModel, link: WeatherLink, generation: dict[str, 
                     features: pd.DataFrame, tz: str, delivery_year: int,
                     weather_years: list[int], paths_per_year: int, forward: float,
                     level_volatility: float = 0.0, seed: int = 0,
-                    linked: bool = True) -> Scenarios:
+                    linked: bool = True,
+                    quarter_forwards: dict[int, float] | None = None) -> Scenarios:
     """Simulate `paths_per_year` price paths for each weather year (see module docstring).
 
     generation: park -> local day x 24 hours (MW, = MWh per hour); features: daily weather.
+    quarter_forwards: local quarter (1-4) -> forward (EUR/MWh); replaces `forward` when given.
     """
     index = delivery_hours(delivery_year, tz)
     local = index.tz_convert(tz)
@@ -79,7 +84,16 @@ def build_scenarios(model: PriceModel, link: WeatherLink, generation: dict[str, 
     x = np.vstack(residuals)
 
     mu0 = seasonal_mean(model, index, tz, annual_level=0.0)
-    level = solve_level(mu0, x, model.scale, forward)
+    if quarter_forwards:
+        if set(quarter_forwards) != {1, 2, 3, 4}:
+            raise ValueError("quarter_forwards needs all four quarters 1-4")
+        quarter = local.quarter.to_numpy()
+        level = np.zeros(len(index))
+        for q, target in quarter_forwards.items():
+            hours_q = quarter == q
+            level[hours_q] = solve_level(mu0[hours_q], x[:, hours_q], model.scale, target)
+    else:
+        level = solve_level(mu0, x, model.scale, forward)
     shift = 0.0
     if level_volatility:
         shift = level_volatility * random_streams(seed)[1].standard_normal((x.shape[0], 1))

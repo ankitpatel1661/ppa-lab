@@ -95,8 +95,8 @@ def fair_prices(table: pd.DataFrame) -> pd.DataFrame:
 # Exercise 4 (written, no code): the colleague's wind offer
 # --------------------------------------------------------------------------- #
 # A colleague prices the 30 MW wind park's 2027 pay-as-produced PPA with the Step 5 model
-# (prices independent of the weather) and offers 143 EUR/MWh. The Step 6 scenarios say 129.
-# In 3-5 sentences: why is 143 too generous, why is the solar error smaller in the Step 6
+# (prices independent of the weather) and offers 145 EUR/MWh. The Step 6 scenarios say 131.
+# In 3-5 sentences: why is 145 too generous, why is the solar error smaller in the Step 6
 # report (about 3.5 EUR/MWh), and why might the true solar error still be larger (look at the
 # sensitivity table: which historical days represent 2027?)?
 #

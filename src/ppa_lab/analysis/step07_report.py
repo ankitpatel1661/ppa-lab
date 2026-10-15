@@ -23,7 +23,7 @@ from ppa_lab.analysis.step05_report import calibration_history
 from ppa_lab.analysis.step06_report import complete_weather_years, load_weather_inputs, parks
 from ppa_lab.config import PpaParkSettings, Settings
 from ppa_lab.prices.model import fit
-from ppa_lab.pricing.forwards import describe_forward
+from ppa_lab.pricing.forwards import describe_forward, quarter_forwards
 from ppa_lab.pricing.risk import (
     buyer_value,
     risk_premia,
@@ -88,7 +88,7 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
     f, k, d = stack["forward"], stack["fair_price"], cost.capture_rate_drift
     rows = [row("Base case", k, f, d)]
     for step in (-0.02, -0.01, 0.01):
-        rows.append(row(f"Capture rate {step * 100:+.0f} pp per year", k, f, d + step))
+        rows.append(row(trend_case(step), k, f, d + step))
     rows.append(row("Forward −10%", 0.9 * k, 0.9 * f, d, 0.9))
     rows.append(row("Forward +10%", 1.1 * k, 1.1 * f, d, 1.1))
     if alternative_fair is not None:
@@ -99,6 +99,12 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
 
 
 SCALED_SHAPE = "Capture rate of the recent price level"
+
+
+def trend_case(step: float) -> str:
+    """Name of the sensitivity that changes the capture-rate trend by `step` per year."""
+    return (f"Capture-rate trend {abs(step) * 100:.0f} pp/yr "
+            f"{'steeper' if step < 0 else 'flatter'}")
 
 
 def recent_level(settings: Settings) -> float:
@@ -140,7 +146,9 @@ def scenario_set(settings: Settings, inputs: dict, pool_start: pd.Timestamp) -> 
                     tz, sc.analog_window_days, sc.analog_k)
     return build_scenarios(model, restrict_pool(link, pool_start), inputs["matrices"], features,
                            tz, pm.delivery_year, years, sc.paths_per_weather_year,
-                           pm.forward_eur_mwh, pm.level_volatility, sc.seed)
+                           pm.forward_eur_mwh, pm.level_volatility, sc.seed,
+                           quarter_forwards=quarter_forwards(pm.forward_eur_mwh, pm.quarter_quotes,
+                                                             pm.delivery_year, tz))
 
 
 # --------------------------------------------------------------------------- #
@@ -350,6 +358,11 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     forward = {"price_eur_mwh": pm.forward_eur_mwh,
                "date": str(pm.forward_date) if pm.forward_date else None,
                "source": pm.forward_source or None}
+    quarters = quarter_forwards(pm.forward_eur_mwh, pm.quarter_quotes, pm.delivery_year,
+                                settings.timezone)
+    if quarters:
+        forward["quarters"] = {str(q): v for q, v in quarters.items()}
+        forward["quarters_date"] = str(pm.quarter_quotes.date)
     out_json = settings.processed_dir / "ppa_pricing.json"
     out_json.write_text(json.dumps(to_strict_json({
         "generated_utc": f"{datetime.now(UTC):%Y-%m-%d %H:%M}", "delivery_year": ppa.start_year,
@@ -390,6 +403,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         f"{merchant_cfar / 1e6:.2f} m (merchant) to EUR {pap_cfar / 1e6:.2f} m per year: only "
         f"volume risk is left.")
 
+    trends = ", ".join(f"{names[p].lower()} {ppa.parks[p].capture_rate_drift * 100:+.0f} pp"
+                       for p in names)
     scaled_note = "" if scaled is None else (
         f"\nLast row: the capture rate of the recent price level ({scaled[0]:.1f} EUR/MWh, the "
         "analog pool's average), with all prices scaled to the forward (the usual shape-factor "
@@ -428,9 +443,10 @@ Balancing and credit costs are stated assumptions (`[ppa.parks.*]` in `config/pr
 
 ## 4. {ppa.tenor_years}-year price ({span})
 
-Discounted at {ppa.discount_rate:.0%} (mid-year), energy-weighted; forwards as above, capture
-rate flat unless stated; solar output degrades {ppa.parks[lead].degradation:.1%} per year. The risk
-premium and costs per MWh of the first year are applied to every year (a simplification).
+Discounted at {ppa.discount_rate:.0%} (mid-year), energy-weighted; forwards as above. Capture-rate
+trend per year after {ppa.start_year} (base case): {trends}; solar output degrades
+{ppa.parks[lead].degradation:.1%} per year. The risk premium and costs per MWh of the first year
+are applied to every year (a simplification).
 
 {_tenor_md(tenors, names)}
 {scaled_note}

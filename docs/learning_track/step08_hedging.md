@@ -2,8 +2,9 @@
 
 > **Numbers on this page (update for v1.1).** Sections 1-4.5 were written with the
 > illustrative forward of 85 EUR/MWh (v1.0). The market check led to a decision: since v1.1 the
-> model uses the market forward curve. Section 4.6 shows what changed; the current numbers are
-> in `reports/step08_hedging.md`. The methods and lessons are unchanged.
+> model uses the market forward curve (section 4.6), and since v1.2 the market's seasonal
+> shape and a solar cannibalisation trend (section 4.7); the current numbers are in
+> `reports/step08_hedging.md`. The methods and lessons are unchanged.
 
 > **Time needed:** about 4.5 hours. Concepts take 60 minutes, code tour and findings
 > 45 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
@@ -16,7 +17,8 @@
 [2. Architecture](#2-what-was-built-architecture) ·
 [3. Code tour](#3-code-tour) ·
 [4. Findings](#4-five-real-findings) (and
-[4.6 the v1.1 update](#46-update-v11-the-forward-is-now-the-markets)) ·
+[4.6 the v1.1 update](#46-update-v11-the-forward-is-now-the-markets),
+[4.7 the v1.2 update](#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)) ·
 [5. Hands-on](#5-hands-on-run-it-yourself) ·
 [6. Results](#6-results-what-the-hedges-do) ·
 [7. Exercises](#7-exercises) ·
@@ -245,6 +247,36 @@ Three lessons:
 The hedging lessons hold at the new level: Cal base at 83% (solar) and 91% (wind) of the
 average output cuts the merchant CFaR95 by 78% and 68%, and the PPA buyer's premium with the
 minimum-variance band is 4.8 instead of 8.0 EUR/MWh (solar).
+
+### 4.7 Update (v1.2): the market's seasons and a cannibalisation trend
+
+Two steps towards how a pricing desk works:
+
+1. **Each quarter at its market price.** A desk builds an hourly price forward curve (HPFC) that
+   matches every traded product, not only the year. The market's seasonal shape is much steeper
+   than the model's history-based one: on 14 Sep 2026 Q1-27 traded at 179.47 and Q2-27 at
+   114.04 EUR/MWh with Cal-27 at 135.80. The scenarios now solve one level per quarter so that
+   each quarter averages its forward: the quotes' shape scaled to today's Cal level
+   (Q1 185.3, Q2 117.7, Q3 124.3, Q4 134.3 EUR/MWh; the year still averages 140.21). Months
+   and hours within a quarter still come from history.
+2. **A cannibalisation trend in the base case.** Solar's capture rate fell from 0.76 to 0.51 in
+   2023-2025 as capacity grew. The base case now lets it fall 1 percentage point a year after
+   2027 (0.62 → 0.53 by 2036), slower than history because batteries and curtailment at
+   negative prices dampen it; ±1 and −2 pp are the sensitivities.
+
+| 2027-2036, EUR/MWh | v1.1 | v1.2 |
+|---|---|---|
+| Solar: fair price 2027 | 89.1 | 86.9 |
+| Wind: fair price 2027 | 127.9 | 130.7 |
+| Solar: indicative price, 10 years | 50.6 | **45.2** |
+| Solar: at the recent level's capture rate | 43.1 | 38.0 |
+| Wind: indicative price, 10 years | 80.1 | **81.8** |
+
+The lesson: **the market's winter premium hurts solar and helps wind.** Solar produces in the
+cheaper Q2 and Q3, wind in the expensive winter. Item 3 of the plan, availability, turned out
+to be in the models already (solar losses 10% incl. availability; wind 12%: wake, availability,
+electrical); adding it again would have counted it twice. Grid curtailment is compensated in
+Germany (§13a EnWG), so it is a contract question, not a price one.
 
 ---
 

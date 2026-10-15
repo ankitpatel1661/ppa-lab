@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ppa_lab import __version__
-from ppa_lab.analysis.step07_report import SCALED_SHAPE
+from ppa_lab.analysis.step07_report import SCALED_SHAPE, trend_case
 from ppa_lab.config import Settings
 from ppa_lab.pricing.forwards import describe_forward
 
@@ -53,7 +53,9 @@ def _stack_table(results: dict) -> str:
     curve = results.get("forward_curve") or {}
     later = ("Later years: forward curve falls"
              if curve and min(curve.values()) < results["forward"]["price_eur_mwh"]
-             else "Later years: forward curve and trend")
+             else "Later years: forward curve")
+    if any(r["assumptions"]["capture_rate_drift"] for r in results["parks"].values()):
+        later += ", capture-rate trend"
     rows = [(f"Forward {start} (average of the scenarios)", "forward", ""),
             ("Shape: output falls in cheap hours", "shape", ""),
             (f"**= Fair price {start}**", "fair_price", "**"),
@@ -97,8 +99,7 @@ def memo_text(results: dict, settings: Settings) -> str:
     for name, label, sign in (("Analog days from the whole window",
                                f"Older days represent {start} (whole 2024-2026 window instead "
                                "of the last 12 months)", None),
-                              ("Capture rate +1 pp per year", "Capture-rate trend ±1 pp per year",
-                               "±"),
+                              (trend_case(0.01), "Capture-rate trend ±1 pp per year", "±"),
                               ("Forward +10%", "Forward curve ±10%", "±"),
                               (SCALED_SHAPE, "The capture rate stays as at the recent price level"
                                + (f" ({recent:.0f} EUR/MWh)" if recent else "")

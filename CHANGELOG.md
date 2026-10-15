@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] (ticket PPA-8c: the market's seasonal shape and a cannibalisation trend)
+
+### Changed
+- Quarterly calibration: `build_scenarios(..., quarter_forwards=...)` solves one level per
+  local quarter so that each quarter averages its forward; the targets are the Q1-Q4/27 quotes
+  of 14 Sep 2026 (`[price_model.quarter_quotes]`, validated against that day's Cal) scaled to
+  the Cal forward (`ppa_lab.pricing.forwards.quarter_forwards`), so the year still averages
+  140.21 EUR/MWh: Q1 185.3, Q2 117.7, Q3 124.3, Q4 134.3. Used in Steps 6-8 and the notebook.
+- Solar capture-rate trend −1 pp a year in the base case (`[ppa.parks.solar_park]`); the
+  sensitivities are named relative to the base ("1 pp/yr steeper", "flatter").
+- Results record the quarter forwards (`forward.quarters`); reports and memo describe them.
+- METHODOLOGY v1.2: sections 9 and 10; availability (already in the site models' losses) and
+  curtailment stated correctly in the limitations.
+
+### Findings
+- The market's winter premium hurts solar and helps wind: 2027 fair price solar 89.1 → 86.9,
+  wind 127.9 → 130.7 EUR/MWh.
+- Ten-year indicative price: solar 50.6 → 45.2 (38.0 at the recent level's capture rate),
+  wind 80.1 → 81.8 EUR/MWh.
+
 ## [1.1.0] (ticket PPA-8b: the forward is the market's)
 
 ### Changed

@@ -16,14 +16,15 @@ with their market, shape and volume risks.
 ## The answer
 
 > *For a 10-year pay-as-produced PPA (2027-2036) from a 50 MWp solar park in Lusatia, the
-> fair price before risk premia is **61.1 EUR/MWh** (first year: forward 141.0 × expected
-> capture rate 0.63 = 89.1; later years follow the falling forward curve). After a profile and
-> volume risk premium of 8.0 EUR/MWh and balancing and credit costs of 2.5 EUR/MWh, the
-> indicative price is **50.6 EUR/MWh**. Expected annual energy is 55.1 GWh (P50; one-year P90
-> 51.5 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 1.67 m
-> (merchant) to EUR 0.42 m per year.*
+> fair price before risk premia is **56.1 EUR/MWh** (first year: forward 141.0 × expected
+> capture rate 0.62 = 86.9; later years follow the falling forward curve and a capture rate that
+> falls 1 percentage point a year). After a profile and volume risk premium of 8.4 EUR/MWh and
+> balancing and credit costs of 2.5 EUR/MWh, the indicative price is **45.2 EUR/MWh**. Expected
+> annual energy is 55.1 GWh (P50; one-year P90 51.5 GWh). Under the PPA the producer's 95% cash
+> flow at risk falls from EUR 1.67 m (merchant) to EUR 0.41 m per year.*
 
-Forward: the EEX German Power Cal-27 base quote of 9 Oct 2026, **140.21 EUR/MWh**; later years
+Forward: the EEX German Power Cal-27 base quote of 9 Oct 2026, **140.21 EUR/MWh**, with each
+quarter at the market's seasonal shape (Q1 185, Q2 118, Q3 124, Q4 134 EUR/MWh); later years
 follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat). Version 1.0 used an
 illustrative 85 EUR/MWh; Step 8's market check showed the market far above it
 ([what changed](docs/learning_track/step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)).
@@ -33,26 +34,29 @@ illustrative 85 EUR/MWh; Step 8's market check showed the market far above it
 | EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
 |---|---|---|
 | Forward 2027 (scenario average) | 141.0 | 141.0 |
-| Fair pay-as-produced price 2027 | 89.1 | 127.9 |
-| Buyer's risk premium after a baseload hedge (without hedge) | 8.0 (28.5) | 4.4 (33.5) |
-| of which profile / volume | 7.7 / 0.3 | 1.1 / 3.4 |
-| Fair price, 10 years along the forward curve | 61.1 | 87.5 |
-| **Indicative price, 10 years** (after premium, balancing and credit costs) | **50.6** | **80.1** |
-| Producer's CFaR95 in 2027: merchant → pay-as-produced | EUR 1.67 m → 0.42 m | EUR 3.74 m → 1.15 m |
+| Fair pay-as-produced price 2027 | 86.9 | 130.7 |
+| Buyer's risk premium after a baseload hedge (without hedge) | 8.4 (28.6) | 4.7 (33.8) |
+| of which profile / volume | 7.7 / 0.7 | 1.2 / 3.5 |
+| Fair price, 10 years along the forward curve | 56.1 | 89.5 |
+| **Indicative price, 10 years** (after premium, balancing and credit costs) | **45.2** | **81.8** |
+| Producer's CFaR95 in 2027: merchant → pay-as-produced | EUR 1.67 m → 0.41 m | EUR 3.74 m → 1.18 m |
 
 - **The curve matters as much as the level:** 2027 trades at 141, but the discount- and
   energy-weighted forward over ten years is 97 EUR/MWh, so the ten-year price sits far below
   the first year's.
-- **Most of the buyer's risk is hedgeable:** a baseload forward removes 72-87% of it. Solar's
+- **The market's winter premium hurts solar and helps wind:** with each quarter at its market
+  price, solar's 2027 fair price falls from 89.1 to 86.9 EUR/MWh (it produces in the cheaper
+  Q2 and Q3) and wind's rises from 127.9 to 130.7.
+- **Most of the buyer's risk is hedgeable:** a baseload forward removes 71-86% of it. Solar's
   residual risk is profile, wind's is volume.
 - **Prices must see the weather:** simulated independently of it, the wind park would earn
-  almost the baseload price (fair price 143 instead of 129 EUR/MWh in Step 6).
+  almost the baseload price (fair price 145 instead of 131 EUR/MWh in Step 6).
 - **The biggest levers are the forward and the view on cannibalisation:** the forward curve
-  (±6.1 EUR/MWh for ±10%), whether the capture rate rises with the price level as the model
-  says (−7.5 if it stays at the recent level's), which historical days represent 2027 (+5.7
+  (±5.6 EUR/MWh for ±10%), whether the capture rate rises with the price level as the model
+  says (−7.2 if it stays at the recent level's), which historical days represent 2027 (+6.0
   with the whole 2024-2026 window), the capture-rate trend (±3.5 per pp per year).
 - **Hedging the unsold output:** Cal base futures for 83% (solar) and 91% (wind) of the average
-  output cut the merchant cash flow at risk by 78% and 68% (Step 8).
+  output cut the merchant cash flow at risk by 76% and 64% (Step 8).
 
 **Read more:** [one-page management memo](reports/step09_memo.md) ([PDF](reports/step09_memo.pdf))
 · [methodology](METHODOLOGY.md) · [Step 7 report](reports/step07_ppa_pricing.md) ·
@@ -69,9 +73,9 @@ illustrative 85 EUR/MWh; Step 8's market check showed the market far above it
 | 3 | How does each PPA structure move risk? | Pay-as-produced removes price surprise; baseload leaves shape risk | [report](reports/step03_ppa_structures.md) | [page](docs/learning_track/step03_ppa_structures.md) |
 | 4 | How much do our own parks produce? | Solar P50 1,102 kWh/kWp, wind 3,668 full-load hours, P90 −6 to −7% | [report](reports/step04_generation.md) | [page](docs/learning_track/step04_weather_to_power.md) |
 | 5 | Which price years are plausible? | Prices forget in about a day; validated against history | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
-| 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 143 → 129 EUR/MWh | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
-| 7 | What price, and how much risk is left? | 50.6 EUR/MWh indicative over ten years; CFaR −75% with the PPA | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
-| 8 | How much to sell forward, and is our forward right? | Cal base at 83% of output cuts merchant CFaR by 78% (solar); the forward is now the market's (Cal-27 140.21) | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
+| 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 145 → 131 EUR/MWh | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
+| 7 | What price, and how much risk is left? | 45.2 EUR/MWh indicative over ten years; CFaR −75% with the PPA | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
+| 8 | How much to sell forward, and is our forward right? | Cal base at 83% of output cuts merchant CFaR by 76% (solar); the forward is now the market's curve and seasonal shape | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
 | 9 | How do we tell management? | One-page memo and a dashboard with live assumptions | [memo](reports/step09_memo.md) | [page](docs/learning_track/step09_memo_dashboard.md) |
 
 Every step has tests, a report, a learning-track page, a notebook section and exercises.
@@ -80,7 +84,7 @@ Every step has tests, a report, a learning-track page, a notebook section and ex
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 235 offline tests, about 30 seconds
+make test      # 239 offline tests, about 30 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 make app       # the dashboard (reads the committed results; no download needed)
 ```
@@ -177,10 +181,10 @@ model's forward. Hedge ratio = MW sold / average output.
 | 2027, merchant output | Solar park (50 MWp) | Wind park (30 MW) |
 |---|---|---|
 | CFaR95, no hedge | EUR 1.67 m | EUR 3.74 m |
-| Cal base, 100% of average output | EUR 0.62 m | EUR 1.38 m |
-| **Cal base, minimum-variance** | **EUR 0.37 m** (5.2 MW, 83%) | **EUR 1.19 m** (11.4 MW, 91%) |
-| Months, minimum-variance | EUR 0.35 m | EUR 1.10 m |
-| PPA buyer's premium: full band → minimum-variance band | 8.04 → 4.76 EUR/MWh | 4.44 → 3.54 EUR/MWh |
+| Cal base, 100% of average output | EUR 0.63 m | EUR 1.46 m |
+| **Cal base, minimum-variance** | **EUR 0.40 m** (5.2 MW, 83%) | **EUR 1.34 m** (11.5 MW, 91%) |
+| Months, minimum-variance | EUR 0.36 m | EUR 1.18 m |
+| PPA buyer's premium: full band → minimum-variance band | 8.40 → 5.36 EUR/MWh | 4.72 → 3.98 EUR/MWh |
 
 - **One product does almost all the work:** Cal base at 83-91% of the average output.
   Monthly hedges from 496 scenarios mostly fit noise (some months even negative).
@@ -188,9 +192,9 @@ model's forward. Hedge ratio = MW sold / average output.
   the solar hedge earned EUR +0.76 m in 2024 and lost EUR 0.49 m in 2025.
 - **Market check, and a decision:** published Cal-27 base quotes rose from 104.24 EUR/MWh
   (31 Jul 2026) to 140.21 (9 Oct) against the 85 the model assumed. Since v1.1 the model's
-  forward is the market's, along the curve (Cal-28 104.75, Cal-29 87.58). The market's winter
-  is steeper than the model's (Q1-27 179.47 vs Q2-27 114.04 on 14 Sep): a quarterly curve is
-  the next step.
+  forward is the market's, along the curve (Cal-28 104.75, Cal-29 87.58), and since v1.2 each
+  quarter follows the market's seasonal shape (Q1-27 179.47 vs Q2-27 114.04 on 14 Sep, scaled
+  to the Cal level).
 
 Full report: [`reports/step08_hedging.md`](reports/step08_hedging.md).
 
@@ -201,17 +205,17 @@ are simulated **for** that weather: the daily level responds to solar, wind and 
 anomalies (a regression per season), and the hourly shape comes from historical days with
 similar weather (analog days).
 
-| 2027, Cal-27 forward 140.21 EUR/MWh | Solar park (50 MWp) | Wind park (30 MW) |
+| 2027, Cal-27 forward 140.21 EUR/MWh, market quarter shape | Solar park (50 MWp) | Wind park (30 MW) |
 |---|---|---|
-| Fair pay-as-produced price, prices independent of weather (Step 5) | 100.99 EUR/MWh | 142.84 EUR/MWh |
-| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **97.45 EUR/MWh** | **128.54 EUR/MWh** |
-| Capture rate 5/50/95%, linked | 0.63 / 0.69 / 0.73 | 0.89 / 0.91 / 0.93 |
+| Fair pay-as-produced price, prices independent of weather (Step 5) | 99.08 EUR/MWh | 145.43 EUR/MWh |
+| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **95.61 EUR/MWh** | **131.13 EUR/MWh** |
+| Capture rate 5/50/95%, linked | 0.61 / 0.68 / 0.73 | 0.90 / 0.93 / 0.96 |
 
 - **Ignoring the link is a gift to the seller:** 14 EUR/MWh (10%) for wind, 3.5 EUR/MWh for
   solar. Within a month, the correlation of wind with the daily price is −0.58 in history,
   −0.60 in the Step 6 model and 0.00 in the Step 5 model.
 - **The biggest open assumption** is which historical days represent 2027: with analogs from
-  the last 12 months only, the solar price drops from 97.4 to 89.1 EUR/MWh (deeper midday dips
+  the last 12 months only, the solar price drops from 95.6 to 86.9 EUR/MWh (deeper midday dips
   as solar capacity grows). Step 7 uses the last 12 months.
 - Capture rates are higher than in 2025 (solar 0.555) partly because of the level: in this
   model the capture rate rises with the price level (see the Step 8 update).
@@ -367,7 +371,8 @@ The full numbers, the data-quality report and four charts are in
 
 ## Status
 
-Version 1.1.0: Steps 1-9 are done, and the price level is the market's forward curve (v1.1).
-Candidates for a version 2 (a quarterly forward curve, constrained hedges, out-of-sample
-validation, site curtailment) are in the [backlog](docs/BACKLOG.md); see also the
+Version 1.2.0: Steps 1-9 are done; the price level is the market's forward curve (v1.1) with
+the market's seasonal shape and a solar cannibalisation trend (v1.2). Candidates for a version 2
+(capture rate vs price level on 2021-2022 data, a monthly curve, constrained hedges,
+out-of-sample validation) are in the [backlog](docs/BACKLOG.md); see also the
 [changelog](CHANGELOG.md).

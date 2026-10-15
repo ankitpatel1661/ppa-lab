@@ -63,6 +63,19 @@ def test_the_average_price_over_all_scenarios_is_the_forward(setup):
     assert build(setup).prices.mean() == pytest.approx(85.0, abs=1e-6)
 
 
+def test_quarterly_forwards_set_each_quarter_and_keep_the_annual_average(setup):
+    m, link = setup
+    targets = {1: 120.0, 2: 70.0, 3: 75.0, 4: 90.0}
+    s = build_scenarios(m["model"], link, m["generation"], m["features"], TZ, delivery_year=2027,
+                        weather_years=YEARS, paths_per_year=4, forward=85.0, seed=3,
+                        quarter_forwards=targets)
+    quarter = s.index.tz_convert(TZ).quarter.to_numpy()
+    for q, target in targets.items():
+        assert s.prices[:, quarter == q].mean() == pytest.approx(target, abs=1e-6)
+    hours = np.bincount(quarter)[1:]
+    assert s.prices.mean() == pytest.approx(np.dot(hours, list(targets.values())) / hours.sum())
+
+
 def test_the_weather_link_lowers_what_solar_and_wind_earn(setup):
     # In the synthetic market sunny days have deeper middays and windy days are cheaper:
     # pairing prices with the SAME weather year as the volumes must lower both capture rates.

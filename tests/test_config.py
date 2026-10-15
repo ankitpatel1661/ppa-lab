@@ -143,3 +143,13 @@ def test_the_forward_names_its_source_and_the_curve_covers_later_years(tmp_path)
     path.write_text(bad)
     with pytest.raises(ValueError, match="forward_curve"):
         load_settings(path)
+
+
+def test_quarter_quotes_are_complete_and_average_to_their_cal(tmp_path):
+    qq = load_settings().price_model.quarter_quotes
+    assert qq is not None and set(qq.quarters) == {1, 2, 3, 4} and qq.source.startswith("http")
+    bad = DEFAULT_CONFIG.read_text().replace("Q1 = 179.47", "Q1 = 150.00")
+    path = tmp_path / "bad.toml"
+    path.write_text(bad)
+    with pytest.raises(ValueError, match="quarter_quotes"):
+        load_settings(path)

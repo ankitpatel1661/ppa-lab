@@ -54,6 +54,19 @@ class Park:
 
 
 @dataclass(frozen=True)
+class QuarterQuotes:
+    """Quarter forwards of the delivery year quoted on one day, with that day's Cal (Step 6).
+
+    Used as the market's seasonal shape: each quarter's ratio to the annual price.
+    """
+
+    date: date
+    source: str                       # URL
+    cal_eur_mwh: float                # Cal base quote of the same day
+    quarters: dict[int, float]        # quarter 1-4 -> EUR/MWh
+
+
+@dataclass(frozen=True)
 class PriceModelSettings:
     """Calibration window and simulation settings of the stochastic price model (Step 5)."""
 
@@ -67,6 +80,7 @@ class PriceModelSettings:
     level_volatility: float
     forward_date: date | None = None  # trading day of the forward quote
     forward_source: str = ""          # where the quote was published (URL)
+    quarter_quotes: QuarterQuotes | None = None   # seasonal shape of the forward (Step 6)
 
 
 @dataclass(frozen=True)
@@ -167,6 +181,16 @@ class Settings:
         return max(applicable, key=lambda lim: lim.effective_from)
 
 
+def _price_model(raw: dict) -> PriceModelSettings:
+    values = {k: v for k, v in raw.items() if k != "quarter_quotes"}
+    q = raw.get("quarter_quotes")
+    if q is not None:
+        values["quarter_quotes"] = QuarterQuotes(
+            date=q["date"], source=q["source"], cal_eur_mwh=float(q["cal_eur_mwh"]),
+            quarters={int(k[1]): float(v) for k, v in q.items() if k in ("Q1", "Q2", "Q3", "Q4")})
+    return PriceModelSettings(**values)
+
+
 def _ppa(raw: dict) -> PpaSettings:
     parks = {name: PpaParkSettings(**values) for name, values in raw.get("parks", {}).items()}
     curve = {int(year): float(price) for year, price in raw.get("forward_curve", {}).items()}
@@ -225,7 +249,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         weather_base_url=weather.get("base_url", "https://archive-api.open-meteo.com/v1"),
         weather_pause_s=float(weather.get("pause_s", 4.0)),
         weather_license=weather.get("license", ""),
-        price_model=PriceModelSettings(**raw["price_model"]) if "price_model" in raw else None,
+        price_model=_price_model(raw["price_model"]) if "price_model" in raw else None,
         scenarios=ScenarioSettings(**raw["scenarios"]) if "scenarios" in raw else None,
         ppa=_ppa(raw["ppa"]) if "ppa" in raw else None,
         hedging=_hedging(raw["hedging"]) if "hedging" in raw else None,
@@ -260,6 +284,15 @@ def _validate(s: Settings) -> None:
             raise ValueError("price_model calibration window must lie inside market.start..end")
         if pm.delivery_year <= pm.calibration_end.year:
             raise ValueError("price_model.delivery_year must come after the calibration window")
+        qq = pm.quarter_quotes
+        if qq is not None:
+            if set(qq.quarters) != {1, 2, 3, 4} or min(qq.quarters.values()) <= 0:
+                raise ValueError("price_model.quarter_quotes needs positive Q1, Q2, Q3 and Q4")
+            hours = [2159, 2184, 2208, 2209]          # local quarter hours, roughly any year
+            mean = sum(h * qq.quarters[q] for q, h in zip((1, 2, 3, 4), hours, strict=True))
+            if abs(mean / sum(hours) / qq.cal_eur_mwh - 1.0) > 0.01:
+                raise ValueError("price_model.quarter_quotes do not average to their Cal quote "
+                                 "(quotes from different days?)")
     sc = s.scenarios
     if sc is not None:
         if pm is None:

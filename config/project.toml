@@ -57,6 +57,19 @@ forward_source = "https://www.tacto.ai/en/energy/electricity-price"
 # 140 EUR/MWh forward, one standard deviation is about 22 EUR/MWh on the level.
 level_volatility = 0.12
 
+[price_model.quarter_quotes]
+# The market's seasonal shape (Steps 6-8): EEX German Power Base Q1-Q4/27 with the Cal-27 base
+# quote of the same day (14 Sep 2026, power2market.com; the latest quarter quotes found).
+# Each quarter's forward = forward_eur_mwh x Q / (hour-weighted mean of Q1-Q4), so the year
+# still averages forward_eur_mwh. The quotes must average to cal_eur_mwh (same day).
+date = 2026-09-14
+source = "https://www.power2market.com/de/markets/de/termin"
+cal_eur_mwh = 135.80
+Q1 = 179.47
+Q2 = 114.04
+Q3 = 120.35
+Q4 = 130.09
+
 [scenarios]
 # Step 6: joint weather x price scenarios for [price_model].delivery_year
 # (src/ppa_lab/scenarios/). Each complete weather year gets the same number of price paths,
@@ -90,7 +103,11 @@ analog_pool_start = 2025-10-01
 [ppa.parks.solar_park]
 balancing_eur_mwh = 1.5           # balancing and route to market
 credit_eur_mwh = 1.0              # credit and liquidity
-capture_rate_drift = 0.0          # per year after 2027; sensitivities -0.02 to +0.01
+# Solar cannibalisation: the capture rate falls 1 percentage point a year after 2027. History
+# fell much faster (0.76 -> 0.59 -> 0.51 in 2023-2025, Step 2) while solar capacity grew;
+# batteries, flexible demand and curtailment at negative prices are expected to slow it.
+# An assumption, shown with +-1 and -2 pp per year in the Step 7 sensitivities.
+capture_rate_drift = -0.01
 degradation = 0.005               # PV module degradation, about 0.5 % per year
 
 [ppa.parks.wind_park]
