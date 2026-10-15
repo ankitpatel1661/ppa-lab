@@ -53,7 +53,12 @@ def baseload_revenue_per_mwh(
       1. Same selection as in Step 2: tz_convert(TZ), then .loc[str(year)].
       2. B is one number for the whole year; len(series) gives the number of hours.
     """
-    raise NotImplementedError("Exercise 1")
+    p = prices["price_eur_mwh"].tz_convert(TZ).loc[str(year)]
+    q = power[column].tz_convert(TZ).loc[str(year)]
+    B = q.sum() / len(q)
+    cash_h = strike * B + (q - B) * p
+    return float(cash_h.sum() / q.sum())
+
 
 
 # --------------------------------------------------------------------------- #
@@ -77,7 +82,13 @@ def floor_value_per_mwh(
       1. (floor - p).clip(lower=0) is max(floor - P, 0) for a whole Series.
       2. Try floor = 0 (protection against negative prices) and floor = 20.
     """
-    raise NotImplementedError("Exercise 2")
+
+    p = prices["price_eur_mwh"].tz_convert(TZ).loc[str(year)]
+    q = power[column].tz_convert(TZ).loc[str(year)]
+    payout_h = q * (floor - p).clip(lower=0)
+    return float(payout_h.sum() / q.sum())
+
+    
 
 
 # --------------------------------------------------------------------------- #
@@ -97,7 +108,11 @@ def breakeven_strike_with_clause(
     Compare the result with the plain capture price of the same year (Step 2): by how
     much does the clause raise the fair strike?
     """
-    raise NotImplementedError("Exercise 3")
+    p = prices["price_eur_mwh"].tz_convert(TZ).loc[str(year)]
+    q = power[column].tz_convert(TZ).loc[str(year)]
+    merchant = (q * p).sum()              # what the park earns at spot
+    paid_mwh = q[p >= 0].sum()            # MWh the buyer pays for under the clause
+    return float(merchant / paid_mwh)     # K * paid_mwh = merchant
 
 
 # --------------------------------------------------------------------------- #
@@ -112,7 +127,18 @@ def breakeven_strike_with_clause(
 #
 # Your answer:
 #
-#
+#Why the surprise differs: Both parks lost 10.81 EUR/MWh against selling at spot for the same reason:
+#  the price level. They fixed 78.51, but the 2025 base price was 89.32. 
+# The surprise against plan differs because of shape. 
+# Under a baseload PPA the producer still settles the gap between its output and the flat band at spot,
+#  so its capture rate stays its own risk. Solar's capture rate kept falling (0.59 → 0.51): 
+# it sold its midday surplus at very low prices and bought the band back in expensive evening and 
+# night hours, hence −11.34. Wind's shape held up better than planned, hence +1.92.
+
+#    What to offer solar instead: A solar park that wants protection against falling prices without 
+# taking on severe shape risk should be offered a Pay-as-Produced PPA with a fixed floor or a zero-cost 
+# collar, because it matches the generation profile of the solar asset rather than forcing a flat 
+# baseload delivery structure that requires buying expensive peak/winter replacement power. 
 
 
 if __name__ == "__main__":
