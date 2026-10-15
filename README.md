@@ -3,6 +3,7 @@
 [![CI](https://github.com/ankitpatel1661/ppa-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/ankitpatel1661/ppa-lab/actions/workflows/ci.yml)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Licence MIT](https://img.shields.io/badge/licence-MIT-green)
+[![Open the dashboard](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ppa-lab.streamlit.app)
 
 **What fixed price should a renewable producer offer an industrial buyer for ten years of
 solar or wind output, and how much risk is left in that deal?**
@@ -56,7 +57,8 @@ illustrative 85 EUR/MWh; Step 8's market check showed the market far above it
 **Read more:** [one-page management memo](reports/step09_memo.md) ([PDF](reports/step09_memo.pdf))
 · [methodology](METHODOLOGY.md) · [Step 7 report](reports/step07_ppa_pricing.md) ·
 [Step 8 hedging report](reports/step08_hedging.md) ·
-**try your own assumptions** in the dashboard (`make app`).
+**try your own assumptions** in the [live dashboard](https://ppa-lab.streamlit.app) (or locally:
+`make app`).
 
 ## How it works, in nine steps
 

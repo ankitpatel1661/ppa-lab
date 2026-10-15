@@ -211,6 +211,13 @@ make notebook              # Step 9 section: 9.1 to 9.3, then your solutions
 4. Copy the URL (for example `ppa-lab.streamlit.app`) into the README, your CV and the cover
    letter.
 
+**Done on 15 Oct 2026:** live at [ppa-lab.streamlit.app](https://ppa-lab.streamlit.app)
+(Python 3.11). Two things the first deployment taught: a Streamlit account opened with an
+e-mail address must first link GitHub (*Settings → Linked accounts → Sign in with GitHub*)
+before it can see your repositories, and the form guesses the main file path
+(`streamlit_app.py`): set `app/streamlit_app.py` yourself. Every push to `main` redeploys
+the app.
+
 ---
 
 ## 6. Results: what a reader sees
