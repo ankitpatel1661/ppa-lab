@@ -21,7 +21,7 @@ def test_step04_report_end_to_end(settings):
 
     text = out["report"].read_text()
     assert "P50" in text and "P90" in text
-    assert "Lusatia" in text and "North Frisia" in text
+    assert "Borrentin" in text and "Everswinkel" in text
     assert out["annual"].exists() and out["monthly"].exists()
     checks = text.split("## 3.")[1].split("## 4.")[0]
     assert "2024" in checks and "2025" in checks  # both complete overlap years are checked

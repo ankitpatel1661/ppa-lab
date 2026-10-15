@@ -18,6 +18,7 @@ that step is written.
 | PPA-8b | 8b | Anchor the price level to the market forward curve | **Done** (v1.1) |
 | PPA-8c | 8c | Quarterly forward curve (market winter premium); solar cannibalisation trend | **Done** (v1.2) |
 | PPA-8d | later | Capture rate vs price level on 2021-2022 (gas crisis) data | To do |
+| PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
 ## PPA-2: Capture prices and capture rates (Step 2)
@@ -164,6 +165,22 @@ rises with the level (0.48 at 85, 0.63 at 141), which history supports only for 
 - [x] Solar capture-rate trend in the base case (v1.2: −1 pp a year).
 - [ ] Test the capture rate vs level on more history (2021-2022 gas crisis) and decide
       between the arcsinh lift and the shape-factor view (moved to PPA-8d).
+
+## PPA-4b: Two Encavis parks instead of illustrative ones (v1.3)
+
+**Story:** As an applicant to Encavis I want the engine to price parks Encavis actually owns,
+so that the results speak to its portfolio.
+
+**Acceptance criteria**
+- [x] Ownership confirmed from Encavis press releases: Borrentin solar park (114 MW, grid
+      since December 2024, about 121 GWh a year, 10-year PPA with Allego) and Everswinkel wind
+      park (28.5 MW: 4 Nordex N149 + 1 N163, acquired December 2024, about 64 GWh a year, EEG).
+- [x] Sites, capacities and published yields in the configuration; layout details that are
+      not published (tilt, DC/AC ratio, hub height, turbine curve stand-in) stated as assumptions.
+- [x] ERA5 weather for both sites, Steps 3-9 re-run; site models checked against the
+      published yields.
+- [x] Framing: public data only; results are illustrative and say nothing about the parks'
+      actual contracts.
 
 ## PPA-2b: Wind capture prices vs official market values (open investigation)
 

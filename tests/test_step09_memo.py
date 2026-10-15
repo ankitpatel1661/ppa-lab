@@ -56,7 +56,7 @@ def test_memo_states_the_answer_and_publishes_the_results(settings):
 
     text = out["memo"].read_text()
     assert "Bottom line" in text and "32.5" in text and "40.0" in text   # indicative and fair
-    assert "2027-2036" in text and "Lusatia" in text
+    assert "2027-2036" in text and "Borrentin" in text
     assert "−86%" in text                                    # CFaR 1.4 m -> 0.2 m
     assert "6.0 EUR/MWh" in text                             # premium + credit vs merchant
     assert "25% of the solar output" in text                 # clause: 1 - 1.65 / 2.2

@@ -6,8 +6,10 @@
 > [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
 > since v1.2 the market's seasonal shape and a solar cannibalisation trend
 > ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. The methods and lessons are unchanged; current numbers
-> are in the reports and the README, and the exercise checks use the current data.
+> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
+> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
+> ones. The methods and lessons are unchanged; current numbers are in the reports and the
+> README, and the exercise checks use the current data.
 
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.

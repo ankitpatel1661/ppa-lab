@@ -90,3 +90,13 @@ def test_summarise_reports_revenue_surprise_and_worst_month():
     assert table.loc["pay_as_produced", "revenue_eur_m"] == pytest.approx(1.752)
     # Monthly revenue only varies with the number of hours in the month (28-31 days).
     assert table.loc["pay_as_produced", "worst_month_eur_k"] == pytest.approx(2 * 672 * 100 / 1e3)
+
+
+def test_site_energy_spreads_hourly_output_over_quarter_hours():
+    from ppa_lab.pricing.backtest import site_energy
+    hourly = pd.Series([4.0, 8.0], index=pd.date_range("2025-06-01 10:00", periods=2, freq="h",
+                                                        tz="UTC"))
+    grid = pd.date_range("2025-06-01 10:00", periods=8, freq="15min", tz="UTC")
+    energy = site_energy(hourly, grid)
+    assert energy.tolist() == [1.0] * 4 + [2.0] * 4           # MW x 0.25 h per quarter-hour
+    assert energy.sum() == 12.0                                # energy of the two hours kept

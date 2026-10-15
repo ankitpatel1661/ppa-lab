@@ -3,7 +3,8 @@
 > **Numbers on this page (update for v1.1).** Sections 1-4.5 were written with the
 > illustrative forward of 85 EUR/MWh (v1.0). The market check led to a decision: since v1.1 the
 > model uses the market forward curve (section 4.6), and since v1.2 the market's seasonal
-> shape and a solar cannibalisation trend (section 4.7); the current numbers are in
+> shape and a solar cannibalisation trend (section 4.7), and since v1.3 two Encavis parks
+> (Borrentin solar, Everswinkel wind) instead of illustrative ones; the current numbers are in
 > `reports/step08_hedging.md`. The methods and lessons are unchanged.
 
 > **Time needed:** about 4.5 hours. Concepts take 60 minutes, code tour and findings

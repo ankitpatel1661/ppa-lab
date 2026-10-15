@@ -105,6 +105,9 @@ def _yield_table(park: Park, annual: pd.Series) -> str:
                               f"{st['max'] / 1e3:,.1f} GWh ({st['max'] / st['mean'] - 1:+.1%})"),
         ("Linear trend", f"{trend['per_decade_pct']:+.1f}% per decade"),
     ]
+    published = park.full_load_hours * park.capacity_mw          # MWh, Step 3 assumption
+    rows.append(("Published expectation (Step 3 full-load hours)",
+                 f"{published / 1e3:,.1f} GWh; model P50 {st['p50'] / published - 1:+.1%}"))
     return pd.DataFrame(rows, columns=["", _title(park)]).to_markdown(index=False)
 
 

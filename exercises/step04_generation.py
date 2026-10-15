@@ -20,7 +20,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "data" / "processed"
 TZ = "Europe/Berlin"
-SOLAR_MWP, WIND_MW = 50.0, 30.0  # park capacities from config/project.toml
+SOLAR_MWP, WIND_MW = 114.0, 28.5  # park capacities from config/project.toml
 
 
 def load_generation(park: str) -> pd.DataFrame:
@@ -88,8 +88,8 @@ def portfolio_capture_rate(
 # --------------------------------------------------------------------------- #
 # Exercise 4 (written, no code): one year vs ten years
 # --------------------------------------------------------------------------- #
-# In the Step 4 report the solar park's one-year P90 is 6.4% below the mean, but the P90
-# of a 10-year AVERAGE is only 2.0% below it. Explain in 3-5 sentences why, which number
+# In the Step 4 report the solar park's one-year P90 is 5.9% below the mean, but the P90
+# of a 10-year AVERAGE is only 1.9% below it. Explain in 3-5 sentences why, which number
 # a lender would use to size debt for a 10-year PPA, and which assumption behind the
 # 10-year figure may be too optimistic (think about trends and years that are not
 # independent).

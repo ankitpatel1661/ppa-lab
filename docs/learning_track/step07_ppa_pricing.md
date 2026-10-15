@@ -6,8 +6,10 @@
 > [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
 > since v1.2 the market's seasonal shape and a solar cannibalisation trend
 > ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. The methods and lessons are unchanged; current numbers
-> are in the reports and the README, and the exercise checks use the current data.
+> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
+> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
+> ones. The methods and lessons are unchanged; current numbers are in the reports and the
+> README, and the exercise checks use the current data.
 
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
 > 45 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
@@ -338,7 +340,7 @@ changes the analog pool.
 <summary>Hints and solution sketches</summary>
 
 1. Linked rows, `K = rev.sum() / mwh.sum()`, PPA revenue `K * mwh`, `mean - quantile(0.05)`:
-   solar EUR 1.64 m vs 0.45 m with the v1.2 market forward (at 85: 1.38 vs 0.23; the file uses
+   solar EUR 3.74 m vs 0.85 m for the 114 MWp Borrentin park (v1.3; 50 MWp at 85: 1.38 vs 0.23; the file uses
    analog days from the whole window).
 2. Loop over the years; with a −1 pp drift and 0.5% degradation at 6%: 37.68 EUR/MWh.
 3. `buyer_value` by hand; the toy gives 28.61 without and 9.64 with the hedge.

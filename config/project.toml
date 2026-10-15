@@ -187,9 +187,11 @@ reports = "reports"
 reference = "data/reference"
 
 # -----------------------------------------------------------------------------
-# Step 3: PPA back-tests. Illustrative parks from the project brief (50 MW solar,
-# 30 MW onshore wind). They use the national generation profile of their technology,
-# scaled to capacity x full-load hours each year; Step 4 replaces this with site models.
+# Step 3: PPA back-tests. Since v1.3 the parks follow two Encavis parks as published in
+# Encavis press releases (public data only; not Encavis's own figures or contracts):
+# Borrentin solar (114 MWp) and Everswinkel wind (28.5 MW). Step 3 uses the national
+# generation profile of their technology, scaled to capacity x full-load hours each year;
+# Step 4 replaces this with site models.
 # A contract for delivery year Y is signed at Y-1's fair price (naive forward proxy).
 # -----------------------------------------------------------------------------
 [pricing]
@@ -200,32 +202,45 @@ floor_eur_mwh = 0.0
 
 [pricing.parks.solar_park]
 technology = "solar"
-capacity_mw = 50          # DC peak capacity (MWp)
-# German ground-mounted PV yields roughly 950-1,050 MWh per MWp and year.
-full_load_hours = 1000    # Step 3 back-test only (national profile scaled)
-# Step 4 site model (pvlib). A real location in a large German PV region.
-site = "Lusatia, Brandenburg"
-latitude = 51.75
-longitude = 14.25
-tilt_deg = 25             # fixed tilt, south-facing
+# Solar park Borrentin (Mecklenburgische Seenplatte), Encavis, grid-connected December 2024:
+# 114 MW, about 200,000 modules, about 121 GWh a year, 10-year PPA with Allego (Encavis press
+# release, 5 Dec 2024). Treated as 114 MWp DC; layout details are not published.
+capacity_mw = 114         # DC peak capacity (MWp)
+full_load_hours = 1061    # Step 3 back-test only: 121 GWh / 114 MWp (published expectation)
+# Step 4 site model (pvlib).
+site = "Borrentin, Mecklenburg-Western Pomerania"
+latitude = 53.81
+longitude = 12.98
+tilt_deg = 25             # fixed tilt, south-facing (assumed; not published)
 azimuth_deg = 180
-dc_ac_ratio = 1.2         # 50 MWp DC on 41.7 MW of inverters
-losses_pct = 10           # soiling, mismatch, wiring, availability (before the inverter)
+dc_ac_ratio = 1.2         # 114 MWp DC on 95 MW of inverters (assumed)
+# Calibrated so that the P50 matches the published ~121 GWh a year (the model gave 124.3 GWh
+# with 10 %): soiling, mismatch, wiring, availability plus site effects the model cannot see.
+# The level comes from the operator's yield expectation, the variability and hourly shape
+# from ERA5 (as a pricing desk would combine a yield assessment with reanalysis data).
+losses_pct = 12.4
 
 [pricing.parks.wind_park]
 technology = "wind_onshore"
-capacity_mw = 30
-# Onshore fleet average is below 2,000 h; modern turbines reach 2,500 h and more.
-full_load_hours = 2000    # Step 3 back-test only (national profile scaled)
-# Step 4 site model (windpowerlib). Windy inland North Frisia (near Viol), on LAND:
-# the ERA5 cell at 54.50 N 9.00 E has 0 m elevation (partly Wadden Sea) and gave
-# offshore-like winds (3,961 full-load hours); 0.25 deg inland: 30 m, 5 % less wind.
-site = "North Frisia, Schleswig-Holstein"
-latitude = 54.50
-longitude = 9.25
-turbine_type = "V126/3450"  # Vestas V126-3.45 MW power curve (windpowerlib library)
-hub_height_m = 137
-losses_pct = 12             # wake ~7 %, availability ~3 %, electrical ~2 %
+# Wind park Everswinkel (east of Muenster, NRW), acquired by Encavis in December 2024:
+# 28.5 MW = 4 Nordex N149 (5.7 MW, grid since August 2024) + 1 Nordex N163 (5.7 MW); about
+# 64 GWh a year; EEG tariff for 20 years (Encavis press release, 4 Dec 2024).
+capacity_mw = 28.5
+full_load_hours = 2246    # Step 3 back-test only: 64 GWh / 28.5 MW (published expectation)
+# Step 4 site model (windpowerlib).
+site = "Everswinkel, North Rhine-Westphalia"
+latitude = 51.93
+longitude = 7.84
+# The library has no Nordex N149/N163 curves. The Enercon E-126 EP4 4.2 MW curve has a
+# similar specific power (337 W/m2 vs 327 for the N149/5.7, 80 % of the park), scaled to
+# 28.5 MW. Hub height is not published: 164 m is the usual N149 height in Germany.
+turbine_type = "E-126/4200"
+hub_height_m = 164
+# Calibrated so that the P50 matches the published ~64 GWh a year: the model with 12 %
+# technical losses (wake ~7 %, availability ~3 %, electrical ~2 %) gave 76.5 GWh (+19.5 %).
+# The rest covers what a reanalysis model cannot see: sound-reduced night operation and bat
+# curtailment (common in NRW), the stand-in power curve and ERA5 winds extrapolated to 164 m.
+losses_pct = 26.4
 
 # -----------------------------------------------------------------------------
 # Published reference values we "tie out" against (reconciliation).

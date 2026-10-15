@@ -159,8 +159,8 @@ weather file.
 
 | Park | Site | Model (from `config/project.toml`) |
 |---|---|---|
-| `solar_park` | Lusatia, Brandenburg | pvlib: 50 MWp DC, fixed tilt 25° south, DC/AC 1.2 (41.7 MW AC), 10% losses, Faiman cell temperature, PVWatts DC/inverter |
-| `wind_park` | North Frisia, Schleswig-Holstein | windpowerlib: Vestas V126-3.45 power curve scaled to 30 MW, hub height 137 m (shear from 10/100 m), 12% losses |
+| `solar_park` | Borrentin, Mecklenburg-Western Pomerania (53.81 N, 12.98 E; Encavis park, 114 MW, published as about 121 GWh a year) | pvlib: 114 MWp DC, fixed tilt 25° south, DC/AC 1.2 (95 MW AC; layout assumed), 10% losses, Faiman cell temperature, PVWatts DC/inverter |
+| `wind_park` | Everswinkel, North Rhine-Westphalia (51.93 N, 7.84 E; Encavis park, 28.5 MW: 4 Nordex N149 + 1 N163, published as about 64 GWh a year) | windpowerlib: Enercon E-126 EP4 4.2 MW curve (stand-in for the N149, similar specific power) scaled to 28.5 MW, hub height 164 m (assumed; shear from 10/100 m), 12% losses |
 
 No grid curtailment, outages or degradation are modelled (potential output).
 
@@ -314,7 +314,7 @@ EUR/MWh; `discount_factors(times, valuation, rate)` returns one factor per times
 
 ### Back-test tables (`ppa_lab.pricing.backtest`)
 
-`backtest(prices, energy, tz, delivery_years, floor)` returns three tables:
+`park_energy(national_mw, capacity_mw, full_load_hours, tz, years)` scales a national profile to a park; `site_energy(generation_mw, grid)` puts a park's hourly Step 4 output on the price grid (each quarter-hour gets the hour's MW × 0.25 h). `backtest(prices, energy, tz, delivery_years, floor)` returns three tables:
 
 | Table | Index | Columns |
 |---|---|---|

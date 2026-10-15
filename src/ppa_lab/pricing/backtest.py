@@ -63,6 +63,16 @@ def _structures(p: pd.Series, q: pd.Series, k_pap: float, k_base: float, band_mw
     )
 
 
+def site_energy(generation_mw: pd.Series, grid: pd.DatetimeIndex) -> pd.Series:
+    """Energy (MWh per interval) of a park's hourly site output (Step 4) on another grid.
+
+    `generation_mw` is the mean MW of each hour (interval beginning, UTC); every interval of
+    `grid` (for example a quarter-hour) inside an hour gets that hour's MW times its length.
+    """
+    mw = generation_mw.sort_index().reindex(grid, method="ffill")
+    return (mw * interval_minutes(grid) / 60.0).rename("energy_mwh")
+
+
 def backtest(
     prices: pd.Series, energy: pd.Series, tz: str, delivery_years: list[int], floor: float
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:

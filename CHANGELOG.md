@@ -6,6 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] (ticket PPA-4b: two Encavis parks)
+
+### Changed
+- The parks are two Encavis parks, modelled from public data (Encavis press releases, ERA5,
+  public market data): Borrentin solar (114 MWp, Mecklenburg-Western Pomerania, about 121 GWh
+  a year, PPA with Allego) and Everswinkel wind (28.5 MW, NRW, 4 Nordex N149 + 1 N163, about
+  64 GWh a year, EEG). ERA5 weather downloaded for both sites (1995-2026).
+- Unpublished details are stated assumptions: tilt 25°, DC/AC 1.2; the Enercon E-126 EP4
+  curve as a stand-in for the Nordex N149 (similar specific power), hub height 164 m.
+- Losses calibrated so that the P50 matches the published yields (solar 10 → 12.4%, wind
+  12 → 26.4%: the physical models gave +2.8% and +19.5%); the Step 4 report shows the check.
+- Dashboard park labels; Step 3 full-load hours from the published yields; memo header states
+  that the results are no view on actual contracts.
+- Step 3 also back-tests each park's own Step 4 profile (`site_energy`, report section 2), so
+  every step from 3 to 9 is park-specific; Steps 1, 2 and 5 describe the German market (one
+  bidding zone, the same price for both parks) and are park-independent by design.
+- Notebook: site names and the turbine curve in the Step 4 cells come from the configuration.
+- README: Borrentin is contracted to Allego (10-year PPA from December 2024) and Everswinkel
+  is paid under the EEG, so the PPAs priced here are hypothetical.
+
+### Findings
+- Borrentin: 10-year indicative 44.7 EUR/MWh (fair 55.5; 37.5 at the recent level's capture
+  rate); the PPA cuts the 95% cash flow at risk from EUR 3.68 m to 0.77 m.
+- Everswinkel: 80.0 EUR/MWh; its wind moves the German price more than the North Frisian site
+  did (−11.3 EUR/MWh per +0.1 capacity factor, correlation −0.69 in 2025), so ignoring the
+  weather link overstates its fair price by 19 EUR/MWh.
+
 ## [1.2.0] (ticket PPA-8c: the market's seasonal shape and a cannibalisation trend)
 
 ### Changed

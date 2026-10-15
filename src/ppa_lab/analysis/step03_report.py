@@ -18,7 +18,13 @@ import pandas as pd
 from ppa_lab.analysis.capture import TECHNOLOGIES, prices_on_grid
 from ppa_lab.analysis.plotting import BLUE, GRID, INK, INK_2, YELLOW, save, style
 from ppa_lab.config import Park, Settings
-from ppa_lab.pricing.backtest import STRUCTURE_LABELS, backtest, park_energy, summarise
+from ppa_lab.pricing.backtest import (
+    STRUCTURE_LABELS,
+    backtest,
+    park_energy,
+    site_energy,
+    summarise,
+)
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +40,42 @@ def run_park(prices_grid: pd.Series, power: pd.DataFrame, park: Park, settings: 
     cash, strikes, plan = backtest(prices_grid, energy, settings.timezone,
                                    list(settings.delivery_years), settings.floor_eur_mwh)
     return energy, cash, strikes, summarise(cash, energy, settings.timezone, plan)
+
+
+def run_site(prices_grid: pd.Series, generation_mw: pd.Series, settings: Settings) -> pd.DataFrame:
+    """Back-test one park with its own Step 4 site profile instead of the national one."""
+    years = sorted({y for d in settings.delivery_years for y in (d - 1, d)})
+    energy = site_energy(generation_mw, prices_grid.index)
+    energy = energy[energy.index.tz_convert(settings.timezone).year.isin(years)].dropna()
+    cash, _, plan = backtest(prices_grid, energy, settings.timezone,
+                             list(settings.delivery_years), settings.floor_eur_mwh)
+    return summarise(cash, energy, settings.timezone, plan)
+
+
+def _site_table(sites: dict[str, pd.DataFrame], national: dict[str, tuple],
+                parks: tuple[Park, ...]) -> str:
+    """EUR/MWh per structure with each park's own profile, and merchant with the national one."""
+    rows = []
+    for park in parks:
+        if park.name not in sites:
+            continue
+        own, nat = sites[park.name], national[park.name][3]
+        for year in own.index.get_level_values("year").unique():
+            r = own.loc[year, "revenue_eur_per_mwh"]
+            surprise = own.loc[(year, "baseload"), "vs_plan_eur_per_mwh"]
+            national_merchant = nat.loc[(year, "merchant"), "revenue_eur_per_mwh"]
+            rows.append({
+                "Park": _park_label(park), "Year": year,
+                **{STRUCTURE_LABELS[s]: f"{r[s]:.2f}" for s in STRUCTURE_LABELS},
+                "Baseload surprise vs plan": f"{surprise:+.2f}",
+                "Merchant, national profile": f"{national_merchant:.2f}",
+            })
+    return pd.DataFrame(rows).to_markdown(index=False) if rows else ""
+
+
+def _park_label(park: Park) -> str:
+    name = park.name.replace("_", " ").title()
+    return f"{name} ({park.site.split(',')[0]})" if park.site else name
 
 
 # --------------------------------------------------------------------------- #
@@ -156,6 +198,23 @@ def write_step03_report(settings: Settings) -> dict[str, Path | None]:
     prices_grid = prices_on_grid(prices, power.index)
 
     results = {park.name: run_park(prices_grid, power, park, settings) for park in settings.parks}
+    sites = {}
+    for park in settings.parks:
+        path = proc / f"generation_{park.name}.parquet"
+        if path.exists():
+            sites[park.name] = run_site(prices_grid, pd.read_parquet(path)["mw"], settings)
+    site_text = _site_table(sites, results, settings.parks)
+    site_section = "" if not site_text else f"""## 2. With each park's own profile (Step 4)
+
+The same contracts, but each park produces its own modelled output (ERA5 weather at the site,
+Step 4) instead of the national profile: the park-specific back-test. Revenue per MWh:
+
+{site_text}
+
+The national profile is measured; the site profile is modelled but carries the park's own
+weather. Where the two merchant columns differ, the park's location matters for its value.
+
+"""
 
     fig_dir = settings.reports_dir / "figures"
     figs: dict[str, Path | None] = {
@@ -170,7 +229,7 @@ def write_step03_report(settings: Settings) -> dict[str, Path | None]:
     for park in settings.parks:
         _, _, strikes, summary = results[park.name]
         sections.append(
-            f"### {park.name.replace('_', ' ').title()}: {park.capacity_mw:.0f} MW "
+            f"### {_park_label(park)}: {park.capacity_mw:g} MW "
             f"{park.technology.replace('_', ' ')}, {park.full_load_hours:.0f} full-load hours\n\n"
             f"Strikes, fixed at the end of the previous year:\n\n{_strikes_table(strikes)}\n\n"
             f"Results:\n\n{_park_table(summary)}\n"
@@ -185,8 +244,9 @@ Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC by `ppa-lab ppa`.
 Data: {settings.energy_charts.license}.
 Delivery years: {", ".join(map(str, settings.delivery_years))}.
 
-**Set-up.** Each park uses the national generation profile of its technology, scaled to
-capacity x full-load hours in every year. A contract for delivery year Y is signed at the
+**Set-up.** Each park first uses the national generation profile of its technology, scaled to
+capacity x full-load hours in every year (measured data); section 2 repeats the back-test with
+each park's own modelled profile. A contract for delivery year Y is signed at the
 end of Y-1 at Y-1's fair price: the pay-as-produced strike is Y-1's capture price, the
 baseload strike Y-1's base price, and the band delivers the expected annual energy flat.
 That is a naive stand-in for forward prices. Cash flows are to the producer, per
@@ -200,11 +260,11 @@ the producer. The worst month shows liquidity: a baseload seller can have negati
 ## 1. Results per park
 
 {chr(10).join(sections)}
-## 2. What the numbers say
+{site_section}## {3 if site_section else 2}. What the numbers say (national profile)
 
 {findings}
 
-## 3. Charts
+## {4 if site_section else 3}. Charts
 
 ![Revenue per MWh by structure](figures/{figs["annual"].name})
 

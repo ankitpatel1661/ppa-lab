@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.2** (ticket PPA-8c): cash flows and fair prices of the standard structures,
+**Version 1.3** (ticket PPA-4b): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
@@ -12,6 +12,9 @@ the forward (PPA-8, section 11). Since version 1.1 the price level is the market
 base quote for the delivery year and the published Cal-28 and Cal-29 quotes for later years.
 Since version 1.2 each quarter of the delivery year follows the market's seasonal shape
 (section 9), and the solar park's capture rate falls 1 percentage point a year (section 10).
+Since version 1.3 the parks are two Encavis parks modelled from public data: Borrentin solar
+(114 MWp) and Everswinkel wind (28.5 MW), with losses calibrated to their published yields
+(section 7).
 
 ---
 
@@ -156,8 +159,11 @@ is section 10.
 
 Implemented in `pricing/backtest.py`; report `reports/step03_ppa_structures.md`.
 
-- **Parks:** 50 MW solar (1,000 full-load hours) and 30 MW onshore wind (2,000 h), using
-  the national profile of their technology, scaled per year to capacity × full-load hours.
+- **Parks:** since v1.3 Borrentin solar (114 MWp, 1,061 full-load hours) and Everswinkel
+  wind (28.5 MW, 2,246 h), from their published yields (v1.0: 50 MW / 1,000 h and 30 MW /
+  2,000 h), using the national profile of their technology, scaled per year to capacity ×
+  full-load hours. Since v1.3 the back-test is repeated with each park's own Step 4 profile
+  (hourly site output spread evenly over the quarter-hours, `site_energy`).
 - **Strike rule:** a contract for delivery year $Y$ is signed at the end of $Y-1$ at
   $Y-1$'s fair prices ($K$ = capture price, $K_B$ = base price, $B$ = expected energy
   delivered flat). Without forward data this is a naive forward proxy.
@@ -210,8 +216,14 @@ P90_{10y} = \mu - 1.2816\,\frac{\sigma}{\sqrt{10}},
 $$
 
 the last assuming independent years. Site models are checked against national generation of
-the same technology (hourly correlation, monthly shares, capture rate), because no official
-figure exists for an illustrative park.
+the same technology (hourly correlation, monthly shares, capture rate). **Calibration to the
+published yield (v1.3):** where the operator publishes an expected annual yield $E^{pub}$, the
+loss factor is set so that the P50 matches it, $1 - L = (1 - L_0)\,E^{pub}/P50_0$, with $L_0$
+the technical losses and $P50_0$ the uncalibrated model's P50. The level then comes from the
+operator's yield assessment (measured wind, exact turbines, curtailment plans) and the
+variability and hourly shape from ERA5, as a pricing desk would combine them. A uniform factor
+leaves capture rates and relative P90s unchanged; curtailment that hits specific hours (noise
+at night, bats on summer evenings) is not modelled.
 
 ---
 
@@ -455,7 +467,7 @@ sources and stand in for EEX settlement prices.
 |---|---|---|
 | National profile instead of a site profile (Step 3 back-test) | Smoother output, no site-specific volume risk | PPA-4 site models; back-test re-run later |
 | Hourly ERA5 at a ~0.25° grid point | Smooths gusts and local terrain; coastal cells mix land and sea | site chosen on land; v2: downscaling or measured data |
-| Site models include losses and availability (solar 10% incl. availability; wind 12%: wake ~7%, availability ~3%, electrical ~2%) and degradation in later years, but no grid curtailment | Redispatch in Schleswig-Holstein is heavy but compensated (§13a EnWG), so roughly revenue-neutral for the producer; a PPA must say who bears the undelivered volume | Contract clause; v2: curtailment data |
+| Site models include losses and availability (v1.3: calibrated to the published yields, solar 12.4%, wind 26.4% incl. curtailment the model cannot see) and degradation in later years, but no explicit grid curtailment; unpublished layout details (tilt, DC/AC, hub height, Nordex curve) are assumptions | Redispatch is heavy in northern Germany but compensated (§13a EnWG), so roughly revenue-neutral for the producer; a PPA must say who bears the undelivered volume | Contract clause; v2: curtailment data |
 | Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
 | Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5 (price model); PPA-8 compares with market quotes |
 | One history, no scenarios | No distribution, no risk premium | PPA-5 (price paths); PPA-6/PPA-7 (joint Monte Carlo, premia) |
@@ -499,3 +511,5 @@ sources and stand in for EEX settlement prices.
 - **v1.2, PPA-8c:** quarterly levels at the market's seasonal shape (section 9); a solar
   capture-rate trend of −1 pp a year in the base case (section 10); availability and
   curtailment stated correctly in the limitations.
+- **v1.3, PPA-4b:** two Encavis parks (Borrentin solar, Everswinkel wind) from public data;
+  losses calibrated to the published yields (section 7).

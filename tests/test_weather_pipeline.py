@@ -50,8 +50,11 @@ def test_build_generation_writes_hourly_output_per_park(weather_settings):
     for gen in (solar, wind):
         assert gen.index.to_series().diff().dropna().eq(pd.Timedelta(hours=1)).all()
         assert (gen["mw"] >= 0).all() and gen["mw"].notna().all()
-    assert solar["mw"].max() <= 50 / 1.2 + 1e-9
-    assert wind["mw"].max() <= 30 + 1e-9
+    parks = {p.name: p for p in weather_settings.parks}
+    solar_park = parks["solar_park"]
+    inverter_mw = solar_park.capacity_mw / solar_park.model["dc_ac_ratio"]
+    assert solar["mw"].max() <= inverter_mw + 1e-9                     # AC clipping
+    assert wind["mw"].max() <= parks["wind_park"].capacity_mw + 1e-9
     local_hour = solar.index.tz_convert("Europe/Berlin").hour
     assert solar["mw"][local_hour == 1].max() == 0.0  # no sun at 01:00 local
 

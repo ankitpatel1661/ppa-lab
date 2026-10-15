@@ -6,8 +6,10 @@
 > [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
 > since v1.2 the market's seasonal shape and a solar cannibalisation trend
 > ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. The methods and lessons are unchanged; current numbers
-> are in the reports and the README, and the exercise checks use the current data.
+> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
+> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
+> ones. The methods and lessons are unchanged; current numbers are in the reports and the
+> README, and the exercise checks use the current data.
 
 > **Time needed:** about 4 hours. Concepts take 45 minutes, code tour and findings
 > 30 minutes, hands-on, deployment and exercises 2 hours, to-dos 45 minutes.
@@ -168,8 +170,8 @@ alone, is what a CFO decides on.
 
 ### 4.2 A fair price wins only half the time
 
-At the fair strike the PPA earns more than merchant sales in **51%** of the scenarios (solar
-and wind alike, Exercise 2). "Fair" means no one wins on average; the PPA's value is the
+At the fair strike the PPA earns more than merchant sales in about **half** of the scenarios
+(solar 53%, wind 51% in v1.3; Exercise 2). "Fair" means no one wins on average; the PPA's value is the
 narrower spread, not a higher expectation. A memo that says "the PPA earns more" would be wrong.
 
 ### 4.3 NaN is not JSON

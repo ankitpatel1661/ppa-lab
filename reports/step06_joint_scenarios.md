@@ -1,6 +1,6 @@
 # Step 6 report: joint weather and price scenarios
 
-Generated 2026-10-15 08:38 UTC by `ppa-lab scenarios`.
+Generated 2026-10-15 14:09 UTC by `ppa-lab scenarios`.
 
 Data: CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE); ERA5 via Open-Meteo (CC BY 4.0 - Open-Meteo.com; contains modified Copernicus Climate Change Service information (ERA5)).
 
@@ -18,13 +18,13 @@ Response of the daily price level, in EUR/MWh at 140 EUR/MWh
 
 | Season   |   R² |   +0.1 solar CF |   +0.1 wind CF |   +1 °C |
 |:---------|-----:|----------------:|---------------:|--------:|
-| autumn   | 0.54 |            -0.6 |          -10.4 |    -0.6 |
-| spring   | 0.52 |           -14.7 |           -7.5 |    -0.4 |
-| summer   | 0.56 |            -9   |           -8   |     1.4 |
-| winter   | 0.44 |            -7.9 |           -7.1 |    -2.7 |
+| autumn   | 0.69 |            -0.8 |          -15.6 |    -1.2 |
+| spring   | 0.51 |           -13.8 |          -12.8 |    -1.6 |
+| summer   | 0.47 |            -7.3 |          -12.7 |     1.4 |
+| winter   | 0.64 |            -6.1 |          -12.3 |    -2.4 |
 
-What weather does not explain still reverts with phi = 0.456 per day (half-life
-0.88 days). Analog pool: 998 historical days.
+What weather does not explain still reverts with phi = 0.380 per day (half-life
+0.72 days). Analog pool: 998 historical days.
 
 ## 2. Validation with the real weather of the calibration window
 
@@ -35,28 +35,28 @@ simulated day (no peeking). Statistics with history inside the 5-95% range of th
 
 | Statistic                 | History   | Step 5 (independent) (inside?)   | Step 6 (linked) (inside?)   |
 |:--------------------------|:----------|:---------------------------------|:----------------------------|
-| Mean (EUR/MWh)            | 90.4      | 90.6 (yes)                       | 91.4 (yes)                  |
-| Standard deviation        | 57.6      | 56.0 (yes)                       | 57.2 (yes)                  |
-| 1% quantile               | -20.1     | -41.4 (no)                       | -43.3 (no)                  |
-| 5% quantile               | -0.1      | 0.9 (yes)                        | -0.4 (yes)                  |
-| Median                    | 91.4      | 90.4 (yes)                       | 92.1 (yes)                  |
-| 95% quantile              | 173.7     | 176.4 (yes)                      | 178.3 (no)                  |
-| 99% quantile              | 246.8     | 242.5 (yes)                      | 245.7 (yes)                 |
-| Share of negative hours   | 6.2%      | 4.9% (no)                        | 5.1% (no)                   |
-| Autocorrelation, 1 hour   | 0.921     | 0.914 (no)                       | 0.916 (no)                  |
-| Autocorrelation, 24 hours | 0.700     | 0.593 (no)                       | 0.621 (no)                  |
-| Autocorrelation, 1 week   | 0.548     | 0.517 (yes)                      | 0.536 (yes)                 |
+| Mean (EUR/MWh)            | 90.4      | 90.6 (yes)                       | 90.1 (yes)                  |
+| Standard deviation        | 57.6      | 56.0 (yes)                       | 56.5 (yes)                  |
+| 1% quantile               | -20.1     | -41.4 (no)                       | -45.2 (no)                  |
+| 5% quantile               | -0.1      | 0.9 (yes)                        | -3.0 (no)                   |
+| Median                    | 91.4      | 90.4 (yes)                       | 91.7 (yes)                  |
+| 95% quantile              | 173.7     | 176.4 (yes)                      | 175.2 (yes)                 |
+| 99% quantile              | 246.8     | 242.5 (yes)                      | 239.6 (yes)                 |
+| Share of negative hours   | 6.2%      | 4.9% (no)                        | 5.6% (no)                   |
+| Autocorrelation, 1 hour   | 0.921     | 0.914 (no)                       | 0.917 (no)                  |
+| Autocorrelation, 24 hours | 0.700     | 0.593 (no)                       | 0.626 (no)                  |
+| Autocorrelation, 1 week   | 0.548     | 0.517 (yes)                      | 0.541 (yes)                 |
 
 Capture rates of the parks in each complete year (median and 5-95% over paths):
 
 |   Year | Park       |   History | Step 5 (independent)   | Step 6 (linked)     |
 |-------:|:-----------|----------:|:-----------------------|:--------------------|
-|   2024 | Solar park |     0.622 | 0.572 (0.530-0.607)    | 0.542 (0.513-0.568) |
-|   2024 | Wind park  |     0.827 | 1.000 (0.978-1.023)    | 0.865 (0.845-0.883) |
-|   2025 | Solar park |     0.555 | 0.617 (0.585-0.646)    | 0.575 (0.548-0.599) |
-|   2025 | Wind park  |     0.881 | 1.021 (0.998-1.040)    | 0.893 (0.875-0.911) |
+|   2024 | Solar park |     0.601 | 0.554 (0.511-0.594)    | 0.498 (0.466-0.531) |
+|   2024 | Wind park  |     0.818 | 1.012 (0.983-1.045)    | 0.849 (0.830-0.867) |
+|   2025 | Solar park |     0.542 | 0.598 (0.565-0.628)    | 0.546 (0.519-0.573) |
+|   2025 | Wind park  |     0.855 | 1.039 (1.012-1.066)    | 0.874 (0.858-0.888) |
 
-History outside the Step 6 range: solar park 2024 (0.622 vs 0.513-0.568), wind park 2024 (0.827 vs 0.845-0.883).
+History outside the Step 6 range: solar park 2024 (0.601 vs 0.466-0.531), wind park 2024 (0.818 vs 0.830-0.867), wind park 2025 (0.855 vs 0.858-0.888).
 
 ## 3. Delivery year 2027: 496 scenarios
 
@@ -67,17 +67,17 @@ History outside the Step 6 range: solar park 2024 (0.622 vs 0.513-0.568), wind p
 
 | Park       | Prices      |   Fair PaP price (EUR/MWh) | Capture rate 5/50/95%   | Revenue P10/P50/P90 (EUR m)   |   Corr(energy, baseload price) |
 |:-----------|:------------|---------------------------:|:------------------------|:------------------------------|-------------------------------:|
-| Solar park | independent |                      99.08 | 0.645 / 0.702 / 0.746   | 4.11 / 5.42 / 6.86            |                           0    |
-| Solar park | linked      |                      95.61 | 0.612 / 0.678 / 0.725   | 3.88 / 5.21 / 6.70            |                          -0.03 |
-| Wind park  | independent |                     145.43 | 1.005 / 1.029 / 1.064   | 12.64 / 15.95 / 19.58         |                           0.01 |
-| Wind park  | linked      |                     131.13 | 0.901 / 0.930 / 0.961   | 11.37 / 14.30 / 17.80         |                          -0.13 |
+| Solar park | independent |                      97.64 | 0.633 / 0.692 / 0.737   | 8.77 / 11.65 / 14.90          |                           0.01 |
+| Solar park | linked      |                      94.45 | 0.606 / 0.668 / 0.716   | 8.47 / 11.31 / 14.61          |                           0.02 |
+| Wind park  | independent |                     148.31 | 1.016 / 1.051 / 1.092   | 7.45 / 9.41 / 11.67           |                          -0.01 |
+| Wind park  | linked      |                     129.46 | 0.874 / 0.922 / 0.953   | 6.51 / 8.19 / 10.27           |                          -0.15 |
 
 - Ignoring the weather link overstates the fair pay-as-produced price by
-  3.47 EUR/MWh (solar park) and 14.30 EUR/MWh (wind park).
+  3.20 EUR/MWh (solar park) and 18.84 EUR/MWh (wind park).
 - Monte Carlo standard error of the linked fair prices:
-  solar park 0.88 EUR/MWh, wind park 0.99 EUR/MWh.
+  solar park 0.88 EUR/MWh, wind park 1.00 EUR/MWh.
 - Does the latest historical capture rate fall inside the linked range?
-  Solar park: 2025 history 0.555, linked 5-95% 0.612 to 0.725 (outside); Wind park: 2025 history 0.881, linked 5-95% 0.901 to 0.961 (outside). The comparison mixes in the price level: 2027 is simulated at 140 EUR/MWh, 2025 averaged 89, and in this model the capture rate rises with the level (Step 7 shows the sensitivity); the validation above is the test.
+  Solar park: 2025 history 0.542, linked 5-95% 0.606 to 0.716 (outside); Wind park: 2025 history 0.855, linked 5-95% 0.874 to 0.953 (outside). The comparison mixes in the price level: 2027 is simulated at 140 EUR/MWh, 2025 averaged 89, and in this model the capture rate rises with the level (Step 7 shows the sensitivity); the validation above is the test.
 
 Per-scenario results: `data/processed/scenarios_2027.parquet` (input for Step 7).
 
@@ -89,9 +89,9 @@ calibration window (as in the validation).
 
 | Analog days from            |   Days in pool |   Solar park: fair price |   Solar park: median capture rate |   Wind park: fair price |   Wind park: median capture rate |
 |:----------------------------|---------------:|-------------------------:|----------------------------------:|------------------------:|---------------------------------:|
-| 2024-01-01 (whole window)   |            998 |                    95.61 |                             0.678 |                  131.13 |                            0.93  |
-| 2025-01-01 (2025 onward)    |            635 |                    91.07 |                             0.645 |                  131.15 |                            0.93  |
-| 2025-10-01 (last 12 months) |            363 |                    86.9  |                             0.615 |                  130.74 |                            0.927 |
+| 2024-01-01 (whole window)   |            998 |                    94.45 |                             0.668 |                  129.46 |                            0.922 |
+| 2025-01-01 (2025 onward)    |            635 |                    89.65 |                             0.635 |                  129.69 |                            0.925 |
+| 2025-10-01 (last 12 months) |            363 |                    86    |                             0.609 |                  129.34 |                            0.922 |
 
 ## 4. Charts
 

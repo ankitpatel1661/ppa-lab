@@ -30,8 +30,8 @@ from ppa_lab.pricing.forwards import describe_forward  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "https://github.com/ankitpatel1661/ppa-lab/blob/main"
-PARKS = {"Solar park · Lusatia · 50 MWp": "solar_park",
-         "Wind park · North Frisia · 30 MW": "wind_park"}
+PARKS = {"Solar park · Borrentin · 114 MWp": "solar_park",
+         "Wind park · Everswinkel · 28.5 MW": "wind_park"}
 BLUE, ORANGE, GREEN, INK = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b"
 
 st.set_page_config(page_title="ppa-lab · PPA price and risk", page_icon="⚡", layout="wide")

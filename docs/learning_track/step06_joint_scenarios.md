@@ -6,8 +6,10 @@
 > [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
 > since v1.2 the market's seasonal shape and a solar cannibalisation trend
 > ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. The methods and lessons are unchanged; current numbers
-> are in the reports and the README, and the exercise checks use the current data.
+> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
+> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
+> ones. The methods and lessons are unchanged; current numbers are in the reports and the
+> README, and the exercise checks use the current data.
 
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
@@ -433,16 +435,16 @@ the wind one is far outside the independent range.
 <details>
 <summary>Hints and solution sketches</summary>
 
-1. Daily means of `price_eur_mwh` and `mw / 30`, `groupby(index.month).transform("mean")` to
-   take out each month, then `sum(w * p) / sum(w ** 2)`. 2025: −6.64 EUR/MWh per +0.1 CF,
-   correlation −0.579 (2024: −7.57 and −0.590). The link's seasonal responses (−5.6 to −8.3)
-   are in the same range.
+1. Daily means of `price_eur_mwh` and `mw / 28.5`, `groupby(index.month).transform("mean")` to
+   take out each month, then `sum(w * p) / sum(w ** 2)`. 2025: −11.34 EUR/MWh per +0.1 CF,
+   correlation −0.694 (2024: −11.78 and −0.621), for the Everswinkel park (v1.3). The link's
+   seasonal responses (−12.3 to −15.6, at the 140 EUR/MWh forward level) are consistent.
 2. Filter by circular day-of-year gap ≤ 30, drop |days| < `exclude`, scale by the column
    standard deviations over all rows, sum squares, sort stably. Without exclusion the first
-   analog is 15 June 2025 itself; with `exclude=8` the first is 26 June 2024.
-3. `groupby("prices")` and Σ revenue / Σ MWh: solar 99.08 → 95.61, wind 145.43 → 131.13 with
-   the market forward curve and seasonal shape of v1.2 (at 85: 51.76 → 48.66 and 87.00 → 75.35).
-   The mean of the capture prices gives 95.66 and 131.25: years with more energy count more in the fair price, and for
+   analog is 15 June 2025 itself; with `exclude=8` the first is 3 July 2025.
+3. `groupby("prices")` and Σ revenue / Σ MWh: solar 97.64 → 94.45, wind 148.31 → 129.46 for
+   the Encavis parks at the market forward curve and seasons (v1.3; illustrative parks at 85:
+   51.76 → 48.66 and 87.00 → 75.35). The mean of the capture prices gives 94.45 and 129.74: years with more energy count more in the fair price, and for
    wind those are the cheaper years.
 4. Cov(q, P) < 0 for wind: windy hours are cheap, so an independent model pays every MWh the
    average price (capture rate about 1.0 instead of 0.88). For solar Step 5 already knew the

@@ -1,5 +1,12 @@
 # Step 3: PPA structures and pricing maths (ticket PPA-3)
 
+> **Sites and numbers on this page (update for v1.3).** This page was written for two
+> illustrative parks (a 50 MWp solar park in Lusatia, a 30 MW wind park in North Frisia).
+> Since v1.3 the project models two Encavis parks from public data: the Borrentin solar park
+> (114 MWp, Mecklenburg-Western Pomerania) and the Everswinkel wind park (28.5 MW, North
+> Rhine-Westphalia). The methods and lessons are unchanged; current numbers are in the
+> reports and the README, and the exercise checks use the current data.
+
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.
 > **You will be able to:** write down the cash flows of every common PPA structure,

@@ -20,7 +20,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "data" / "processed"
 TZ = "Europe/Berlin"
-SOLAR_MWP, WIND_MW = 50.0, 30.0  # park capacities from config/project.toml
+SOLAR_MWP, WIND_MW = 114.0, 28.5  # park capacities from config/project.toml
 
 
 def load(name: str) -> pd.DataFrame:
@@ -50,7 +50,7 @@ def wind_price_response(prices: pd.DataFrame, wind: pd.DataFrame, year: int) -> 
     """Slope and correlation of the daily price on the wind park's daily capacity factor.
 
     1. For every local day of `year`: the mean price and the wind park's capacity factor
-       (mean MW / 30 MW).
+       (mean MW / 28.5 MW).
     2. Subtract each month's mean from both (so the season and the gas price drop out).
     3. slope = sum(w * p) / sum(w^2) on these anomalies (EUR/MWh per unit of capacity factor);
        return it per 0.1 capacity factor, and the correlation of the two anomaly series.
@@ -94,10 +94,10 @@ def fair_prices(table: pd.DataFrame) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 # Exercise 4 (written, no code): the colleague's wind offer
 # --------------------------------------------------------------------------- #
-# A colleague prices the 30 MW wind park's 2027 pay-as-produced PPA with the Step 5 model
-# (prices independent of the weather) and offers 145 EUR/MWh. The Step 6 scenarios say 131.
-# In 3-5 sentences: why is 145 too generous, why is the solar error smaller in the Step 6
-# report (about 3.5 EUR/MWh), and why might the true solar error still be larger (look at the
+# A colleague prices the 28.5 MW wind park's 2027 pay-as-produced PPA with the Step 5 model
+# (prices independent of the weather) and offers 148 EUR/MWh. The Step 6 scenarios say 129.
+# In 3-5 sentences: why is 148 too generous, why is the solar error smaller in the Step 6
+# report (about 3 EUR/MWh), and why might the true solar error still be larger (look at the
 # sensitivity table: which historical days represent 2027?)?
 #
 # Your answer:

@@ -148,8 +148,8 @@ def memo_text(results: dict, settings: Settings) -> str:
     mwp = parks["solar_park"].capacity_mw if "solar_park" in parks else 50
     return f"""# Indicative price for a {years}-year solar PPA ({site.split(',')[0]}, {mwp:g} MWp)
 
-<p class="meta">Memo · {datetime.now(UTC):%d %b %Y} · ppa-lab {__version__} · illustrative analysis
-from public data, not an offer · details: reports/step07_ppa_pricing.md</p>
+<p class="meta">Memo · {datetime.now(UTC):%d %b %Y} · ppa-lab {__version__} · illustrative, from
+public data: not an offer, no view on actual contracts · details: Step 7 report</p>
 
 **Bottom line.** For a {years}-year pay-as-produced PPA ({span}) the negotiation range is
 **{base_ind:.1f} to {solar['tenor']['fair_price']:.1f} EUR/MWh**: from the

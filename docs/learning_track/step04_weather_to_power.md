@@ -1,5 +1,12 @@
 # Step 4: Weather to power (ticket PPA-4)
 
+> **Sites and numbers on this page (update for v1.3).** This page was written for two
+> illustrative parks (a 50 MWp solar park in Lusatia, a 30 MW wind park in North Frisia).
+> Since v1.3 the project models two Encavis parks from public data: the Borrentin solar park
+> (114 MWp, Mecklenburg-Western Pomerania) and the Everswinkel wind park (28.5 MW, North
+> Rhine-Westphalia). The methods and lessons are unchanged; current numbers are in the
+> reports and the README, and the exercise checks use the current data.
+
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.
 > **You will be able to:** explain where long-term weather data comes from, turn
@@ -392,8 +399,9 @@ both sites) and 4.6 (site vs national).
 <details>
 <summary>Hints and solution sketches</summary>
 
-1. `generation["mw"].tz_convert(TZ).loc["2024"].sum() / capacity`: about 1,141 kWh/kWp for
-   solar and 3,692 hours for wind in 2024.
+1. `generation["mw"].tz_convert(TZ).loc["2024"].sum() / capacity`: about 1,058 kWh/kWp for
+   solar and 2,267 hours for wind in 2024 (Borrentin and Everswinkel, v1.3; the illustrative
+   parks of v1.0 gave 1,141 and 3,692).
 2. `annual.median()` and `annual.mean() - 1.2816 * annual.std(ddof=1)`.
 3. Add the two `mw` Series, align with prices on common hours, then capture / mean price.
 4. Averages of independent years have a standard deviation σ/√n. Lenders of a 10-year
