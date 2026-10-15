@@ -73,13 +73,15 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
                alternative_fair: float | None = None,
                curve: dict[int, float] | None = None,
                response: dict | None = None,
-               history: dict[str, dict] | None = None) -> list[dict]:
+               history: dict[str, dict] | None = None,
+               capture_error: float | None = None) -> list[dict]:
     """The tenor price under the base assumptions and the sensitivities.
 
     `curve` gives the forwards of later contract years (see `tenor_price`); the forward
     sensitivities shift the whole curve. `response` is the capture rate by price level (see
     `level_shift`): the capture rate moves with each year's forward and with the forward
     sensitivities. `history` maps a case name to another response, used for the first year too.
+    `capture_error`: the model's out-of-sample capture-rate error (Step 6), taken off every year.
     """
     stack = priced["stack"]
     deductions = stack["risk_premium"] + stack["balancing"] + stack["credit"]
@@ -105,9 +107,12 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
         rows.append(row("Analog days from the whole window", alternative_fair, f, d))
     for label, levels in (history or {}).items():
         rows.append(row(label, f * capture_rate_at(levels, f), f, d, levels=levels))
+    if capture_error is not None:
+        rows.append(row(OUT_OF_SAMPLE, f * (k / f - capture_error), f, d))
     return rows
 
 
+OUT_OF_SAMPLE = "Capture rate less the model's out-of-sample error"
 LEVEL_LOW = "Capture rate vs price level: low end of history"
 LEVEL_HIGH = "Capture rate vs price level: high end of history"
 TECH_COLUMNS = {"solar": "solar_mw", "wind": "wind_onshore_mw"}
@@ -219,7 +224,7 @@ def scenario_set(settings: Settings, inputs: dict, pool_start: pd.Timestamp) -> 
     history = calibration_history(settings)
     years = complete_weather_years(inputs["matrices"], settings.weather_first_year,
                                    sc.weather_last_year)
-    model = fit(history, tz, pm.scale_eur_mwh)
+    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh)
     features = inputs["features"]
     link = fit_link(model, history, features, monthly_climatology(features, years[0], years[-1]),
                     tz, sc.analog_window_days, sc.analog_k)
@@ -513,6 +518,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     techs = {p.name: ("solar" if p is solar else "wind") for p in (solar, wind)}
     f0 = float(base.prices.mean())
     low = min([pm.forward_eur_mwh, *ppa.forward_curve.values()])
+    check_path = settings.processed_dir / "out_of_sample.json"
+    check = json.loads(check_path.read_text()) if check_path.exists() else None
 
     priced, tenors, results, effects = {}, {}, {}, {}
     end_year = ppa.start_year + ppa.tenor_years - 1
@@ -536,8 +543,11 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         history = None if reg is None else {
             label: line_response(response["level"], e["ref_level"], e["ref_rate"], reg[end])
             for label, end in ((LEVEL_LOW, "ci_low"), (LEVEL_HIGH, "ci_high"))}
+        error = check["bias"][park]["capture_rate"] if check and park in check["bias"] else None
+        e["out_of_sample_error"] = error
         tenors[park] = tenor_rows(priced[park], cost, ppa.start_year, ppa.tenor_years,
-                                  ppa.discount_rate, alt, ppa.forward_curve, response, history)
+                                  ppa.discount_rate, alt, ppa.forward_curve, response, history,
+                                  error)
         stack = priced[park]["stack"]
         e["tenor_fair_without_level_effect"] = tenor_price(
             stack["fair_price"], stack["forward"], priced[park]["energy_mwh"], ppa.start_year,
@@ -623,14 +633,23 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
                        for p in names)
     lead_e = effects[lead]
     level_note = (
-        f"\nEach year's capture rate moves with that year's forward along the model's own "
-        f"response to the price level (section 5), on top of the trend. The last two rows use "
-        f"history's 95% interval for that slope instead, from the recent level "
-        f"({lead_e['ref_level']:.0f} EUR/MWh): a flatter slope gives a lower capture rate at the "
-        f"high {ppa.start_year} forward but a higher one once the curve falls below the recent "
-        f"level.\n" if lead_e["history"] is not None else
         "\nEach year's capture rate moves with that year's forward along the model's own "
-        "response to the price level (section 5), on top of the trend.\n")
+        "response to the price level (section 5), on top of the trend.")
+    if lead_e["history"] is not None:
+        level_note += (
+            " The two rows on the capture rate vs price level use history's 95% interval for "
+            f"that slope instead, from the recent level ({lead_e['ref_level']:.0f} EUR/MWh): a "
+            f"flatter slope gives a lower capture rate at the high {ppa.start_year} forward but a "
+            "higher one once the curve falls below the recent level.")
+    if lead_e.get("out_of_sample_error") is not None:
+        errors = ", ".join(f"{names[p].lower()} {effects[p]['out_of_sample_error']:+.3f}"
+                           for p in names if effects[p].get("out_of_sample_error") is not None)
+        level_note += (
+            " The last row takes the model's average out-of-sample capture-rate error in "
+            f"{check['years'][0]['year']}-{check['years'][-1]['year']} off every year ({errors}; "
+            "Step 6, section 4): fitted on the years before, the model overstated capture rates "
+            "in every year, because the midday dips deepen as solar capacity grows.")
+    level_note += "\n"
     without = ", ".join(f"{names[p].lower()} {effects[p]['tenor_fair_without_level_effect']:.1f}"
                         for p in names)
     level_section = (

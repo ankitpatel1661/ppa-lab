@@ -19,7 +19,8 @@ that step is written.
 | PPA-8c | 8c | Quarterly forward curve (market winter premium); solar cannibalisation trend | **Done** (v1.2) |
 | PPA-1b | 1b | History from 2021: the 2022 gas crisis in Steps 1-2 | **Done** (v1.4) |
 | PPA-8d | 8d | Capture rate vs price level: test on history, move later years' capture rates | **Done** (v1.5) |
-| PPA-8e | later | Solar capture-rate trend from build-out scenarios instead of −1 pp a year | To do |
+| PPA-6b | 6b | Out-of-sample test of the joint model; negative prices with their own scale | **Done** (v1.6) |
+| PPA-8e | next | Capture rates that follow the build-out (out-of-sample solar error +0.12) | To do |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
@@ -188,7 +189,32 @@ because the forward curve falls from 140 (2027) to 88 EUR/MWh (2029+) over the t
 - [x] History's 95% range as a Step 7 sensitivity (replaces the shape-factor row); report
       section 5 with the chart; memo lever; METHODOLOGY section 10.
 
-## PPA-8e: Solar capture-rate trend from build-out (open)
+## PPA-6b: Years the model never saw, and the negative tail (v1.6)
+
+**Story:** As a pricing analyst I want to know how the model does on years it was not fitted
+on, and I want its negative prices to look like history's, because the negative-price clause
+and curtailment (roadmap item 4) live in that tail.
+
+**Acceptance criteria**
+- [x] Walk-forward test for 2024, 2025 and 2026: fitted from 2023 up to each year, analog
+      days from its last 12 months, real weather, each quarter at its realised average price;
+      the same with the year seen, to split structural error from one year of change.
+- [x] Statistics, capture rates and output shares at negative prices in the Step 6 report,
+      with a chart and `out_of_sample.json`; tested on synthetic data.
+- [x] Negative prices with their own scale b, chosen in advance by a stated rule (smallest
+      largest error over three tail statistics, in-sample) and then checked out of sample.
+- [x] The out-of-sample error priced in Step 7 and shown in the memo.
+
+**Result:** in-sample tail as history (1% quantile −21 vs −20); out of sample solar +0.09 to
++0.14 (wind +0.02 to +0.05), mostly one year of build-out (+0.036 left with the year seen).
+
+## PPA-8e: Capture rates that follow the build-out (open)
+
+**Finding (v1.6):** fitted on the years before, the model overstated solar's capture rate in
+2024, 2025 and 2026 by 0.09 to 0.14 at a given price level (Step 6, section 4); having seen the
+year, by 0.04. The analog days and the daily shape learn deeper midday dips a year late, and the
+base case starts the −1 pp trend only after 2027. Taking the mean error off every year lowers
+Borrentin's indicative price from 36.8 to 24.9 EUR/MWh.
 
 **Finding (v1.5):** the PPA-8d regression puts the build-out effect at −2.9 per unit of
 solar's share of load. At the 2022-2025 pace (+1.3 pp of load a year) that is about −3.7 pp
@@ -200,6 +226,8 @@ storage, flexible demand and curtailment to slow the fall.
       development plan) and the share of load they imply.
 - [ ] The trend from the build-out coefficient, with storage's effect stated as an assumption.
 - [ ] Replace the −1 pp assumption, or justify it against history's pace.
+- [ ] Use the out-of-sample test (v1.6) as the yardstick: a fix must shrink the solar error
+      in 2024-2026 without hurting wind.
 
 ## PPA-4b: Two Encavis parks instead of illustrative ones (v1.3)
 
@@ -247,9 +275,9 @@ extrapolation, which keeps more energy in cheap hours.
 
 - Scenarios v2: recency-weighted analog pool or a fundamental view of 2027 solar capacity;
   national and neighbour-country weather; curtailment at negative prices; wind 2024 gap.
-- Price model v2: a soft floor just below zero for negative prices; block bootstrap or a
-  weather link for multi-day patterns; out-of-sample and rolling-window validation; a
-  monthly forward curve instead of one annual level.
+- Price model v2: a point mass just below zero for negative prices (v1.6 has a scale of its
+  own); block bootstrap or a weather link for multi-day patterns; a monthly forward curve
+  instead of one annual level.
 - Hedging v2: no negative sales and position limits (`scipy.optimize.nnls`), transaction
   costs, a back-test with EEX settlement history, multi-year hedges.
 - Secret scanning in CI (e.g. gitleaks) after the `.env.example` near-miss on 8 Oct 2026.

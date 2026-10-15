@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ppa_lab import __version__
-from ppa_lab.analysis.step07_report import LEVEL_HIGH, LEVEL_LOW, trend_case
+from ppa_lab.analysis.step07_report import OUT_OF_SAMPLE, trend_case
 from ppa_lab.config import Settings
 from ppa_lab.pricing.forwards import describe_forward
 
@@ -116,13 +116,12 @@ def memo_text(results: dict, settings: Settings) -> str:
     if down is not None and up is not None:
         levers.append(f"- Forward curve −10% / +10%: **{_signed(down['indicative'] - base_ind)} "
                       f"/ {_signed(up['indicative'] - base_ind)} EUR/MWh**")
-    low, high = _case(sens, LEVEL_LOW), _case(sens, LEVEL_HIGH)
-    history = (solar.get("level_effect") or {}).get("history")
-    if low is not None and high is not None and history is not None:
-        deltas = sorted(r["indicative"] - base_ind for r in (low, high))
-        years_text = solar["level_effect"]["history_years"]
-        levers.append(f"- Capture rate vs price level, history's 95% range ({years_text}): "
-                      f"**{_signed(deltas[0])} to {_signed(deltas[1])} EUR/MWh**")
+    corrected = _case(sens, OUT_OF_SAMPLE)
+    error = (solar.get("level_effect") or {}).get("out_of_sample_error")
+    if corrected is not None and error is not None:
+        levers.append(f"- Capture rate as far off as the model was out of sample in earlier "
+                      f"years ({error:+.2f}, Step 6): "
+                      f"**{_signed(corrected['indicative'] - base_ind)} EUR/MWh**")
     later_rate = "with the first year's capture rate"
     if solar.get("level_response"):
         later_rate = "capture rates moving with the price level as in the model"

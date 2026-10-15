@@ -346,8 +346,8 @@ changes the analog pool.
 <summary>Hints and solution sketches</summary>
 
 1. Linked rows, `K = rev.sum() / mwh.sum()`, PPA revenue `K * mwh`, `mean - quantile(0.05)`:
-   solar EUR 3.74 m vs 0.85 m for the 114 MWp Borrentin park (v1.3; 50 MWp at 85: 1.38 vs 0.23; the file uses
-   analog days from the whole window).
+   solar EUR 3.54 m vs 0.84 m for the 114 MWp Borrentin park (v1.6; v1.3: 3.74 vs 0.85; 50 MWp
+   at 85: 1.38 vs 0.23; the file uses analog days from the whole window).
 2. Loop over the years; with a −1 pp drift and 0.5% degradation at 6%: 37.68 EUR/MWh.
 3. `buyer_value` by hand; the toy gives 28.61 without and 9.64 with the hedge.
 4. The 8 EUR/MWh are the premium after the hedge (about 5) and the costs (2.5). Concede the

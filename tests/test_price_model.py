@@ -57,6 +57,22 @@ def test_arcsinh_transform_round_trip_and_negative_prices():
     assert neg == pytest.approx(-pos)  # symmetric: negative prices are no special case
 
 
+def test_negative_prices_can_have_their_own_scale():
+    p = np.array([-480.0, -20.0, -2.0, 0.0, 35.0, 2000.0])
+    y = transform(p, 120.0, 15.0)
+    np.testing.assert_allclose(inverse(y, 120.0, 15.0), p, rtol=1e-12)
+    np.testing.assert_allclose(y[3:], transform(p[3:], 120.0))       # positive side unchanged
+    # the floor maps where it maps with the symmetric transform ...
+    assert transform(np.array([-500.0]), 120.0, 15.0)[0] == pytest.approx(
+        transform(np.array([-500.0]), 120.0)[0])
+    # ... small negative prices are spread out, deep ones compressed (closer to zero in y)
+    assert abs(y[2]) > abs(transform(np.array([-2.0]), 120.0)[0])
+    assert abs(y[1]) > abs(transform(np.array([-20.0]), 120.0)[0])
+    assert np.all(np.diff(transform(np.linspace(-500, 50, 200), 120.0, 15.0)) > 0)   # monotone
+    # simulated values beyond the floor are clipped to it, not sent to minus infinity
+    assert inverse(np.array([-30.0]), 120.0, 15.0)[0] == -500.0
+
+
 def test_half_life_from_the_ar1_coefficient():
     # phi = 0.5 per step -> kappa = ln 2 -> half-life exactly 1 step
     assert half_life(0.5) == pytest.approx(1.0)

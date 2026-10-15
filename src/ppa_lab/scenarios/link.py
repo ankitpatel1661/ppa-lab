@@ -90,7 +90,8 @@ def fit_link(model: PriceModel, prices: pd.Series, features: pd.DataFrame,
              k: int = 10) -> WeatherLink:
     """Calibrate the link on the Step 5 calibration history and the weather of those days."""
     prices = prices.dropna()
-    x = transform(prices.to_numpy(), model.scale) - seasonal_mean(model, prices.index, tz)
+    x = (transform(prices.to_numpy(), model.scale, model.negative_scale)
+         - seasonal_mean(model, prices.index, tz))
     local = prices.index.tz_convert(tz)
     day = pd.DatetimeIndex(local.normalize().tz_localize(None), name="day")
     by_day = pd.Series(x, index=day)
@@ -226,7 +227,7 @@ def simulate_linked(model: PriceModel, link: WeatherLink, index: pd.DatetimeInde
     x = _linked_residuals(model, link, index, tz, weather, n_paths, residual_rng, in_sample,
                           exclude_days)
     shift = level_volatility * level_rng.standard_normal((n_paths, 1)) if level_volatility else 0.0
-    return inverse(mu[None, :] + x + shift, model.scale)
+    return inverse(mu[None, :] + x + shift, model.scale, model.negative_scale)
 
 
 def calibrate_linked_level(model: PriceModel, link: WeatherLink, index: pd.DatetimeIndex,
@@ -235,4 +236,4 @@ def calibrate_linked_level(model: PriceModel, link: WeatherLink, index: pd.Datet
     """Annual level at which `simulate_linked(..., seed=seed)` averages `target_price`."""
     mu0 = seasonal_mean(model, index, tz, annual_level=0.0)
     x = linked_residuals(model, link, index, tz, weather, n_paths, seed)
-    return solve_level(mu0, x, model.scale, target_price)
+    return solve_level(mu0, x, model.scale, target_price, model.negative_scale)

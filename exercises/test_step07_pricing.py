@@ -21,8 +21,8 @@ needs_data = pytest.mark.skipif(
 @needs_data
 def test_ex1_a_ppa_takes_most_of_the_risk_away():
     r = ex.cash_flow_at_risk(ex.load_scenarios(), "solar_park")
-    assert r["merchant"] == pytest.approx(3_743_531, rel=1e-4)
-    assert r["pay_as_produced"] == pytest.approx(850_270, rel=1e-4)
+    assert r["merchant"] == pytest.approx(3_540_983, rel=1e-4)
+    assert r["pay_as_produced"] == pytest.approx(844_100, rel=1e-4)
 
 
 def test_ex2_ten_years_with_a_falling_capture_rate():

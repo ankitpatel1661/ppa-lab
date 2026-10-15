@@ -1,28 +1,28 @@
 # Indicative price for a 10-year solar PPA (Borrentin, 114 MWp)
 
-<p class="meta">Memo · 15 Oct 2026 · ppa-lab 1.5.0 · illustrative, from
+<p class="meta">Memo · 15 Oct 2026 · ppa-lab 1.6.0 · illustrative, from
 public data: not an offer, no view on actual contracts · details: Step 7 report</p>
 
 **Bottom line.** For a 10-year pay-as-produced PPA (2027-2036) the negotiation range is
-**34.9 to 45.7 EUR/MWh**: from the
+**36.8 to 48.6 EUR/MWh**: from the
 indicative price a buyer can accept after its risk premium and costs, up to the fair value
 before risk. At the indicative price the PPA cuts our 95% cash flow at risk from
-EUR 3.68 m to 0.77 m per year (**−79%**) for about
-**9.3 EUR/MWh** (EUR 1.13 m per year) against selling at spot.
+EUR 3.37 m to 0.78 m per year (**−77%**) for about
+**10.3 EUR/MWh** (EUR 1.25 m per year) against selling at spot.
 
 ## The price, layer by layer (EUR/MWh)
 
 | Layer | Solar park | Wind park |
 |---|---|---|
-| Forward 2027 (average of the scenarios) | 141.0 | 141.0 |
-| Shape: output falls in cheap hours | −55.0 | −11.6 |
-| **= Fair price 2027** | **86.0** | **129.3** |
-| Later years: lower forwards and capture rates; degradation | −40.3 | −43.5 |
-| **= Fair price, 10 years** | **45.7** | **85.8** |
-| Buyer's risk premium after a baseload hedge | −8.3 | −5.5 |
+| Forward 2027 (average of the scenarios) | 141.1 | 141.1 |
+| Shape: output falls in cheap hours | −54.7 | −11.9 |
+| **= Fair price 2027** | **86.4** | **129.2** |
+| Later years: lower forwards and capture rates; degradation | −37.8 | −43.2 |
+| **= Fair price, 10 years** | **48.6** | **86.0** |
+| Buyer's risk premium after a baseload hedge | −9.3 | −5.5 |
 | Balancing and route to market (assumed) | −1.5 | −2.0 |
 | Credit and liquidity (assumed) | −1.0 | −1.0 |
-| **= Indicative price, 10 years** | **34.9** | **77.3** |
+| **= Indicative price, 10 years** | **36.8** | **77.5** |
 
 ## What we keep and what we give away
 
@@ -34,20 +34,20 @@ EUR 3.68 m to 0.77 m per year (**−79%**) for about
 
 ## What would change the price
 
-- Older days represent 2027 (whole 2024-2026 window instead of the last 12 months): **+5.8 EUR/MWh**
+- Older days represent 2027 (whole 2024-2026 window instead of the last 12 months): **+5.0 EUR/MWh**
 - Capture-rate trend ±1 pp per year: **±3.5 EUR/MWh**
-- Forward curve −10% / +10%: **−7.9 / +7.7 EUR/MWh**
-- Capture rate vs price level, history's 95% range (2023-2026): **−0.1 to +2.0 EUR/MWh**
+- Forward curve −10% / +10%: **−7.1 / +7.1 EUR/MWh**
+- Capture rate as far off as the model was out of sample in earlier years (+0.12, Step 6): **−11.9 EUR/MWh**
 
 For comparison, the risk premium and the costs together take
-10.8 EUR/MWh off the fair price.
+11.8 EUR/MWh off the fair price.
 
 ## Recommendations
 
-1. Quote within the range above; do not go below 34.9 EUR/MWh.
-2. Keep a negative-price clause out, or price it separately: 10% of the solar output
+1. Quote within the range above; do not go below 36.8 EUR/MWh.
+2. Keep a negative-price clause out, or price it separately: 14% of the solar output
    falls in hours with negative prices and would be unpaid.
-3. Agree the cannibalisation view with Risk before signing, and for any unsold volume sell about 84% of the average output as Cal base futures: it cuts the merchant cash flow at risk by 74% (solar park).
+3. Agree the cannibalisation view with Risk before signing, and for any unsold volume sell about 79% of the average output as Cal base futures: it cuts the merchant cash flow at risk by 73% (solar park).
 
 ## Method and limits
 

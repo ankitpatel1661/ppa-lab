@@ -52,6 +52,13 @@ calibration_end = 2026-09-30
 # section 4.3): from 120 on, 7 of 11 statistics fall inside the simulated range (80: 5);
 # larger s only makes the negative tail heavier. 120 is the smallest robust choice.
 scale_eur_mwh = 120.0
+# Negative prices get their own scale b (v1.6): y = -a arcsinh(|P| / b), with a so that the
+# -500 floor maps where it maps with b = s. History bunches just below zero (65% of the
+# negative hours lie between -5 and 0); with b = s the model had too few negative hours
+# and a 1% quantile of -45 instead of -20. b chosen in Step 6 (report section 3): the
+# smallest largest error over the 1% quantile, the share of negative hours and the solar
+# output at negative prices. Remove the line for the symmetric model.
+negative_scale_eur_mwh = 15.0
 n_paths = 500
 seed = 2026
 # Delivery year and its forward: the EEX German Power Cal-27 base quote of 9 Oct 2026 (via
@@ -89,6 +96,12 @@ analog_window_days = 30           # intraday patterns from days within +-30 days
 analog_k = 10                     # ... drawn among the 10 with the closest weather
 validation_exclusion_days = 7     # in-sample check: analogs at least a week from the day
 seed = 2027
+# Out-of-sample check (Step 6 report): for each year, fit the model and the link on the days
+# from out_of_sample_train_start up to that year only, analog days from its last 12 months,
+# then simulate the year with its real weather and its realised quarterly averages as the
+# forward. 2026 runs to the end of the market data.
+out_of_sample_train_start = 2023-01-01
+out_of_sample_years = [2024, 2025, 2026]
 
 [ppa]
 # Step 7: price a pay-as-produced PPA on the joint scenarios of Step 6

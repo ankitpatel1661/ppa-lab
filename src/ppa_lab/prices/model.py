@@ -3,6 +3,13 @@
     y_t = arcsinh(P_t / s)                       transform: linear near 0, log-like for spikes
     y_t = L_{month} + S_{season, daytype, hour} + D_{day(t)} + u_t
 
+Negative prices can have their own scale b (`negative_scale`, v1.6):
+    y = -a arcsinh(|P| / b) for P < 0,   a = arcsinh(500 / s) / arcsinh(500 / b),
+so -500 EUR/MWh (the market's floor) maps where it does with b = s, while small negative
+prices are spread out and deep ones compressed. History bunches just below zero (two
+thirds of the negative hours lie between -5 and 0 in 2024-2026): a symmetric transform
+gave too few negative hours and too deep a tail. Prices below the floor are clipped.
+
 - L: one level per calendar month of the calibration window (removes slow moves such as
   gas prices). For a future year, L = annual level + average monthly shape.
 - S: the average daily shape by season and day type (working day, Saturday, Sunday or
@@ -37,16 +44,34 @@ from ppa_lab.prices.calendar import SEASONS, calendar_features
 
 PROFILE_KEYS = ["season", "daytype", "hour"]
 ONE_HOUR, ONE_DAY = pd.Timedelta(hours=1), pd.Timedelta(days=1)
+PRICE_FLOOR = -500.0          # EUR/MWh, the harmonised minimum clearing price of the day-ahead
 
 
-def transform(prices: np.ndarray, scale: float) -> np.ndarray:
-    """y = arcsinh(P / s)."""
-    return np.arcsinh(np.asarray(prices, dtype="float64") / scale)
+def _negative_weight(scale: float, negative_scale: float) -> float:
+    """a in y = -a arcsinh(|P| / b): the floor maps to the same y as with b = s."""
+    return math.asinh(-PRICE_FLOOR / scale) / math.asinh(-PRICE_FLOOR / negative_scale)
 
 
-def inverse(y: np.ndarray, scale: float) -> np.ndarray:
-    """P = s * sinh(y)."""
-    return scale * np.sinh(y)
+def transform(prices: np.ndarray, scale: float, negative_scale: float | None = None) -> np.ndarray:
+    """y = arcsinh(P / s); with `negative_scale` b, y = -a arcsinh(|P| / b) for P < 0."""
+    p = np.asarray(prices, dtype="float64")
+    y = np.arcsinh(p / scale)
+    if negative_scale is None:
+        return y
+    a = _negative_weight(scale, negative_scale)
+    return np.where(p >= 0, y, -a * np.arcsinh(np.abs(p) / negative_scale))
+
+
+def inverse(y: np.ndarray, scale: float, negative_scale: float | None = None) -> np.ndarray:
+    """P = s sinh(y); with `negative_scale` b, P = -b sinh(|y| / a) for y < 0, not below the
+    price floor."""
+    y = np.asarray(y, dtype="float64")
+    p = scale * np.sinh(y)
+    if negative_scale is None:
+        return p
+    a = _negative_weight(scale, negative_scale)
+    negative = -negative_scale * np.sinh(np.minimum(np.abs(y) / a, 50.0))
+    return np.where(y >= 0, p, np.maximum(negative, PRICE_FLOOR))
 
 
 def half_life(phi: float) -> float:
@@ -87,6 +112,7 @@ class PriceModel:
     pool_u: np.ndarray        # its intraday pattern, shape (days, 24 local hours)
     calibration_start: str
     calibration_end: str
+    negative_scale: float | None = None   # b for negative prices; None: symmetric (b = s)
 
     @property
     def half_life_days(self) -> float:
@@ -94,7 +120,7 @@ class PriceModel:
 
     def save(self, path: Path) -> None:
         data = {
-            "scale": self.scale, "phi": self.phi,
+            "scale": self.scale, "negative_scale": self.negative_scale, "phi": self.phi,
             "calibration": [self.calibration_start, self.calibration_end],
             "sigma": {s: v for s, v in self.sigma.items()},
             "profile": [[s, d, int(h), v] for (s, d, h), v in self.profile.items()],
@@ -112,7 +138,7 @@ class PriceModel:
         profile = pd.Series({(s, dt, int(h)): v for s, dt, h, v in d["profile"]})
         profile.index = profile.index.set_names(PROFILE_KEYS)
         return cls(
-            scale=d["scale"], phi=d["phi"],
+            scale=d["scale"], negative_scale=d.get("negative_scale"), phi=d["phi"],
             sigma=pd.Series(d["sigma"]).rename_axis("season"),
             profile=profile,
             month_shape=pd.Series({int(m): v for m, v in d["month_shape"].items()},
@@ -130,10 +156,11 @@ def _keys(features: pd.DataFrame) -> pd.MultiIndex:
                                      names=PROFILE_KEYS)
 
 
-def fit(prices: pd.Series, tz: str, scale: float) -> PriceModel:
+def fit(prices: pd.Series, tz: str, scale: float,
+        negative_scale: float | None = None) -> PriceModel:
     """Calibrate the model on hourly prices (UTC index, interval beginning)."""
     prices = prices.dropna()
-    y = pd.Series(transform(prices.to_numpy(), scale), index=prices.index)
+    y = pd.Series(transform(prices.to_numpy(), scale, negative_scale), index=prices.index)
     f = calendar_features(prices.index, tz)
     local = prices.index.tz_convert(tz)
     month = pd.PeriodIndex(local.tz_localize(None), freq="M")
@@ -169,7 +196,7 @@ def fit(prices: pd.Series, tz: str, scale: float) -> PriceModel:
     month_shape = (levels - by_year).groupby(levels.index.month).mean()
     month_shape = month_shape.reindex(range(1, 13), fill_value=0.0).rename_axis("month")
     return PriceModel(
-        scale=scale, phi=phi, sigma=sigma, profile=profile,
+        scale=scale, negative_scale=negative_scale, phi=phi, sigma=sigma, profile=profile,
         month_shape=month_shape.rename("month_shape"),
         levels=pd.Series(levels.to_numpy(), index=levels.index.astype(str), name="level"),
         pool_season=np.asarray(pool.index.month.map(SEASONS)),
@@ -267,7 +294,7 @@ def simulate(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int,
     mu = seasonal_mean(model, index, tz, annual_level)
     x = _residuals(model, index, tz, n_paths, residual_rng, bootstrap)
     shift = level_volatility * level_rng.standard_normal((n_paths, 1)) if level_volatility else 0.0
-    return inverse(mu[None, :] + x + shift, model.scale)
+    return inverse(mu[None, :] + x + shift, model.scale, model.negative_scale)
 
 
 def calibrate_level(model: PriceModel, index: pd.DatetimeIndex, tz: str, target_price: float,
@@ -279,10 +306,11 @@ def calibrate_level(model: PriceModel, index: pd.DatetimeIndex, tz: str, target_
     """
     mu0 = seasonal_mean(model, index, tz, annual_level=0.0)
     x = simulate_residuals(model, index, tz, n_paths, seed, bootstrap)
-    return solve_level(mu0, x, model.scale, target_price)
+    return solve_level(mu0, x, model.scale, target_price, model.negative_scale)
 
 
-def solve_level(mu0: np.ndarray, x: np.ndarray, scale: float, target_price: float) -> float:
+def solve_level(mu0: np.ndarray, x: np.ndarray, scale: float, target_price: float,
+                negative_scale: float | None = None) -> float:
     """Level L with mean(inverse(mu0 + L + x)) = target_price, by bisection.
 
     mu0: deterministic part without the level (hours); x: random part (paths x hours).
@@ -291,7 +319,7 @@ def solve_level(mu0: np.ndarray, x: np.ndarray, scale: float, target_price: floa
     low, high = -10.0, 10.0
     for _ in range(100):
         mid = 0.5 * (low + high)
-        if inverse(mu0[None, :] + mid + x, scale).mean() < target_price:
+        if inverse(mu0[None, :] + mid + x, scale, negative_scale).mean() < target_price:
             low = mid
         else:
             high = mid

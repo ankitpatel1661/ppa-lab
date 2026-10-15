@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.5** (ticket PPA-8d): cash flows and fair prices of the standard structures,
+**Version 1.6** (ticket PPA-6b): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
@@ -16,7 +16,9 @@ Since version 1.3 the parks are two Encavis parks modelled from public data: Bor
 (114 MWp) and Everswinkel wind (28.5 MW), with losses calibrated to their published yields
 (section 7). Since version 1.4 the market history starts in 2021. Since version 1.5 each later
 year's capture rate moves with that year's forward along the price model's own response to the
-price level, which 2023-2026 history confirms for solar (section 10).
+price level, which 2023-2026 history confirms for solar (section 10). Since version 1.6 negative
+prices have their own scale in the transform (section 8), and the model is tested on years it
+has not seen (section 9).
 
 ---
 
@@ -242,6 +244,22 @@ $$
 
 with scale $s$ = 120 EUR/MWh, chosen by the validation below over $s$ = 30 to 300.
 
+Since version 1.6 negative prices have their own scale $b$:
+
+$$
+y_t = -a \operatorname{arcsinh}(|P_t| / b) \quad (P_t < 0), \qquad
+a = \frac{\operatorname{arcsinh}(500 / s)}{\operatorname{arcsinh}(500 / b)},
+$$
+
+so the market's floor of −500 EUR/MWh maps where it does with $b = s$, small negative prices
+are spread out and deep ones compressed; simulated prices below the floor are set to it.
+History bunches just below zero (65% of the negative hours of 2024-2026 lie between −5 and
+0 EUR/MWh, where flexible plants stop producing); the symmetric transform gave too few negative
+hours and a 1% quantile of −45 instead of −20 EUR/MWh. $b$ = 15 EUR/MWh has the smallest largest
+relative error over the 1% quantile, the share of negative hours and the solar park's output
+share at negative prices among $b \in \{s, 40, 15, 5\}$ (in-sample, with the real weather;
+Step 6 report, section 3).
+
 **Decomposition.** On the calibration window (2024-01-01 to 2026-09-30, local days):
 
 $$
@@ -292,9 +310,11 @@ is convex, setting the level from $\operatorname{arcsinh}(F/s)$ would overshoot 
 **Validation.** In-sample, 200 paths over the calibration window with the fitted monthly
 levels. For each statistic (mean, standard deviation, 1/5/50/95/99% quantiles, share of
 negative hours, autocorrelation at 1, 24 and 168 hours) history should lie inside the 5-95%
-range across paths. Version 2 meets 7 of 11; the misses (1% quantile, negative share,
+range across paths. Version 2 met 7 of 11; the misses (1% quantile, negative share,
 autocorrelation at 1 and 24 hours) are explained in the report and in learning track Step 5,
-section 4.4. Version 1, a single hourly AR(1), failed on day-to-day memory and was replaced.
+section 4.4. With $b$ = 15 (v1.6) the 1% quantile and the negative share are inside and the 5%
+and 95% quantiles just outside; the autocorrelations at 1 and 24 hours stay outside (6 of 11
+without the weather link, 7 of 11 with it). Version 1, a single hourly AR(1), failed on day-to-day memory and was replaced.
 
 ---
 
@@ -359,6 +379,26 @@ rates per historical year inside the simulated range, the within-month correlati
 wind and the daily price (history −0.58, Step 6 −0.60, Step 5 0.00). Sensitivity: the period of
 the analog pool (solar fair price 48.7 / 44.9 / 41.1 EUR/MWh for pools from 2024, 2025 and the
 last 12 months).
+
+**Out of sample (v1.6).** For each test year $Y \in \{2024, 2025, 2026\}$ the model (section 8)
+and the link are fitted on the days from 2023-01-01 to the end of $Y - 1$ only, with analog days
+from its last 12 months (as for the delivery year) and the climatology of the weather years
+before $Y$. $Y$ is then simulated with its real weather and one level per local quarter set to the
+quarter's realised average price: a perfect forward, so the test measures what the model adds
+beyond the forward. A second run fits the model and the pool on $Y$ too (analog days at least 7
+days away): its error is the model's structural error, and the difference is what one year of
+change does (`src/ppa_lab/scenarios/out_of_sample.py`; Step 6 report, section 4).
+
+| Capture rate, model − history | 2024 | 2025 | 2026 (Jan-Sep) | Year seen, mean |
+|---|---|---|---|---|
+| Solar park | +0.142 | +0.133 | +0.093 | +0.036 |
+| Wind park | +0.023 | +0.023 | +0.051 | +0.022 |
+
+Out of sample 4 of 11 statistics lie inside the simulated range in each year: the price
+distribution is narrower than history's, negative hours too few (4.5% vs 6.6-7.2% in 2025-2026)
+and daily memory too short. The solar error comes mostly from midday dips deepening as solar
+capacity grows: the analog days and the daily shape learn them a year late. Step 7 prices the
+mean error as a sensitivity.
 
 ---
 
@@ -435,8 +475,8 @@ with month effects $a$, the technology's share of load (its build-out) and HC1 s
 |---|---|---|
 | History 2023-2026, 45 months (95% interval) | 0.27 (0.10 to 0.45), t = 3.1 | 0.02 (−0.09 to 0.14) |
 | History 2021-2026, 69 months | 0.10 (0.06 to 0.13) | −0.00 (−0.04 to 0.04) |
-| Model, recent level (105) to Cal-27 (141) | 0.25 | 0.07 |
-| Model, over the tenor's forwards (88 to 141) | 0.28 | 0.08 |
+| Model, recent level (105) to Cal-27 (141) | 0.19 (v1.5: 0.25) | 0.06 |
+| Model, over the tenor's forwards (88 to 141) | 0.20 (v1.5: 0.28) | 0.07 |
 
 The model lies inside history's 95% interval for both technologies, and history rejects the
 shape-factor view for solar. The 2021-2026 slope is smaller, which fits the mechanism: the
@@ -503,7 +543,7 @@ sources and stand in for EEX settlement prices.
 | Years assumed independent for P90 (10 years) | Too optimistic if weather has trends or persistence | PPA-6 (resampling) |
 | Prior-year prices instead of forward prices | Strikes are naive, not market quotes | PPA-5 (price model); PPA-8 compares with market quotes |
 | One history, no scenarios | No distribution, no risk premium | PPA-5 (price paths); PPA-6/PPA-7 (joint Monte Carlo, premia) |
-| Price model: symmetric transform, no soft floor at zero | Too few hours just below 0 EUR/MWh, too many deep negative hours | v2 of the price model |
+| Price model: negative prices with their own scale b = 15 (v1.6), no atom at zero | In-sample the tail matches history (1% quantile −21 vs −20, negative hours 6.6% vs 6.2%); prices of exactly −0.01 are not reproduced, the 5% quantile is −2.5 instead of −0.1 | v1.6 (PPA-6b); v2: a mixture with a point mass just below zero |
 | Price paths independent of weather (PPA-5) | Capture rates overstated (wind 1.02 vs 0.88, solar 0.62 vs 0.555 in 2025) | Done in PPA-6 (section 9) |
 | Two sites stand in for national weather | National solar and wind, and weather abroad, are only proxied; weather explains about half of daily price moves | v2: national and neighbour weather |
 | Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
@@ -512,9 +552,9 @@ sources and stand in for EEX settlement prices.
 | One delivery year of scenarios; later years by the forward curve, the level response, drift and degradation | Later years' capture rates come from the first year's scenarios rebuilt at each year's forward (first year's calendar, quarter shape and analog days) | v1.5 (PPA-8d); v2: scenarios per contract year |
 | Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
 | Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (solar premium 5.4 instead of 8.4 EUR/MWh in v1.2); transaction costs v2 |
-| One calibration window (2024-2026), in-sample validation only | Regime changes and out-of-sample errors not tested | v2: rolling, out-of-sample validation |
+| One calibration window (2024-2026); patterns learnt from the past year | Out of sample (2024-2026, level given) the model overstated capture rates: solar +0.09 to +0.14, wind +0.02 to +0.05; 4 of 11 statistics inside the range. Most of the solar error is one year of build-out, about 0.04 is structural | v1.6 (PPA-6b): Step 6 section 4; Step 7 sensitivity (solar −11.9 EUR/MWh); backlog PPA-8e |
 | Cal base forwards from published quotes (Cal-27 140.21, Cal-28 104.75, Cal-29 87.58), held flat after 2029; quarter shape from Q1-Q4/27 quotes of 14 Sep 2026; months and hours from history | Quotes are a month older than the Cal level and come from secondary sources; later years keep the first year's seasonal shape; 2030-2036 rest on the Cal-29 quote | v1.1-1.2 (PPA-8b, 8c); v2: monthly curve (HPFC) from EEX settlements |
-| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.48 at 88 EUR/MWh, 0.61 at 141. History 2023-2026 confirms it for solar (slope 0.27, 95% 0.10 to 0.45; model 0.25); for wind history cannot tell it from zero (model 0.07 inside). Holding the first year's capture rate instead overstated the solar ten-year price by 9.8 EUR/MWh | v1.5 (PPA-8d): tested on monthly history; history's 95% range as a Step 7 sensitivity (solar −0.1 to +2.0 EUR/MWh) |
+| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.52 at 88 EUR/MWh, 0.61 at 141. History 2023-2026 confirms it for solar (slope 0.27, 95% 0.10 to 0.45; model 0.19 since the tail fix of v1.6, 0.25 before); for wind history cannot tell it from zero (model 0.06 inside). Holding the first year's capture rate instead would overstate the solar ten-year price by 7.1 EUR/MWh | v1.5 (PPA-8d): tested on monthly history; history's 95% range as a Step 7 sensitivity (solar −1.0 to +1.1 EUR/MWh) |
 | Solar capture-rate trend −1 pp a year at a fixed level | History's build-out coefficient (−2.9 per unit of solar's share of load) at the 2022-2025 pace (+1.3 pp of load a year) means about −3.7 pp a year; the trend assumes storage, flexible demand and curtailment slow it | −2 pp sensitivity in PPA-7; backlog PPA-8e |
 | The forward moves fast | Cal-27 base moved between 104 and 140 EUR/MWh from July to October 2026 | Refresh the quotes on the pricing day; forward ±10% sensitivity |
 | Hedges at the model forward, no limits, no costs | Real hedges trade at market prices with bid-ask spreads, margining and position limits; unconstrained monthly hedges can be negative | v2: constraints (no negative sales), costs |
@@ -549,3 +589,5 @@ sources and stand in for EEX settlement prices.
 - **v1.4, PPA-1b:** market history from 2021 (no change to the method).
 - **v1.5, PPA-8d:** each later year's capture rate moves with its forward along the model's
   level response, tested on 2021-2026 history (section 10); limitations updated.
+- **v1.6, PPA-6b:** negative prices with their own scale in the transform (section 8); the
+  out-of-sample test (section 9); limitations updated.

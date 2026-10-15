@@ -233,7 +233,7 @@ year, the 2027 scenarios (linked and independent), the pool sensitivity, three c
 | `test_scenarios_weather.py` (5) | capacity factors in UTC days; wrong 23/25-hour day handling; 29 February crashes; climatology over the wrong years |
 | `test_scenarios_link.py` (11) | failure to recover a known wind response (−1.5) and residual memory; missing weather days; analogs outside the window or too close to the target; no wind effect on future prices; no deeper midday dip on sunny days; weather counted twice in-sample; a level that misses the forward; a constant feature turning distances into NaN; pool restriction |
 | `test_scenarios_generator.py` (6) | wrong scenario count or order; volumes from the wrong weather year; average price ≠ forward; prices built on another year's weather; fair price computed as a mean of capture prices |
-| `test_step06_report.py` (3), `test_config.py` (+1), `test_cli.py` (+1) | the report end to end, the missing-Step-4 message, the pool options, `[scenarios]` validation, `ppa-lab scenarios` and `all` |
+| `test_step06_report.py` (4), `test_config.py` (+1), `test_cli.py` (+1) | the report end to end, the missing-Step-4 message, the pool options, `[scenarios]` validation, `ppa-lab scenarios` and `all`; since v1.6 the out-of-sample section (a perfect forward must reproduce the year's mean; the error stored is the median minus history) and the negative-tail table |
 
 Each key test was checked by planting the bug: no weather effect, analogs drawn without
 looking at the weather, in-sample anomalies against climatology, no exclusion, prices
@@ -331,6 +331,57 @@ would add a fundamental view of 2027 solar capacity.
 - **Dates in UTC:** the first report printed the calibration start as 2023-12-31 (the UTC
   timestamp of local midnight on 1 January). It now prints the configured local dates.
 - **Chart labels on top of bars:** the historical-year markers moved into the legend.
+
+### 4.6 Update (v1.6): years the model never saw, and the negative tail
+
+Every check so far was in-sample: the model had seen the days it was tested on (only analog
+days within a week were excluded). A pricing model has to forecast a year it has not seen.
+
+**The test.** For each year 2024, 2025 and 2026, fit the model and the link on the days from
+2023 up to the end of the year before, with analog days from its last 12 months, exactly as
+for 2027. Then simulate the year with its real weather and give the model each quarter's
+realised average price: a perfect forward. Whatever is wrong now is the model's shape, not
+the level. A second run lets the model see the year too; its error is the model's structure.
+
+| Solar capture rate | 2024 | 2025 | 2026 (Jan-Sep) |
+|---|---|---|---|
+| History | 0.601 | 0.542 | 0.526 |
+| Model, out of sample (median) | 0.743 | 0.675 | 0.619 |
+| Model, year seen | 0.631 | 0.584 | 0.563 |
+
+**What it says.** The model overstates solar's capture rate by 0.09 to 0.14 in every year,
+even with the price level given; wind by 0.02 to 0.05. Seeing the year removes most of the
+solar error: the midday dips deepen every year as solar capacity grows, and analog days from
+last year cannot know that. The 2027 scenarios are built the same way, so the base case is
+probably too optimistic for solar: taking the mean error off every year lowers Borrentin's
+indicative price from 36.8 to 24.9 EUR/MWh (Step 7 sensitivity; backlog PPA-8e).
+
+**The negative tail.** 65% of 2024-2026's negative hours lie between −5 and 0 EUR/MWh: when
+renewables exceed demand, flexible plants stop producing at about zero, so prices bunch just
+below it. The arcsinh transform treats −20 like +20, so the model spread that bunch into a
+deep tail: 1% quantile −45 instead of −20, and too few negative hours. Negative prices now get
+their own scale b, with −500 kept where it was:
+
+| In-sample, real weather | 1% quantile | Negative hours | Solar output at negative prices |
+|---|---|---|---|
+| History | −20.1 | 6.2% | 21.8% |
+| b = 120 (symmetric, until v1.5) | −45.2 | 5.6% | 18.0% |
+| b = 15 (v1.6) | −21.2 | 6.6% | 21.7% |
+
+b was chosen by a rule stated with the candidates (smallest largest error over these three
+statistics), then checked out of sample, where the tail is too shallow because negative hours
+are too few: the build-out problem again.
+
+Three lessons:
+
+1. **In-sample checks flatter.** The in-sample solar capture rate was close (0.569 vs 0.560);
+   out of sample it was 0.13 off. Always ask what the model knew.
+2. **Two errors can cancel.** The realistic tail raised the solar capture rate in-sample
+   (0.569 → 0.587): the deep tail had been hiding midday dips that are not deep enough. Fixing
+   one error exposed the other, and the out-of-sample test says which one matters more.
+3. **Split the error before fixing it.** "Year seen" separates what the model cannot do
+   (structure, about 0.04) from what it cannot know (one year of build-out, about 0.09).
+   They need different fixes: a better model, or a view on the build-out.
 
 ---
 
@@ -442,10 +493,11 @@ the wind one is far outside the independent range.
 2. Filter by circular day-of-year gap ≤ 30, drop |days| < `exclude`, scale by the column
    standard deviations over all rows, sum squares, sort stably. Without exclusion the first
    analog is 15 June 2025 itself; with `exclude=8` the first is 3 July 2025.
-3. `groupby("prices")` and Σ revenue / Σ MWh: solar 97.64 → 94.45, wind 148.31 → 129.46 for
-   the Encavis parks at the market forward curve and seasons (v1.3; illustrative parks at 85:
-   51.76 → 48.66 and 87.00 → 75.35). The mean of the capture prices gives 94.45 and 129.74: years with more energy count more in the fair price, and for
-   wind those are the cheaper years.
+3. `groupby("prices")` and Σ revenue / Σ MWh: solar 96.82 → 93.76, wind 148.36 → 129.26 for
+   the Encavis parks at the market forward curve and seasons (v1.6, with the negative-price
+   scale; v1.3: 97.64 → 94.45 and 148.31 → 129.46; illustrative parks at 85: 51.76 → 48.66 and
+   87.00 → 75.35). The mean of the capture prices gives 93.77 and 129.53: years with more
+   energy count more in the fair price, and for wind those are the cheaper years.
 4. Cov(q, P) < 0 for wind: windy hours are cheap, so an independent model pays every MWh the
    average price (capture rate about 1.0 instead of 0.88). For solar Step 5 already knew the
    average midday dip, so only the day-to-day part (sunny days deeper) was missing. But the

@@ -170,11 +170,13 @@ No grid curtailment, outages or degradation are modelled (potential output).
 
 The calibrated stochastic price model (`ppa_lab.prices.model.PriceModel`), written by
 `ppa-lab prices` and read back with `PriceModel.load(path)`. Plain JSON, about 0.3 MB. All
-values except `scale` are in **transformed units** y = arcsinh(P / scale), not EUR/MWh.
+values except `scale` and `negative_scale` are in **transformed units** y = arcsinh(P / scale)
+(for negative prices y = −a arcsinh(|P| / negative_scale)), not EUR/MWh.
 
 | Key | Type | Meaning |
 |---|---|---|
 | `scale` | number, EUR/MWh | s of the arcsinh transform (120) |
+| `negative_scale` | number or null, EUR/MWh | Since v1.6: b, the scale of negative prices (15); null = symmetric (files before v1.6 have no key) |
 | `phi` | number | AR(1) coefficient of the daily factor, per day (half-life = ln 2 / −ln phi days) |
 | `calibration` | [start, end] | First and last local day of the calibration window |
 | `sigma` | {season: number} | Standard deviation of the daily shocks per season (`winter`, `spring`, `summer`, `autumn`) |
@@ -214,6 +216,21 @@ the capture prices (`ppa_lab.scenarios.generator.fair_price`). Hourly prices are
 
 ---
 
+## `out_of_sample.json` (Step 6, v1.6)
+
+The out-of-sample test written by `ppa-lab scenarios` when `[scenarios] out_of_sample_years`
+is set; Step 7 reads `bias`.
+
+| Key | Meaning |
+|---|---|
+| `train_start` | First day of every fit |
+| `years[]` | Per test year: `year`, `test` (first and last local day), `inside` of `statistics` (statistics with history inside the 5-95% range), `table` (per statistic: `history`, `simulated_mean`, `simulated_p05`, `simulated_p95`) |
+| `years[].parks.<park>` | Out of sample: `capture_rate` and `negative_output_share` (output share at negative prices), each with `history`, `p05`, `p50`, `p95` over the paths |
+| `years[].seen.<park>` | The same for the model that has seen the test year |
+| `bias.<park>` | `capture_rate`: mean over the years of median minus history; `min`, `max`; `seen`: the same for the model that has seen the year |
+
+---
+
 ## `ppa_pricing.json` (Step 7) and `reports/results.json` (Step 9)
 
 Key pricing results, written by `ppa-lab pricing`; input for Step 9. `ppa-lab memo` copies
@@ -238,7 +255,7 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
 | `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor (along the forward curve), and `sensitivity` (one row per case; the forward cases shift the whole curve and move the capture rate with it) |
 | `parks.<park>.level_response` | Since v1.5: `level` (scenario average prices, increasing) and `capture_rate`: the model's capture rate by price level, read linearly in ln(level) by `level_shift` |
-| `parks.<park>.level_effect` | Since v1.5: `ref_level`, `ref_rate` (the recent level and its capture rate), `slope_recent` and `slope_tenor` (the model's slope per unit of ln level), `history` and `history_all_years` (regression: `coef`, `se`, `t`, `ci_low`, `ci_high`, `share_coef`, `r2`, `n`; null without power data), `history_years`, `share_pace` (`from`, `to`, `per_year`), `tenor_fair_without_level_effect` |
+| `parks.<park>.level_effect` | Since v1.5: `ref_level`, `ref_rate` (the recent level and its capture rate), `slope_recent` and `slope_tenor` (the model's slope per unit of ln level), `history` and `history_all_years` (regression: `coef`, `se`, `t`, `ci_low`, `ci_high`, `share_coef`, `r2`, `n`; null without power data), `history_years`, `share_pace` (`from`, `to`, `per_year`), `tenor_fair_without_level_effect`; since v1.6 `out_of_sample_error` (Step 6's mean capture-rate error, null without `out_of_sample.json`) |
 | `parks.<park>.whole_window` | `fair_price` and `premium` with analog days from the whole calibration window |
 | `parks.<park>.assumptions` | `balancing_eur_mwh`, `credit_eur_mwh`, `capture_rate_drift`, `degradation` (from `[ppa.parks.*]`) |
 | `discount_rate` | annual discount rate of the tenor price |
@@ -369,6 +386,8 @@ not a forecast of a particular hour.
 | `fit_link(model, prices, features, climatology, tz, window_days, k)` | `WeatherLink`: `beta` (season x const/solar/wind/temp, transformed units per unit of feature), `r_squared`, `phi`, `sigma`, analog pool (`pool_days`, `pool_features`, `pool_xi`, `pool_u`) |
 | `analog_days(link, day, weather_row, exclude_days)` | pool indices of the k nearest days within ±window of the date |
 | `simulate_linked(model, link, index, tz, weather, n_paths, annual_level, seed, ...)` | paths x hours, EUR/MWh, for the given daily weather |
+| `out_of_sample(prices, features, generation, climatology, tz, scale, train_start, test_start, test_end, ..., negative_scale, seen)` | v1.6: fit on the days before the test period (or including it, `seen=True`), simulate it with its real weather and each quarter at its realised mean: `statistics` (as `compare_with_history`), per park capture rate and output share at negative prices (history, p05, p50, p95), `paths` |
+| `park_statistics(prices, volumes)` | per price path: a park's capture rate and its output share at negative prices |
 | `build_scenarios(...)` | `Scenarios`: `prices` (S x hours), `generation` (weather years x hours per park), `weather_years`, `year_row`, `level`, `linked` |
 | `scenario_table(scenarios, parks)` | the columns of `scenarios_<year>.parquet` |
 

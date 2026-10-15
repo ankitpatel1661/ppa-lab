@@ -1,9 +1,11 @@
 """End-to-end: weather + prices -> weather-price link -> joint scenarios -> Step 6 report."""
 
 import dataclasses
+import json
 from datetime import date
 
 import pandas as pd
+import pytest
 
 from conftest import FakeWeatherClient, write_synthetic_market
 from ppa_lab.analysis.step06_report import write_step06_report
@@ -40,6 +42,32 @@ def test_step06_report_end_to_end(settings):
     assert len(table) == 2 * 6                                 # linked and independent
     assert set(table["prices"]) == {"linked", "independent"}
     assert {"solar_park_capture_rate", "wind_park_revenue_eur"} <= set(table.columns)
+
+
+def test_step06_report_tests_a_year_the_model_never_saw(settings):
+    s = small_settings(settings)
+    s = dataclasses.replace(s, scenarios=dataclasses.replace(
+        s.scenarios, out_of_sample_train_start=date(2024, 1, 1), out_of_sample_years=(2025,)))
+    store = RawStore(s.raw_dir, source="open_meteo")
+    fetch_weather(s, FakeWeatherClient(), store, today=date(2026, 6, 1))
+    build_generation(s, store)
+    write_synthetic_market(s)
+
+    out = write_step06_report(s)
+
+    text = out["report"].read_text()
+    assert "The negative tail" in text and "b = 15" in text and "(symmetric)" in text
+    assert "Out of sample: years the model never saw" in text and out["out_of_sample"].exists()
+    check = json.loads(out["out_of_sample_results"].read_text())
+    year = check["years"][0]
+    assert year["year"] == 2025 and year["test"] == ["2025-01-01", "2025-12-31"]
+    # each quarter at its realised average: the simulated mean is history's
+    assert year["table"]["mean"]["simulated_mean"] == pytest.approx(
+        year["table"]["mean"]["history"], rel=1e-6)
+    for park in ("solar_park", "wind_park"):
+        r = year["parks"][park]["capture_rate"]
+        assert r["p05"] <= r["p50"] <= r["p95"]
+        assert check["bias"][park]["capture_rate"] == pytest.approx(r["p50"] - r["history"])
 
 
 def test_step06_report_explains_missing_weather(settings):

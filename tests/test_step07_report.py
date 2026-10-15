@@ -70,7 +70,12 @@ def test_step07_report_explains_missing_weather(settings):
 
 
 def test_tenor_rows_follow_the_curve_and_move_the_capture_rate_with_the_level():
-    from ppa_lab.analysis.step07_report import LEVEL_LOW, line_response, tenor_rows
+    from ppa_lab.analysis.step07_report import (
+        LEVEL_LOW,
+        OUT_OF_SAMPLE,
+        line_response,
+        tenor_rows,
+    )
     from ppa_lab.config import PpaParkSettings
     priced = {"stack": {"forward": 100.0, "fair_price": 60.0, "risk_premium": 5.0,
                         "balancing": 1.5, "credit": 1.0}, "energy_mwh": 1000.0}
@@ -93,6 +98,9 @@ def test_tenor_rows_follow_the_curve_and_move_the_capture_rate_with_the_level():
     up = next(r for r in moved if r["case"] == "Forward +10%")
     rate_77 = 0.5 + 0.1 * np.log(77 / 70) / np.log(100 / 70)                 # linear in ln
     assert up["fair_price"] == pytest.approx((110 * 0.65 + 2 * 77 * rate_77) / 3)
+    corrected = tenor_rows(priced, cost, 2027, 3, 0.0, curve={2028: 70.0}, capture_error=0.1)
+    row = next(r for r in corrected if r["case"] == OUT_OF_SAMPLE)
+    assert row["fair_price"] == pytest.approx((50.0 + 35.0 + 35.0) / 3)       # 0.6 - 0.1
     low = next(r for r in moved if r["case"] == LEVEL_LOW)
     assert low["fair_price"] == pytest.approx((50.0 + 35.0 + 35.0) / 3)       # 0.5 throughout
     assert low["indicative"] == pytest.approx(low["fair_price"] - 7.5)

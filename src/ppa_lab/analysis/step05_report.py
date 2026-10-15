@@ -168,7 +168,7 @@ def write_step05_report(settings: Settings) -> dict[str, Path | None]:
     prices = hourly_prices(settings)
     history = calibration_history(settings, prices)
 
-    model = fit(history, tz, pm.scale_eur_mwh)
+    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh)
     model_path = proc / "price_model.json"
     model.save(model_path)
 
@@ -195,6 +195,11 @@ def write_step05_report(settings: Settings) -> dict[str, Path | None]:
     forward = {"price_eur_mwh": pm.forward_eur_mwh, "source": pm.forward_source,
                "date": str(pm.forward_date) if pm.forward_date else None}
     forward_text = describe_forward(forward, {}, pm.delivery_year).split(";")[0]
+    b = pm.negative_scale_eur_mwh
+    negative_text = "" if b is None else (
+        f"Negative prices have their own scale: y = −a arcsinh(|P| / {b:g}), with a so that "
+        f"−500 EUR/MWh maps where it does with {pm.scale_eur_mwh:g} (the choice of b: Step 6 "
+        "report, section 3).\n")
     report = f"""# Step 5 report: stochastic price model
 
 Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC by `ppa-lab prices`.
@@ -204,6 +209,7 @@ Data: {settings.energy_charts.license}. Hourly day-ahead prices (quarter-hours a
 
 y = arcsinh(P / {pm.scale_eur_mwh:g}) = monthly level + daily shape (season x day type x hour)
 \\+ daily factor D (AR(1) across days) + intraday pattern (whole historical days, same season).
+{negative_text}
 
 | Item | Value |
 |---|---|

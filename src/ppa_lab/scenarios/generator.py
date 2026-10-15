@@ -91,9 +91,10 @@ def build_scenarios(model: PriceModel, link: WeatherLink, generation: dict[str, 
         level = np.zeros(len(index))
         for q, target in quarter_forwards.items():
             hours_q = quarter == q
-            level[hours_q] = solve_level(mu0[hours_q], x[:, hours_q], model.scale, target)
+            level[hours_q] = solve_level(mu0[hours_q], x[:, hours_q], model.scale, target,
+                                         model.negative_scale)
     else:
-        level = solve_level(mu0, x, model.scale, forward)
+        level = solve_level(mu0, x, model.scale, forward, model.negative_scale)
     shift = 0.0
     if level_volatility:
         shift = level_volatility * random_streams(seed)[1].standard_normal((x.shape[0], 1))
@@ -101,7 +102,7 @@ def build_scenarios(model: PriceModel, link: WeatherLink, generation: dict[str, 
     return Scenarios(
         index=index,
         weather_years=np.repeat(np.asarray(weather_years), paths_per_year),
-        prices=inverse(mu0[None, :] + level + x + shift, model.scale),
+        prices=inverse(mu0[None, :] + level + x + shift, model.scale, model.negative_scale),
         generation={park: np.vstack(rows) for park, rows in volumes.items()},
         year_row=np.repeat(np.arange(n_years), paths_per_year),
         level=level, linked=linked,

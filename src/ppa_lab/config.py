@@ -81,6 +81,7 @@ class PriceModelSettings:
     forward_date: date | None = None  # trading day of the forward quote
     forward_source: str = ""          # where the quote was published (URL)
     quarter_quotes: QuarterQuotes | None = None   # seasonal shape of the forward (Step 6)
+    negative_scale_eur_mwh: float | None = None   # own scale for negative prices (v1.6)
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,9 @@ class ScenarioSettings:
     analog_k: int                    # draw among the k nearest analog days
     validation_exclusion_days: int   # in-sample check: analogs at least this far away
     seed: int
+    # out-of-sample check (v1.6): fit from this day up to each test year, simulate the year
+    out_of_sample_train_start: date | None = None
+    out_of_sample_years: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -301,6 +305,12 @@ def _validate(s: Settings) -> None:
             raise ValueError("[scenarios] needs [price_model]")
         if sc.weather_last_year < s.weather_first_year:
             raise ValueError("scenarios.weather_last_year must not be before weather.first_year")
+        for y in sc.out_of_sample_years:
+            first = sc.out_of_sample_train_start
+            if first is None or not s.start <= first < date(y, 1, 1) or y > s.end.year:
+                raise ValueError(f"scenarios.out_of_sample_years: {y} needs "
+                                 "out_of_sample_train_start inside the market data and before "
+                                 f"{y}, and {y} must not lie after {s.end}")
     ppa = s.ppa
     if ppa is not None:
         if pm is None or sc is None:

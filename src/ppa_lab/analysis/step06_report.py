@@ -8,6 +8,7 @@ Output:
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -17,13 +18,14 @@ import numpy as np
 import pandas as pd
 
 from ppa_lab.analysis.plotting import BLUE, INK, INK_2, ORANGE, save, style
-from ppa_lab.analysis.step05_report import calibration_history
+from ppa_lab.analysis.step05_report import calibration_history, hourly_prices
 from ppa_lab.config import Park, Settings
 from ppa_lab.prices.model import fit, simulate
 from ppa_lab.prices.validation import compare_with_history
 from ppa_lab.pricing.forwards import quarter_forwards
 from ppa_lab.scenarios.generator import build_scenarios, fair_price, scenario_table
 from ppa_lab.scenarios.link import WeatherLink, fit_link, restrict_pool, simulate_linked
+from ppa_lab.scenarios.out_of_sample import out_of_sample, park_statistics
 from ppa_lab.scenarios.weather import (
     FEATURES,
     daily_features,
@@ -111,6 +113,84 @@ def capture_rates_by_year(history: pd.Series, gen: dict[str, pd.Series],
     return pd.DataFrame(rows)
 
 
+TAIL_CANDIDATES = (None, 40.0, 15.0, 5.0)     # scales b of negative prices compared in-sample
+TAIL_KEYS = ("p01", "negative_share", "negative_output")
+
+
+def _tail_row(prices: np.ndarray, solar_mw: np.ndarray) -> dict[str, float]:
+    p = np.atleast_2d(prices)
+    stats = park_statistics(p, solar_mw)
+    return {"p01": float(np.mean(np.quantile(p, 0.01, axis=1))),
+            "negative_share": float((p < 0).mean()),
+            "negative_output": float(np.median(stats["negative_output_share"])),
+            "capture_rate": float(np.median(stats["capture_rate"]))}
+
+
+def tail_check(settings: Settings, history: pd.Series, features: pd.DataFrame,
+               solar_mw: pd.Series, climatology: pd.DataFrame, n_paths: int) -> pd.DataFrame:
+    """The negative tail in-sample (real weather, analog days at least the exclusion away)
+    for several scales b of negative prices, history first: 1% quantile, share of negative
+    hours, the solar park's output share at negative prices and capture rate, and the largest
+    relative error of the first three."""
+    pm, sc, tz = settings.price_model, settings.scenarios, settings.timezone
+    days = pd.DatetimeIndex(sorted(set(history.index.tz_convert(tz).normalize().tz_localize(None))))
+    q = solar_mw.reindex(history.index).to_numpy()
+    ok = ~np.isnan(q)
+    rows = {"History": _tail_row(history.to_numpy()[ok], q[ok])}
+    candidates = list(dict.fromkeys([*TAIL_CANDIDATES, pm.negative_scale_eur_mwh]))
+    for b in candidates:
+        model = fit(history, tz, pm.scale_eur_mwh, b)
+        link = fit_link(model, history, features, climatology, tz, sc.analog_window_days,
+                        sc.analog_k)
+        paths = simulate_linked(model, link, history.index, tz, features.reindex(days), n_paths,
+                                seed=pm.seed, exclude_days=sc.validation_exclusion_days)
+        label = f"b = {pm.scale_eur_mwh:g} (symmetric)" if b is None else f"b = {b:g}"
+        if b == pm.negative_scale_eur_mwh:
+            label += " (configured)"
+        rows[label] = _tail_row(paths[:, ok], q[ok])
+    table = pd.DataFrame(rows).T
+    truth = table.loc["History", list(TAIL_KEYS)]
+    error = (table[list(TAIL_KEYS)] - truth).abs() / truth.abs()
+    table["largest_error"] = error.max(axis=1).where(table.index != "History")
+    return table
+
+
+def out_of_sample_check(settings: Settings, inputs: dict, n_paths: int) -> dict | None:
+    """Each configured test year simulated by a model fitted on the days before it only,
+    and by one that has seen it (see `scenarios.out_of_sample`). None if not configured."""
+    pm, sc, tz = settings.price_model, settings.scenarios, settings.timezone
+    if not sc.out_of_sample_years:
+        return None
+    prices = hourly_prices(settings)
+    years = []
+    for year in sc.out_of_sample_years:
+        start, end = date(year, 1, 1), min(date(year, 12, 31), settings.end)
+        weather_years = complete_weather_years(inputs["matrices"], settings.weather_first_year,
+                                               year - 1)
+        climatology = monthly_climatology(inputs["features"], weather_years[0],
+                                          weather_years[-1])
+        runs = {seen: out_of_sample(prices, inputs["features"], inputs["gen"], climatology, tz,
+                                    pm.scale_eur_mwh, sc.out_of_sample_train_start, start, end,
+                                    sc.analog_window_days, sc.analog_k, n_paths=n_paths,
+                                    seed=pm.seed, negative_scale=pm.negative_scale_eur_mwh,
+                                    seen=seen, exclude_days=sc.validation_exclusion_days)
+                for seen in (False, True)}
+        table = runs[False]["statistics"]
+        years.append({"year": year, "test": runs[False]["test"],
+                      "inside": int(table["inside_range"].sum()), "statistics": len(table),
+                      "table": table.drop(columns="inside_range").to_dict(orient="index"),
+                      "parks": runs[False]["parks"], "seen": runs[True]["parks"]})
+    bias = {}
+    for park in inputs["gen"]:
+        errors = [y["parks"][park]["capture_rate"]["p50"] - y["parks"][park]["capture_rate"]
+                  ["history"] for y in years]
+        seen = [y["seen"][park]["capture_rate"]["p50"] - y["seen"][park]["capture_rate"]
+                ["history"] for y in years]
+        bias[park] = {"capture_rate": float(np.mean(errors)), "min": float(np.min(errors)),
+                      "max": float(np.max(errors)), "seen": float(np.mean(seen))}
+    return {"train_start": str(sc.out_of_sample_train_start), "years": years, "bias": bias}
+
+
 def within_month_daily(prices: np.ndarray, index: pd.DatetimeIndex, tz: str) -> pd.Series:
     """Daily mean price minus its month's mean (local days)."""
     day = index.tz_convert(tz).normalize().tz_localize(None)
@@ -181,6 +261,27 @@ def fig_link(features: pd.DataFrame, panels: dict[str, pd.Series], path: Path) -
     return save(fig, path)
 
 
+def fig_out_of_sample(check: dict, names: dict[str, str], path: Path) -> Path:
+    """Per park and test year: history, the out-of-sample 5-95% range and median, and the
+    median of the model that has seen the year."""
+    fig, axes = plt.subplots(1, len(names), figsize=(11, 3.6))
+    for ax, (park, label) in zip(np.atleast_1d(axes), names.items(), strict=True):
+        for i, y in enumerate(check["years"]):
+            r, seen = y["parks"][park]["capture_rate"], y["seen"][park]["capture_rate"]
+            ax.plot([i, i], [r["p05"], r["p95"]], color=BLUE, linewidth=6, alpha=0.35,
+                    solid_capstyle="butt", label="out of sample: 5-95%" if i == 0 else None)
+            ax.plot(i, r["p50"], "o", color=BLUE, label="out of sample: median" if i == 0 else None)
+            ax.plot(i + 0.18, seen["p50"], "D", color=ORANGE, markersize=5,
+                    label="year seen: median" if i == 0 else None)
+            ax.plot(i - 0.18, r["history"], "s", color=INK, markersize=5,
+                    label="history" if i == 0 else None)
+        ax.set_xticks(range(len(check["years"])), [str(y["year"]) for y in check["years"]])
+        ax.set_xlim(-0.6, len(check["years"]) - 0.4)
+        ax.legend(frameon=False, fontsize=7.5, loc="best")
+        style(ax, f"{label}: capture rate in years the model never saw", "Capture rate")
+    return save(fig, path)
+
+
 def fig_convergence(table: pd.DataFrame, names: dict[str, str], path: Path, seed: int) -> Path:
     order = np.random.default_rng(seed).permutation(len(table))
     t = table.iloc[order]
@@ -235,6 +336,48 @@ def _capture_history_table(rates: pd.DataFrame, names: dict[str, str]) -> str:
     return pd.DataFrame(rows).to_markdown(index=False)
 
 
+def _tail_md(table: pd.DataFrame) -> str:
+    out = pd.DataFrame({
+        "1% quantile (EUR/MWh)": table["p01"].map(lambda v: f"{v:.1f}".replace("-", "−")),
+        "Negative hours": table["negative_share"].map("{:.1%}".format),
+        "Solar output at negative prices": table["negative_output"].map("{:.1%}".format),
+        "Solar capture rate": table["capture_rate"].map("{:.3f}".format),
+        "Largest error of the first three": table["largest_error"].map(
+            lambda v: "–" if pd.isna(v) else f"{v:.0%}"),
+    })
+    return out.rename_axis("").to_markdown()
+
+
+def _out_of_sample_md(check: dict, names: dict[str, str]) -> tuple[str, str]:
+    stats = []
+    for y in check["years"]:
+        t = y["table"]
+
+        def pair(key: str, fmt: str, t=t) -> str:
+            text = f"{format(t[key]['history'], fmt)} / {format(t[key]['simulated_mean'], fmt)}"
+            return text.replace("-", "−")
+
+        stats.append({"Test year": f"{y['year']} ({y['test'][0]} to {y['test'][1]})",
+                      "Inside 5-95%": f"{y['inside']} of {y['statistics']}",
+                      "Std": pair("std", ".1f"), "1% quantile": pair("p01", ".1f"),
+                      "5% quantile": pair("p05", ".1f"),
+                      "Negative hours": pair("negative_share", ".1%"),
+                      "Autocorrelation 24 h": pair("acf_24h", ".2f")})
+    parks = []
+    for y in check["years"]:
+        for park, label in names.items():
+            r, seen = y["parks"][park], y["seen"][park]
+            cr, neg = r["capture_rate"], r["negative_output_share"]
+            parks.append({
+                "Year": y["year"], "Park": label, "Capture rate: history": f"{cr['history']:.3f}",
+                "out of sample (5-95%)": f"{cr['p50']:.3f} ({cr['p05']:.3f}-{cr['p95']:.3f})",
+                "year seen": f"{seen['capture_rate']['p50']:.3f}",
+                "Output at negative prices: history / model": f"{neg['history']:.1%} / "
+                                                              f"{neg['p50']:.1%}"})
+    return (pd.DataFrame(stats).to_markdown(index=False),
+            pd.DataFrame(parks).to_markdown(index=False))
+
+
 def _results_table(tables: dict[str, pd.DataFrame], names: dict[str, str]) -> str:
     rows = []
     for park, label in names.items():
@@ -265,7 +408,7 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
         path.write_text(header + "No site weather or generation found: run `ppa-lab weather` "
                         "first (Step 4).\n")
         return {"report": path, "scenarios": None, "capture_rates": None, "link": None,
-                "convergence": None}
+                "convergence": None, "out_of_sample": None, "out_of_sample_results": None}
 
     solar, wind = parks(settings)
     names = {solar.name: "Solar park", wind.name: "Wind park"}
@@ -274,7 +417,7 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
     years = complete_weather_years(matrices, settings.weather_first_year, sc.weather_last_year)
     climatology = monthly_climatology(features, years[0], years[-1])
 
-    model = fit(history, tz, pm.scale_eur_mwh)
+    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh)
     link = fit_link(model, history, features, climatology, tz, sc.analog_window_days,
                     sc.analog_k)
 
@@ -292,6 +435,16 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
     panels = {"History": within_month_daily(history.to_numpy(), history.index, tz),
               "Step 5, one path": within_month_daily(sims["step5"][0], history.index, tz),
               "Step 6, one path": within_month_daily(sims["step6"][0], history.index, tz)}
+
+    # The negative tail for several scales of negative prices, and years never seen.
+    tail = tail_check(settings, history, features, gen[solar.name], climatology, n_check)
+    negative = history[history < 0]
+    bunched = float((negative > -5).mean()) if len(negative) else float("nan")
+    check = out_of_sample_check(settings, inputs, n_check)
+    check_path = None
+    if check is not None:
+        check_path = settings.processed_dir / "out_of_sample.json"
+        check_path.write_text(json.dumps(check, indent=1))
 
     # 2. Joint scenarios for the delivery year: linked, and independent for comparison.
     quarters = quarter_forwards(pm.forward_eur_mwh, pm.quarter_quotes, pm.delivery_year, tz)
@@ -337,6 +490,8 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
         "link": fig_link(features, panels, fig_dir / "step06_link.png"),
         "convergence": fig_convergence(tables["linked"], names, fig_dir / "step06_convergence.png",
                                        sc.seed),
+        "out_of_sample": None if check is None else fig_out_of_sample(
+            check, names, fig_dir / "step06_out_of_sample.png"),
     }
 
     eur = eur_per_unit(link, model.scale, pm.forward_eur_mwh)
@@ -371,6 +526,46 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
     se = {label: fair_price_standard_error(tables["linked"], park) for park, label in names.items()}
     diff = {label: fair_price(tables["independent"], park) - fair_price(tables["linked"], park)
             for park, label in names.items()}
+
+    b = pm.negative_scale_eur_mwh
+    tail_text = (
+        f"In the calibration window {bunched:.0%} of the negative hours lie between −5 and 0 "
+        "EUR/MWh: prices bunch just below zero, where flexible plants stop producing. A "
+        "symmetric transform spreads that bunch into a deep tail. Negative prices can have "
+        "their own scale b, y = −a arcsinh(|P| / b), with a chosen so that −500 EUR/MWh maps "
+        f"where it does with b = s = {pm.scale_eur_mwh:g}. In-sample, with the real weather "
+        f"({n_check} paths, analog days at least {sc.validation_exclusion_days} days away):"
+        f"\n\n{_tail_md(tail)}\n\n"
+        + ("The configured model is symmetric. " if b is None else
+           f"Configured: b = {b:g}, the candidate with the smallest largest error. ")
+        + "A realistic tail raises the solar capture rate a little: the deep negative tail had "
+        "been hiding midday dips that are not deep enough (section 4).")
+    if check is None:
+        oos_text = "Not configured (`[scenarios] out_of_sample_years`)."
+    else:
+        stats_md, parks_md = _out_of_sample_md(check, names)
+        bias = check["bias"]
+        parts = ", ".join(f"the {label.lower()}'s by {bias[park]['capture_rate']:+.3f} "
+                          f"({bias[park]['min']:+.3f} to {bias[park]['max']:+.3f})"
+                          for park, label in names.items())
+        seen = " and ".join(f"{bias[park]['seen']:+.3f}" for park in names)
+        oos_text = (
+            f"For each test year the model and the link are fitted on the days from "
+            f"{check['train_start']} up to the day before it, with analog days from its last "
+            f"12 months (as for {pm.delivery_year}). The year is then simulated with its real "
+            f"weather and each quarter at its realised average price: a perfect forward, so "
+            "the test is about what the model adds (shape, tails, capture rates). Year seen: "
+            "the same with the test year in the fit and in the analog pool (analog days at "
+            f"least {sc.validation_exclusion_days} days away), which leaves only the model's "
+            f"structural error. {n_check} paths each.\n\nHistory / model mean:\n\n"
+            f"{stats_md}\n\n{parks_md}\n\n"
+            f"Out of sample the model overstates capture rates: on average {parts}. With the "
+            f"year seen the errors fall to {seen}: most of the error is one year of change, "
+            "the midday dips deepening as solar capacity grows, which the analog days and the "
+            f"daily shape learn a year late. The {pm.delivery_year} scenarios are built the "
+            "same way, so they likely carry a similar error; Step 7 prices it as a "
+            "sensitivity (backlog PPA-8e).\n\n"
+            f"![Out-of-sample capture rates](figures/{figs['out_of_sample'].name})")
 
     sources = f"{settings.energy_charts.license}; ERA5 via Open-Meteo ({settings.weather_license})"
     report = header + f"""Data: {sources}.
@@ -407,7 +602,15 @@ Capture rates of the parks in each complete year (median and 5-95% over paths):
 
 History outside the Step 6 range: {", ".join(outside) if outside else "none"}.
 
-## 3. Delivery year {pm.delivery_year}: {n_scen} scenarios
+## 3. The negative tail
+
+{tail_text}
+
+## 4. Out of sample: years the model never saw
+
+{oos_text}
+
+## 5. Delivery year {pm.delivery_year}: {n_scen} scenarios
 
 {len(years)} weather years ({years[0]}-{years[-1]}) x {sc.paths_per_weather_year} price paths
 = {n_scen} scenarios; forward {pm.forward_eur_mwh:.1f} EUR/MWh{quarter_text}, level uncertainty
@@ -433,7 +636,7 @@ calibration window (as in the validation).
 
 {pd.DataFrame(sensitivity).to_markdown(index=False)}
 
-## 4. Charts
+## 6. Charts
 
 ![Capture rates per scenario](figures/{figs["capture_rates"].name})
 
@@ -443,4 +646,4 @@ calibration window (as in the validation).
 """
     path.write_text(report)
     log.info("wrote %s and %s", path, scen_path)
-    return {"report": path, "scenarios": scen_path, **figs}
+    return {"report": path, "scenarios": scen_path, "out_of_sample_results": check_path, **figs}

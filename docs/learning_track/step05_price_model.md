@@ -105,7 +105,9 @@ Near zero it is almost linear (y ≈ P/s), for large prices it grows like a loga
 (arcsinh(x) ≈ ln 2x), and it is symmetric: a −100 hour is as far from zero as a +100
 hour. The **scale s** decides where "large" starts: a small s compresses ordinary prices
 too, a large s leaves spikes almost untouched. In Step 5 s was chosen by validation
-(section 4.3): s = 120 EUR/MWh.
+(section 4.3): s = 120 EUR/MWh. Since v1.6 negative prices have their own, smaller scale
+b = 15 EUR/MWh, because they bunch just below zero (finding 1 in section 4.4; the fix and its
+check: Step 6 page, section 4.6).
 
 > **Pitfall:** the transform is not linear, so the average of transformed prices, turned
 > back, is not the average price. That matters as soon as you calibrate to a forward
@@ -279,7 +281,7 @@ this step and skips it (with a warning) when the configured range is too short.
 | Test file | Protects against |
 |---|---|
 | `test_price_calendar.py` (3) | a wrong Easter date; missing or extra holidays; day types in UTC instead of local time |
-| `test_price_model.py` (17) | a transform that fails on negative prices; half-life maths (including φ ≤ 0 and φ ≥ 1); AR(1) pairs across gaps; failure to recover a known daily shape, φ and σ from synthetic prices; a simulation that starts calm; days not resampled whole; a level that misses the forward; level volatility without effect; irreproducible paths; JSON round trip |
+| `test_price_model.py` (18) | a transform that fails on negative prices, or (v1.6) whose negative scale moves the floor, is not monotone or sends prices below −500; half-life maths (including φ ≤ 0 and φ ≥ 1); AR(1) pairs across gaps; failure to recover a known daily shape, φ and σ from synthetic prices; a simulation that starts calm; days not resampled whole; a level that misses the forward; level volatility without effect; irreproducible paths; JSON round trip |
 | `test_step05_report.py` (1), `test_config.py` (+1), `test_cli.py` (+1) | the report end to end; a calibration window outside the data; `ppa-lab prices` and `all` |
 
 Every key test was checked by planting the bug it protects against (for example: start the
@@ -361,6 +363,8 @@ Four statistics stay outside the range, and each has a reason:
    periods. That is a soft floor. The symmetric transform knows nothing about it, so the
    model produces fewer hours just below zero and more deep ones: history has 4.6% of its
    hours between −10 and 0 EUR/MWh and 1.6% below −10; the model has 1.5% and 3.4%.
+   **Fixed in v1.6** with a scale of their own for negative prices (Step 6 page, section 4.6):
+   1% quantile −21 vs −20, negative hours 6.6% vs 6.2% (in-sample, with the weather link).
 2. **Autocorrelation at 24 hours: 0.59 vs 0.70.** The daily level carries over, but the
    **pattern** of each day is drawn independently. In reality a sunny spell repeats deep
    midday dips several days in a row. Weather persistence is missing, and Step 6 adds it:

@@ -6,6 +6,39 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.0] (ticket PPA-6b: years the model never saw, and the negative tail)
+
+### Added
+- Out-of-sample test (`scenarios/out_of_sample.py`, Step 6 report section 4, chart
+  `step06_out_of_sample.png`, `data/processed/out_of_sample.json`): for 2024, 2025 and 2026
+  the model and the weather link are fitted on the days from 2023 up to the year only, with
+  analog days from its last 12 months, then the year is simulated with its real weather and
+  each quarter at its realised average price (a perfect forward). A second run lets the model
+  see the year, which leaves only its structural error. `[scenarios] out_of_sample_*`.
+- Negative prices with their own scale b in the transform (`negative_scale` in
+  `prices/model.py`, `[price_model] negative_scale_eur_mwh = 15`): y = −a arcsinh(|P| / b),
+  with a so that −500 EUR/MWh maps where it did; simulated prices below −500 are clipped.
+  b chosen in the Step 6 report, section 3, among s, 40, 15 and 5: the smallest largest error
+  over the 1% quantile, the share of negative hours and the solar output at negative prices.
+- Step 7 sensitivity "Capture rate less the model's out-of-sample error"; memo lever.
+- Notebook 6.7: play with a year the model never saw; 5.6 plays with s and b.
+
+### Findings
+- History's negative hours bunch just below zero (65% between −5 and 0 EUR/MWh). With b = 15
+  the in-sample tail matches: 1% quantile −21.2 vs −20.1 (was −45.2), negative hours 6.6% vs
+  6.2% (5.6%), solar output at negative prices 21.7% vs 21.8% (18.0%); 7 of 11 statistics
+  inside the range (6).
+- Out of sample the model overstates capture rates even with the price level given: solar
+  +0.142, +0.133, +0.093 in 2024-2026, wind +0.023 to +0.051. Having seen the year it is
+  +0.036 and +0.022: most of the solar error is one year of build-out (dips deepening), which
+  the analog days and the daily shape learn late.
+- The realistic tail raises the solar price: the old deep tail had been hiding midday dips
+  that are not deep enough. Borrentin: fair 48.6 EUR/MWh (45.7 in v1.5), indicative **36.8**
+  (34.9); **24.9** less the out-of-sample error. Everswinkel: 86.0 / **77.5** (85.8 / 77.3);
+  74.3 less the error. 2027: solar output at negative prices 13.8% (was 10%).
+- The model's slope of capture rate vs ln(price) is now 0.19 (0.25), still inside history's
+  95% interval (0.10 to 0.45).
+
 ## [1.5.0] (ticket PPA-8d: the capture rate and the price level)
 
 ### Changed
