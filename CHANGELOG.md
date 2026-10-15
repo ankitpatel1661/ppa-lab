@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.7.0] (ticket PPA-8e: capture rates that follow the build-out)
+
+### Changed
+- Historical days are moved forward by the build-out trend before their intraday pattern is
+  used (`[price_model] intraday_trend = true`; `estimate_intraday_trend` and `pattern_shift`
+  in `prices/model.py`): u -> u + tau[season, hour] x (simulated day - historical day), with
+  tau the change per year of the hourly shape, estimated from the same calendar month in
+  different years. Used by the Step 5 and Step 6 simulations; `price_model.json` stores the
+  trend and the pool days.
+- Step 6 out-of-sample section compares with the model without the trend; the error Step 7
+  carries is the mean of the test years fitted like the delivery year (2025-2026).
+- Step 7 states what history's trend would do in one more year (solar −5.6 pp at the same
+  forward) next to the base case's −1 pp a year after 2027.
+- Memo: levers below 0.5 EUR/MWh are left out (the analog-pool lever is now 0.0).
+- Notebook 6.7: `TREND` switch.
+
+### Findings
+- Out of sample the solar capture-rate error falls from +0.133 / +0.093 to +0.047 / +0.010
+  (2025 / 2026); 7 and 5 of 11 statistics inside (4 and 4); negative hours 5.8% vs 6.6% and
+  6.3% vs 7.2% (4.5%). Wind's error grows from +0.023 / +0.051 to +0.029 / +0.060: deeper
+  midday dips raise the other hours. 2024 (fitted on one year) has no trend.
+- In-sample 7 of 11 (Step 5) and 8 of 11 (Step 6) statistics inside; the solar park's 2024
+  capture rate is now inside the range (0.614 vs 0.601).
+- Which historical days represent 2027 no longer matters: solar fair price 77.5 / 77.2 / 77.5
+  for pools from 2024, 2025 and the last 12 months (93.8 / 89.4 / 86.4 in v1.6).
+- Borrentin: 2027 capture rate 0.55 (0.61), fair 41.1 EUR/MWh (48.6), indicative **28.1**
+  (36.8); 25.3 less the remaining out-of-sample error. Everswinkel: 86.6 / **78.1** (86.0 /
+  77.5). Solar output at negative prices in 2027: 17.5%.
+
 ## [1.6.0] (ticket PPA-6b: years the model never saw, and the negative tail)
 
 ### Added

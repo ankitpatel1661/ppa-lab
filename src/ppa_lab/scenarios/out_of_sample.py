@@ -42,7 +42,7 @@ def out_of_sample(prices: pd.Series, features: pd.DataFrame, generation: dict[st
                   test_start: date, test_end: date, window_days: int, k: int,
                   pool_months: int = 12, n_paths: int = 200, seed: int = 0,
                   negative_scale: float | None = None, seen: bool = False,
-                  exclude_days: int = 7) -> dict:
+                  exclude_days: int = 7, intraday_trend: bool = False) -> dict:
     """Fit on [train_start, test_start), simulate [test_start, test_end] (local days).
 
     `prices`: hourly, UTC; `generation`: park -> hourly MW (UTC), the parks' output in the
@@ -56,7 +56,7 @@ def out_of_sample(prices: pd.Series, features: pd.DataFrame, generation: dict[st
     test = prices[(day >= pd.Timestamp(test_start)) & (day <= pd.Timestamp(test_end))]
 
     known = pd.concat([train, test]) if seen else train
-    model = fit(known, tz, scale, negative_scale)
+    model = fit(known, tz, scale, negative_scale, intraday_trend)
     link = fit_link(model, known, features, climatology, tz, window_days, k)
     pool_start = pd.Timestamp(test_start)
     if not seen:
@@ -88,6 +88,8 @@ def out_of_sample(prices: pd.Series, features: pd.DataFrame, generation: dict[st
                              **dict(zip(("p05", "p50", "p95"),
                                         np.percentile(v, [5, 50, 95]).tolist(), strict=True))}
                        for key, v in sim.items()}
+    trend = model.intraday_trend
     return {"train": (str(train_start), str(test_start)), "test": (str(test_start), str(test_end)),
             "statistics": compare_with_history(observed, paths), "parks": parks,
-            "paths": paths, "index": index, "pool_days": len(link.pool_days)}
+            "paths": paths, "index": index, "pool_days": len(link.pool_days),
+            "trend": trend is not None and bool(np.abs(trend.to_numpy()).sum() > 0)}

@@ -108,7 +108,7 @@ def memo_text(results: dict, settings: Settings) -> str:
                                "of the last 12 months)", None),
                               (trend_case(0.01), "Capture-rate trend ±1 pp per year", "±")):
         row = _case(sens, name)
-        if row is not None:
+        if row is not None and (sign or abs(row["indicative"] - base_ind) >= 0.5):
             delta = row["indicative"] - base_ind
             mark = sign or ("+" if delta >= 0 else "−")
             levers.append(f"- {label}: **{mark}{abs(delta):.1f} EUR/MWh**")

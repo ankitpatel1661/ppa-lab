@@ -82,6 +82,7 @@ class PriceModelSettings:
     forward_source: str = ""          # where the quote was published (URL)
     quarter_quotes: QuarterQuotes | None = None   # seasonal shape of the forward (Step 6)
     negative_scale_eur_mwh: float | None = None   # own scale for negative prices (v1.6)
+    intraday_trend: bool = False      # move historical days' patterns by the build-out trend (v1.7)
 
 
 @dataclass(frozen=True)

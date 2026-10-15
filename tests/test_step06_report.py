@@ -46,8 +46,10 @@ def test_step06_report_end_to_end(settings):
 
 def test_step06_report_tests_a_year_the_model_never_saw(settings):
     s = small_settings(settings)
-    s = dataclasses.replace(s, scenarios=dataclasses.replace(
-        s.scenarios, out_of_sample_train_start=date(2024, 1, 1), out_of_sample_years=(2025,)))
+    s = dataclasses.replace(
+        s, scenarios=dataclasses.replace(s.scenarios, out_of_sample_train_start=date(2024, 1, 1),
+                                         out_of_sample_years=(2025,)),
+        price_model=dataclasses.replace(s.price_model, intraday_trend=True))
     store = RawStore(s.raw_dir, source="open_meteo")
     fetch_weather(s, FakeWeatherClient(), store, today=date(2026, 6, 1))
     build_generation(s, store)
@@ -64,6 +66,8 @@ def test_step06_report_tests_a_year_the_model_never_saw(settings):
     # each quarter at its realised average: the simulated mean is history's
     assert year["table"]["mean"]["simulated_mean"] == pytest.approx(
         year["table"]["mean"]["history"], rel=1e-6)
+    # with the trend on, the report compares with the model without it
+    assert "without the build-out trend" in text and "no_trend" in year
     for park in ("solar_park", "wind_park"):
         r = year["parks"][park]["capture_rate"]
         assert r["p05"] <= r["p50"] <= r["p95"]

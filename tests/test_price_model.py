@@ -14,12 +14,15 @@ import pandas as pd
 import pytest
 
 from ppa_lab.prices.model import (
+    SEASON_ORDER,
     PriceModel,
     calibrate_level,
+    estimate_intraday_trend,
     fit,
     fit_ar1,
     half_life,
     inverse,
+    pattern_shift,
     seasonal_mean,
     simulate,
     simulate_daily_factor,
@@ -99,6 +102,66 @@ def test_fit_ar1_ignores_pairs_across_gaps():
     # them would mix phi (0.9) with phi^2 (0.81) and give about 0.855.
     phi, _ = fit_ar1(x.drop(x.index[::3]))
     assert phi == pytest.approx(0.9, abs=0.01)
+
+
+# --------------------------------------------------------------------------- #
+# Build-out: the intraday trend (v1.7)
+# --------------------------------------------------------------------------- #
+MIDDAY = (10, 11, 12, 13, 14)
+
+
+def deepening_dip(start: str, end: str, per_year: float) -> pd.Series:
+    """y whose midday hours fall by `per_year` a year (the other hours make up for it, so the
+    day's mean stays put), plus a dip that also deepens within each year from January to
+    December (a seasonal effect that must not count as a trend)."""
+    idx = hourly(start, end)
+    local = idx.tz_convert(TZ)
+    years = (local.year - 2024).to_numpy() + (local.dayofyear.to_numpy() - 1) / 365.0
+    midday = np.isin(local.hour, MIDDAY)
+    season = -0.3 * (local.month.to_numpy() - 1) / 11
+    dip = per_year * years + season
+    y = 1.0 + np.where(midday, dip, -dip * len(MIDDAY) / (24 - len(MIDDAY)))
+    return pd.Series(y, index=idx)
+
+
+def test_the_intraday_trend_comes_from_years_not_from_the_season():
+    tau = estimate_intraday_trend(deepening_dip("2024-01-01", "2026-01-01", -0.1), TZ)
+    # within a month the dip deepens by about 0.1 / 12 too: the monthly means of two years
+    # still differ by exactly one year's trend, so tau is -0.1 and not the seasonal -0.3
+    for season in SEASON_ORDER:
+        assert tau.loc[season, list(MIDDAY)].to_numpy() == pytest.approx(-0.1, abs=0.005)
+        assert tau.loc[season, 3] == pytest.approx(0.1 * 5 / 19, abs=0.005)
+
+
+def test_one_year_has_no_trend():
+    tau = estimate_intraday_trend(deepening_dip("2024-01-01", "2025-01-01", -0.1), TZ)
+    assert (tau.to_numpy() == 0.0).all() and tau.shape == (4, 24)
+
+
+def test_a_pattern_moves_by_the_trend_times_the_years_between_the_days():
+    trend = pd.DataFrame(0.0, index=list(SEASON_ORDER), columns=range(24))
+    trend.loc["summer", 12] = -0.1
+    pool_days = pd.DatetimeIndex(["2025-07-01", "2026-07-01"])
+    days = pd.DatetimeIndex(["2027-07-01"])
+    codes, hours = np.zeros(24, dtype=int), np.arange(24)
+    picks = np.array([[0], [1]])                         # path 0 draws 2025, path 1 draws 2026
+    shift = pattern_shift(trend, pool_days, picks, days, codes, hours)
+    assert shift[0, 12] == pytest.approx(-0.1 * 730 / 365.25)
+    assert shift[1, 12] == pytest.approx(-0.1 * 365 / 365.25)
+    assert shift[0, 11] == 0.0
+    assert pattern_shift(None, pool_days, picks, days, codes, hours) == 0.0
+
+
+def test_the_trend_and_the_pool_days_survive_json(tmp_path):
+    prices = pd.Series(inverse(deepening_dip("2024-01-01", "2026-01-01", -0.1).to_numpy(), 50.0),
+                       index=hourly("2024-01-01", "2026-01-01"))
+    model = fit(prices, TZ, 50.0, intraday_trend=True)
+    model.save(tmp_path / "m.json")
+    again = PriceModel.load(tmp_path / "m.json")
+    pd.testing.assert_frame_equal(again.intraday_trend, model.intraday_trend, atol=1e-6,
+                                  check_names=False)
+    assert list(again.pool_days) == list(model.pool_days)
+    assert fit(prices, TZ, 50.0).intraday_trend is None             # off unless asked for
 
 
 # --------------------------------------------------------------------------- #

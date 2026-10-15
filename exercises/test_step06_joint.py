@@ -36,6 +36,6 @@ def test_ex2_analog_days_of_a_june_day():
 
 def test_ex3_fair_prices_with_and_without_the_weather_link():
     fair = ex.fair_prices(ex.load("scenarios_2027"))
-    assert fair.loc["solar_park", "linked"] == pytest.approx(93.76, abs=0.01)
-    assert fair.loc["wind_park", "independent"] == pytest.approx(148.36, abs=0.01)
-    assert fair.loc["wind_park", "linked"] == pytest.approx(129.26, abs=0.01)
+    assert fair.loc["solar_park", "linked"] == pytest.approx(77.47, abs=0.01)
+    assert fair.loc["wind_park", "independent"] == pytest.approx(149.51, abs=0.01)
+    assert fair.loc["wind_park", "linked"] == pytest.approx(130.56, abs=0.01)

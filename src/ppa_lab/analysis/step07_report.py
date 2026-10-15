@@ -224,7 +224,7 @@ def scenario_set(settings: Settings, inputs: dict, pool_start: pd.Timestamp) -> 
     history = calibration_history(settings)
     years = complete_weather_years(inputs["matrices"], settings.weather_first_year,
                                    sc.weather_last_year)
-    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh)
+    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh, pm.intraday_trend)
     features = inputs["features"]
     link = fit_link(model, history, features, monthly_climatology(features, years[0], years[-1]),
                     tz, sc.analog_window_days, sc.analog_k)
@@ -518,6 +518,13 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     techs = {p.name: ("solar" if p is solar else "wind") for p in (solar, wind)}
     f0 = float(base.prices.mean())
     low = min([pm.forward_eur_mwh, *ppa.forward_curve.values()])
+    # What history's build-out trend would do in one more year, at the same forward
+    implied = None
+    if pm.intraday_trend:
+        later = scenario_set(replace(settings, price_model=replace(
+            pm, delivery_year=pm.delivery_year + 1)), inputs, pd.Timestamp(ppa.analog_pool_start))
+        first = capture_rates(base, names)
+        implied = {p: rate - first[p] for p, rate in capture_rates(later, names).items()}
     check_path = settings.processed_dir / "out_of_sample.json"
     check = json.loads(check_path.read_text()) if check_path.exists() else None
 
@@ -545,6 +552,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             for label, end in ((LEVEL_LOW, "ci_low"), (LEVEL_HIGH, "ci_high"))}
         error = check["bias"][park]["capture_rate"] if check and park in check["bias"] else None
         e["out_of_sample_error"] = error
+        e["trend_implied_drift"] = None if implied is None else implied[park]
         tenors[park] = tenor_rows(priced[park], cost, ppa.start_year, ppa.tenor_years,
                                   ppa.discount_rate, alt, ppa.forward_curve, response, history,
                                   error)
@@ -644,11 +652,23 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     if lead_e.get("out_of_sample_error") is not None:
         errors = ", ".join(f"{names[p].lower()} {effects[p]['out_of_sample_error']:+.3f}"
                            for p in names if effects[p].get("out_of_sample_error") is not None)
+        years = check["bias"][lead].get("years") or [y["year"] for y in check["years"]]
         level_note += (
-            " The last row takes the model's average out-of-sample capture-rate error in "
-            f"{check['years'][0]['year']}-{check['years'][-1]['year']} off every year ({errors}; "
-            "Step 6, section 4): fitted on the years before, the model overstated capture rates "
-            "in every year, because the midday dips deepen as solar capacity grows.")
+            " The last row takes the model's mean out-of-sample capture-rate error off every "
+            f"year ({errors}; test years {', '.join(str(y) for y in years)}, fitted like "
+            f"{ppa.start_year}; Step 6, section 4): fitted on the years before, the model "
+            "overstated capture rates even with the price level given.")
+    if lead_e.get("trend_implied_drift") is not None:
+        pace = ", ".join(f"{names[p].lower()} "
+                         + f"{effects[p]['trend_implied_drift'] * 100:+.1f} pp".replace("-", "−")
+                         for p in names)
+        level_note += (
+            f" The {ppa.start_year} scenarios carry history's build-out trend up to "
+            f"{ppa.start_year} (Step 6, section 4); continued for one more year at the same "
+            f"forward it would move the capture rate by {pace}. The base case assumes {trends} "
+            "a year after that: storage, flexible demand and curtailment are expected to slow "
+            "the fall, and a straight line would take solar's capture rate towards zero within "
+            "a decade (the −2 pp row is the steeper view).")
     level_note += "\n"
     without = ", ".join(f"{names[p].lower()} {effects[p]['tenor_fair_without_level_effect']:.1f}"
                         for p in names)

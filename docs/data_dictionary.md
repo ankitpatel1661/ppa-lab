@@ -186,6 +186,8 @@ values except `scale` and `negative_scale` are in **transformed units** y = arcs
 | `pool_season` | list of strings | Season of each historical day in the resampling pool (998 days) |
 | `pool_z` | list of numbers | That day's standardised daily shock z (mean about 0, sd about 1) |
 | `pool_u` | list of 24-number lists | That day's intraday pattern u: deviation of each local hour from the day's level |
+| `pool_days` | list of dates | Since v1.7: the local date of each pool day (to move it to the simulated day) |
+| `intraday_trend` | {season: 24 numbers} | Since v1.7, when `[price_model] intraday_trend` is on: tau, the change per year of the hourly deviation from the day's mean (transformed units per year) |
 
 Only complete 24-hour local days enter the pool (days with a daylight-saving change have 23
 or 25 hours and are left out).
@@ -224,10 +226,11 @@ is set; Step 7 reads `bias`.
 | Key | Meaning |
 |---|---|
 | `train_start` | First day of every fit |
-| `years[]` | Per test year: `year`, `test` (first and last local day), `inside` of `statistics` (statistics with history inside the 5-95% range), `table` (per statistic: `history`, `simulated_mean`, `simulated_p05`, `simulated_p95`) |
+| `years[]` | Per test year: `year`, `test` (first and last local day), `trend` (whether the fit could estimate a build-out trend), `inside` of `statistics` (statistics with history inside the 5-95% range), `table` (per statistic: `history`, `simulated_mean`, `simulated_p05`, `simulated_p95`); since v1.7 `inside_no_trend` |
 | `years[].parks.<park>` | Out of sample: `capture_rate` and `negative_output_share` (output share at negative prices), each with `history`, `p05`, `p50`, `p95` over the paths |
 | `years[].seen.<park>` | The same for the model that has seen the test year |
-| `bias.<park>` | `capture_rate`: mean over the years of median minus history; `min`, `max`; `seen`: the same for the model that has seen the year |
+| `years[].no_trend.<park>` | Since v1.7: the same for the model without the build-out trend |
+| `bias.<park>` | `capture_rate`: mean of median minus history over the test `years` fitted like the delivery year (with a trend when one is configured); `all_years`, `min`, `max` over all test years; `seen` and `no_trend`: the means of those variants |
 
 ---
 
@@ -255,7 +258,7 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
 | `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor (along the forward curve), and `sensitivity` (one row per case; the forward cases shift the whole curve and move the capture rate with it) |
 | `parks.<park>.level_response` | Since v1.5: `level` (scenario average prices, increasing) and `capture_rate`: the model's capture rate by price level, read linearly in ln(level) by `level_shift` |
-| `parks.<park>.level_effect` | Since v1.5: `ref_level`, `ref_rate` (the recent level and its capture rate), `slope_recent` and `slope_tenor` (the model's slope per unit of ln level), `history` and `history_all_years` (regression: `coef`, `se`, `t`, `ci_low`, `ci_high`, `share_coef`, `r2`, `n`; null without power data), `history_years`, `share_pace` (`from`, `to`, `per_year`), `tenor_fair_without_level_effect`; since v1.6 `out_of_sample_error` (Step 6's mean capture-rate error, null without `out_of_sample.json`) |
+| `parks.<park>.level_effect` | Since v1.5: `ref_level`, `ref_rate` (the recent level and its capture rate), `slope_recent` and `slope_tenor` (the model's slope per unit of ln level), `history` and `history_all_years` (regression: `coef`, `se`, `t`, `ci_low`, `ci_high`, `share_coef`, `r2`, `n`; null without power data), `history_years`, `share_pace` (`from`, `to`, `per_year`), `tenor_fair_without_level_effect`; since v1.6 `out_of_sample_error` (Step 6's mean capture-rate error, null without `out_of_sample.json`); since v1.7 `trend_implied_drift` (capture-rate change if the build-out trend ran one more year, at the same forward) |
 | `parks.<park>.whole_window` | `fair_price` and `premium` with analog days from the whole calibration window |
 | `parks.<park>.assumptions` | `balancing_eur_mwh`, `credit_eur_mwh`, `capture_rate_drift`, `degradation` (from `[ppa.parks.*]`) |
 | `discount_rate` | annual discount rate of the tenor price |

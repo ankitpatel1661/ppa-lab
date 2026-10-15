@@ -10,6 +10,13 @@ prices are spread out and deep ones compressed. History bunches just below zero 
 thirds of the negative hours lie between -5 and 0 in 2024-2026): a symmetric transform
 gave too few negative hours and too deep a tail. Prices below the floor are clipped.
 
+Build-out (v1.7, `intraday_trend`): solar's midday dips deepen every year as capacity grows,
+so a historical day's pattern is moved to the simulated day before it is used,
+    u -> u + tau_{season, hour} x (simulated day - historical day) in years,
+with tau the change per year of the hourly deviation from the day's mean, estimated from the
+same calendar month in different years (so the seasonal deepening from March to June does not
+count). Out of sample this removed most of the solar capture-rate error (Step 6 report).
+
 - L: one level per calendar month of the calibration window (removes slow moves such as
   gas prices). For a future year, L = annual level + average monthly shape.
 - S: the average daily shape by season and day type (working day, Saturday, Sunday or
@@ -43,6 +50,7 @@ import pandas as pd
 from ppa_lab.prices.calendar import SEASONS, calendar_features
 
 PROFILE_KEYS = ["season", "daytype", "hour"]
+SEASON_ORDER = ("winter", "spring", "summer", "autumn")
 ONE_HOUR, ONE_DAY = pd.Timedelta(hours=1), pd.Timedelta(days=1)
 PRICE_FLOOR = -500.0          # EUR/MWh, the harmonised minimum clearing price of the day-ahead
 
@@ -113,6 +121,8 @@ class PriceModel:
     calibration_start: str
     calibration_end: str
     negative_scale: float | None = None   # b for negative prices; None: symmetric (b = s)
+    pool_days: pd.DatetimeIndex | None = None       # local date of each pool day
+    intraday_trend: pd.DataFrame | None = None      # tau: season x 24 hours, y per year
 
     @property
     def half_life_days(self) -> float:
@@ -130,6 +140,11 @@ class PriceModel:
             "pool_z": [round(float(z), 6) for z in self.pool_z],
             "pool_u": [[round(float(v), 6) for v in row] for row in self.pool_u],
         }
+        if self.pool_days is not None:
+            data["pool_days"] = [f"{d:%Y-%m-%d}" for d in self.pool_days]
+        if self.intraday_trend is not None:
+            data["intraday_trend"] = {s: [round(float(v), 6) for v in row]
+                                      for s, row in self.intraday_trend.iterrows()}
         Path(path).write_text(json.dumps(data))
 
     @classmethod
@@ -148,6 +163,9 @@ class PriceModel:
             pool_z=np.asarray(d["pool_z"], dtype="float64"),
             pool_u=np.asarray(d["pool_u"], dtype="float64"),
             calibration_start=d["calibration"][0], calibration_end=d["calibration"][1],
+            pool_days=pd.DatetimeIndex(d["pool_days"]) if "pool_days" in d else None,
+            intraday_trend=(pd.DataFrame(d["intraday_trend"], index=range(24)).T
+                            if "intraday_trend" in d else None),
         )
 
 
@@ -156,8 +174,40 @@ def _keys(features: pd.DataFrame) -> pd.MultiIndex:
                                      names=PROFILE_KEYS)
 
 
-def fit(prices: pd.Series, tz: str, scale: float,
-        negative_scale: float | None = None) -> PriceModel:
+def estimate_intraday_trend(y: pd.Series, tz: str) -> pd.DataFrame:
+    """tau[season, hour]: change per year of the hourly deviation of y from its local day's
+    mean, from the monthly means of the same calendar month in different years (month fixed
+    effects), pooled over the months of a season. 0 where no month has two years."""
+    local = y.index.tz_convert(tz)
+    day = local.normalize()
+    dev = y - y.groupby(day).transform("mean")
+    frame = pd.DataFrame({"dev": dev.to_numpy(), "year": local.year, "month": local.month,
+                          "hour": local.hour})
+    m = frame.groupby(["year", "month", "hour"])["dev"].mean().reset_index()
+    m["dy"] = m["year"] - m.groupby(["month", "hour"])["year"].transform("mean")
+    m["dd"] = m["dev"] - m.groupby(["month", "hour"])["dev"].transform("mean")
+    m["season"] = m["month"].map(SEASONS)
+    num = (m["dy"] * m["dd"]).groupby([m["season"], m["hour"]]).sum()
+    den = (m["dy"] ** 2).groupby([m["season"], m["hour"]]).sum()
+    tau = (num / den.where(den > 0)).fillna(0.0).unstack("hour")
+    return tau.reindex(index=list(SEASON_ORDER), columns=range(24), fill_value=0.0).fillna(0.0)
+
+
+def pattern_shift(trend: pd.DataFrame | None, pool_days: pd.DatetimeIndex | None,
+                  picks: np.ndarray, days: pd.DatetimeIndex, codes: np.ndarray,
+                  hours: np.ndarray) -> np.ndarray | float:
+    """How far each drawn pattern moves to its simulated day (paths x hours): the trend of the
+    pool day's season and the hour, times the years between the pool day and the day."""
+    if trend is None or pool_days is None:
+        return 0.0
+    season = np.asarray([SEASON_ORDER.index(SEASONS[m]) for m in pool_days.month])
+    gap = (np.asarray(days, dtype="datetime64[ns]")[None, :]
+           - np.asarray(pool_days, dtype="datetime64[ns]")[picks]) / np.timedelta64(1, "D") / 365.25
+    return trend.to_numpy()[season[picks[:, codes]], hours[None, :]] * gap[:, codes]
+
+
+def fit(prices: pd.Series, tz: str, scale: float, negative_scale: float | None = None,
+        intraday_trend: bool = False) -> PriceModel:
     """Calibrate the model on hourly prices (UTC index, interval beginning)."""
     prices = prices.dropna()
     y = pd.Series(transform(prices.to_numpy(), scale, negative_scale), index=prices.index)
@@ -203,6 +253,8 @@ def fit(prices: pd.Series, tz: str, scale: float,
         pool_z=z.reindex(pool.index).to_numpy(),
         pool_u=pool.to_numpy(),
         calibration_start=str(local.min().date()), calibration_end=str(local.max().date()),
+        pool_days=pd.DatetimeIndex(pool.index),
+        intraday_trend=estimate_intraday_trend(y, tz) if intraday_trend else None,
     )
 
 
@@ -283,7 +335,9 @@ def _residuals(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int
     picks = _draw_pool_days(model, days, n_paths, rng)
     d = _daily_factor(model, days, picks, rng, bootstrap)
     u = model.pool_u[picks[:, codes], hours[None, :]]
-    return d[:, codes] + u
+    shift = pattern_shift(model.intraday_trend, model.pool_days, picks,
+                          pd.DatetimeIndex(days.tz_localize(None)), codes, hours)
+    return d[:, codes] + u + shift
 
 
 def simulate(model: PriceModel, index: pd.DatetimeIndex, tz: str, n_paths: int,

@@ -168,7 +168,7 @@ def write_step05_report(settings: Settings) -> dict[str, Path | None]:
     prices = hourly_prices(settings)
     history = calibration_history(settings, prices)
 
-    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh)
+    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh, pm.intraday_trend)
     model_path = proc / "price_model.json"
     model.save(model_path)
 

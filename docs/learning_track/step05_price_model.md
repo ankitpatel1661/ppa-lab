@@ -107,7 +107,8 @@ hour. The **scale s** decides where "large" starts: a small s compresses ordinar
 too, a large s leaves spikes almost untouched. In Step 5 s was chosen by validation
 (section 4.3): s = 120 EUR/MWh. Since v1.6 negative prices have their own, smaller scale
 b = 15 EUR/MWh, because they bunch just below zero (finding 1 in section 4.4; the fix and its
-check: Step 6 page, section 4.6).
+check: Step 6 page, section 4.6). Since v1.7 each resampled day's intraday pattern is also moved
+to the simulated day by the build-out trend of the hourly shape (Step 6 page, section 4.7).
 
 > **Pitfall:** the transform is not linear, so the average of transformed prices, turned
 > back, is not the average price. That matters as soon as you calibrate to a forward
@@ -281,7 +282,7 @@ this step and skips it (with a warning) when the configured range is too short.
 | Test file | Protects against |
 |---|---|
 | `test_price_calendar.py` (3) | a wrong Easter date; missing or extra holidays; day types in UTC instead of local time |
-| `test_price_model.py` (18) | a transform that fails on negative prices, or (v1.6) whose negative scale moves the floor, is not monotone or sends prices below −500; half-life maths (including φ ≤ 0 and φ ≥ 1); AR(1) pairs across gaps; failure to recover a known daily shape, φ and σ from synthetic prices; a simulation that starts calm; days not resampled whole; a level that misses the forward; level volatility without effect; irreproducible paths; JSON round trip |
+| `test_price_model.py` (22) | a transform that fails on negative prices, or (v1.6) whose negative scale moves the floor, is not monotone or sends prices below −500; (v1.7) a build-out trend that counts the seasonal deepening, appears from a single year, moves a pattern by the wrong number of years or is lost in the JSON file; half-life maths (including φ ≤ 0 and φ ≥ 1); AR(1) pairs across gaps; failure to recover a known daily shape, φ and σ from synthetic prices; a simulation that starts calm; days not resampled whole; a level that misses the forward; level volatility without effect; irreproducible paths; JSON round trip |
 | `test_step05_report.py` (1), `test_config.py` (+1), `test_cli.py` (+1) | the report end to end; a calibration window outside the data; `ppa-lab prices` and `all` |
 
 Every key test was checked by planting the bug it protects against (for example: start the

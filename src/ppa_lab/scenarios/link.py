@@ -34,6 +34,7 @@ from ppa_lab.prices.model import (
     fit_ar1,
     half_life,
     inverse,
+    pattern_shift,
     random_streams,
     seasonal_mean,
     solve_level,
@@ -199,7 +200,8 @@ def _linked_residuals(model: PriceModel, link: WeatherLink, index: pd.DatetimeIn
     for i in range(1, len(days)):
         r[:, i] = link.phi * r[:, i - 1] + sig[i] * z[:, i]
     level = effect[None, :] + r
-    return level[:, codes] + link.pool_u[picks[:, codes], hours[None, :]]
+    shift = pattern_shift(model.intraday_trend, link.pool_days, picks, days, codes, hours)
+    return level[:, codes] + link.pool_u[picks[:, codes], hours[None, :]] + shift
 
 
 def linked_residuals(model: PriceModel, link: WeatherLink, index: pd.DatetimeIndex, tz: str,

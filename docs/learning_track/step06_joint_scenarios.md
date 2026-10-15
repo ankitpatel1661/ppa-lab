@@ -383,6 +383,41 @@ Three lessons:
    (structure, about 0.04) from what it cannot know (one year of build-out, about 0.09).
    They need different fixes: a better model, or a view on the build-out.
 
+### 4.7 Update (v1.7): moving old days to the simulated day
+
+Section 4.6 showed what the model could not know: last year's analog days have last year's
+shallower midday dips. The fix measures how fast the hourly shape changes and moves every
+historical day to the day it stands in for:
+
+    u(j, h)  ->  u(j, h) + tau(season, h) x (simulated day − day j) in years
+
+tau compares the **same calendar month in different years** (May 2024 with May 2025), so the
+dip that deepens from March to June every year is not mistaken for build-out. Fitted on
+2024-2026, tau at midday is −0.08 to −0.17 per year in spring, smaller in summer and autumn,
+about zero in winter; it sums to zero over the day, so it moves the shape, not the level.
+
+| Out of sample, solar capture rate | 2024 | 2025 | 2026 |
+|---|---|---|---|
+| History | 0.601 | 0.542 | 0.526 |
+| Model without the trend (v1.6) | 0.743 | 0.675 | 0.619 |
+| Model with the trend (v1.7) | 0.743 (one fit year: no trend) | 0.589 | 0.537 |
+
+Three lessons:
+
+1. **A test you can fail is worth more than a fix you like.** The rule was set before the fix:
+   keep it only if the out-of-sample error shrinks. It did, from +0.13 / +0.09 to +0.05 / +0.01.
+2. **Report what got worse.** Wind's error grew by 0.006-0.009: if midday prices fall and the
+   daily level stays, the other hours rise, and wind produces more in them. The backlog's rule
+   said "without hurting wind"; the change was kept and the breach written down.
+3. **A side effect that confirms the mechanism.** Which past days represent 2027 used to move
+   the solar fair price from 93.8 to 86.4 EUR/MWh; with every day moved to 2027 it is 77.5,
+   77.2 and 77.5 for the three pools. If the trend captures what changed, the pool should not
+   matter, and it no longer does.
+
+What it does not settle: continued in a straight line, the trend would cut solar's capture
+rate by 5.6 pp a year. The base case uses it only up to 2027 and assumes −1 pp a year after
+that, because storage and curtailment are expected to slow the fall (backlog PPA-8f).
+
 ---
 
 ## 5. Hands-on: run it yourself
@@ -493,10 +528,10 @@ the wind one is far outside the independent range.
 2. Filter by circular day-of-year gap ≤ 30, drop |days| < `exclude`, scale by the column
    standard deviations over all rows, sum squares, sort stably. Without exclusion the first
    analog is 15 June 2025 itself; with `exclude=8` the first is 3 July 2025.
-3. `groupby("prices")` and Σ revenue / Σ MWh: solar 96.82 → 93.76, wind 148.36 → 129.26 for
-   the Encavis parks at the market forward curve and seasons (v1.6, with the negative-price
-   scale; v1.3: 97.64 → 94.45 and 148.31 → 129.46; illustrative parks at 85: 51.76 → 48.66 and
-   87.00 → 75.35). The mean of the capture prices gives 93.77 and 129.53: years with more
+3. `groupby("prices")` and Σ revenue / Σ MWh: solar 79.78 → 77.47, wind 149.51 → 130.56 for
+   the Encavis parks at the market forward curve and seasons (v1.7, with the build-out trend;
+   v1.3: 97.64 → 94.45 and 148.31 → 129.46; illustrative parks at 85: 51.76 → 48.66 and
+   87.00 → 75.35). The mean of the capture prices gives 77.48 and 130.85: years with more
    energy count more in the fair price, and for wind those are the cheaper years.
 4. Cov(q, P) < 0 for wind: windy hours are cheap, so an independent model pays every MWh the
    average price (capture rate about 1.0 instead of 0.88). For solar Step 5 already knew the

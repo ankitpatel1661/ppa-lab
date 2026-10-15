@@ -59,6 +59,11 @@ scale_eur_mwh = 120.0
 # smallest largest error over the 1% quantile, the share of negative hours and the solar
 # output at negative prices. Remove the line for the symmetric model.
 negative_scale_eur_mwh = 15.0
+# Build-out (v1.7): solar's midday dips deepen every year, so a historical day's intraday
+# pattern is moved to the simulated day by the trend per year of the hourly shape (same
+# calendar month, different years). Out of sample (Step 6 report, section 4) this cut the
+# solar capture-rate error from +0.133 / +0.093 to about +0.05 / +0.01 in 2025 / 2026.
+intraday_trend = true
 n_paths = 500
 seed = 2026
 # Delivery year and its forward: the EEX German Power Cal-27 base quote of 9 Oct 2026 (via

@@ -139,7 +139,7 @@ def tail_check(settings: Settings, history: pd.Series, features: pd.DataFrame,
     rows = {"History": _tail_row(history.to_numpy()[ok], q[ok])}
     candidates = list(dict.fromkeys([*TAIL_CANDIDATES, pm.negative_scale_eur_mwh]))
     for b in candidates:
-        model = fit(history, tz, pm.scale_eur_mwh, b)
+        model = fit(history, tz, pm.scale_eur_mwh, b, pm.intraday_trend)
         link = fit_link(model, history, features, climatology, tz, sc.analog_window_days,
                         sc.analog_k)
         paths = simulate_linked(model, link, history.index, tz, features.reindex(days), n_paths,
@@ -169,25 +169,43 @@ def out_of_sample_check(settings: Settings, inputs: dict, n_paths: int) -> dict 
                                                year - 1)
         climatology = monthly_climatology(inputs["features"], weather_years[0],
                                           weather_years[-1])
-        runs = {seen: out_of_sample(prices, inputs["features"], inputs["gen"], climatology, tz,
+        variants = {"out": (False, pm.intraday_trend), "seen": (True, pm.intraday_trend)}
+        if pm.intraday_trend:
+            variants["no_trend"] = (False, False)
+        runs = {name: out_of_sample(prices, inputs["features"], inputs["gen"], climatology, tz,
                                     pm.scale_eur_mwh, sc.out_of_sample_train_start, start, end,
                                     sc.analog_window_days, sc.analog_k, n_paths=n_paths,
                                     seed=pm.seed, negative_scale=pm.negative_scale_eur_mwh,
-                                    seen=seen, exclude_days=sc.validation_exclusion_days)
-                for seen in (False, True)}
-        table = runs[False]["statistics"]
-        years.append({"year": year, "test": runs[False]["test"],
-                      "inside": int(table["inside_range"].sum()), "statistics": len(table),
-                      "table": table.drop(columns="inside_range").to_dict(orient="index"),
-                      "parks": runs[False]["parks"], "seen": runs[True]["parks"]})
+                                    seen=seen, exclude_days=sc.validation_exclusion_days,
+                                    intraday_trend=trend)
+                for name, (seen, trend) in variants.items()}
+        table = runs["out"]["statistics"]
+        entry = {"year": year, "test": runs["out"]["test"], "trend": runs["out"]["trend"],
+                 "inside": int(table["inside_range"].sum()), "statistics": len(table),
+                 "table": table.drop(columns="inside_range").to_dict(orient="index"),
+                 "parks": runs["out"]["parks"], "seen": runs["seen"]["parks"]}
+        if "no_trend" in runs:
+            entry["no_trend"] = runs["no_trend"]["parks"]
+            entry["inside_no_trend"] = int(runs["no_trend"]["statistics"]["inside_range"].sum())
+        years.append(entry)
+    # The error to carry to the delivery year: from the test years fitted like it (with the
+    # build-out trend when it is configured; a one-year fit cannot estimate one).
+    like = [y for y in years if y["trend"]] if pm.intraday_trend else years
+    like = like or years
     bias = {}
     for park in inputs["gen"]:
-        errors = [y["parks"][park]["capture_rate"]["p50"] - y["parks"][park]["capture_rate"]
-                  ["history"] for y in years]
-        seen = [y["seen"][park]["capture_rate"]["p50"] - y["seen"][park]["capture_rate"]
-                ["history"] for y in years]
-        bias[park] = {"capture_rate": float(np.mean(errors)), "min": float(np.min(errors)),
-                      "max": float(np.max(errors)), "seen": float(np.mean(seen))}
+        def error(y: dict, key: str = "parks", park: str = park) -> float:
+            r = y[key][park]["capture_rate"]
+            return r["p50"] - r["history"]
+
+        errors = [error(y) for y in years]
+        bias[park] = {"capture_rate": float(np.mean([error(y) for y in like])),
+                      "years": [y["year"] for y in like],
+                      "all_years": float(np.mean(errors)), "min": float(np.min(errors)),
+                      "max": float(np.max(errors)),
+                      "seen": float(np.mean([error(y, "seen") for y in years]))}
+        if all("no_trend" in y for y in years):
+            bias[park]["no_trend"] = float(np.mean([error(y, "no_trend") for y in years]))
     return {"train_start": str(sc.out_of_sample_train_start), "years": years, "bias": bias}
 
 
@@ -357,8 +375,11 @@ def _out_of_sample_md(check: dict, names: dict[str, str]) -> tuple[str, str]:
             text = f"{format(t[key]['history'], fmt)} / {format(t[key]['simulated_mean'], fmt)}"
             return text.replace("-", "−")
 
+        inside = f"{y['inside']} of {y['statistics']}"
+        if "inside_no_trend" in y:
+            inside += f" (without the trend {y['inside_no_trend']})"
         stats.append({"Test year": f"{y['year']} ({y['test'][0]} to {y['test'][1]})",
-                      "Inside 5-95%": f"{y['inside']} of {y['statistics']}",
+                      "Inside 5-95%": inside,
                       "Std": pair("std", ".1f"), "1% quantile": pair("p01", ".1f"),
                       "5% quantile": pair("p05", ".1f"),
                       "Negative hours": pair("negative_share", ".1%"),
@@ -368,12 +389,16 @@ def _out_of_sample_md(check: dict, names: dict[str, str]) -> tuple[str, str]:
         for park, label in names.items():
             r, seen = y["parks"][park], y["seen"][park]
             cr, neg = r["capture_rate"], r["negative_output_share"]
-            parks.append({
-                "Year": y["year"], "Park": label, "Capture rate: history": f"{cr['history']:.3f}",
-                "out of sample (5-95%)": f"{cr['p50']:.3f} ({cr['p05']:.3f}-{cr['p95']:.3f})",
-                "year seen": f"{seen['capture_rate']['p50']:.3f}",
-                "Output at negative prices: history / model": f"{neg['history']:.1%} / "
-                                                              f"{neg['p50']:.1%}"})
+            row = {"Year": y["year"], "Park": label,
+                   "Capture rate: history": f"{cr['history']:.3f}",
+                   "out of sample (5-95%)": f"{cr['p50']:.3f} ({cr['p05']:.3f}-{cr['p95']:.3f})"}
+            if "no_trend" in y:
+                row["without the build-out trend"] = (
+                    f"{y['no_trend'][park]['capture_rate']['p50']:.3f}")
+            row["year seen"] = f"{seen['capture_rate']['p50']:.3f}"
+            row["Output at negative prices: history / model"] = (f"{neg['history']:.1%} / "
+                                                                  f"{neg['p50']:.1%}")
+            parks.append(row)
     return (pd.DataFrame(stats).to_markdown(index=False),
             pd.DataFrame(parks).to_markdown(index=False))
 
@@ -417,7 +442,7 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
     years = complete_weather_years(matrices, settings.weather_first_year, sc.weather_last_year)
     climatology = monthly_climatology(features, years[0], years[-1])
 
-    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh)
+    model = fit(history, tz, pm.scale_eur_mwh, pm.negative_scale_eur_mwh, pm.intraday_trend)
     link = fit_link(model, history, features, climatology, tz, sc.analog_window_days,
                     sc.analog_k)
 
@@ -545,10 +570,22 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
     else:
         stats_md, parks_md = _out_of_sample_md(check, names)
         bias = check["bias"]
-        parts = ", ".join(f"the {label.lower()}'s by {bias[park]['capture_rate']:+.3f} "
-                          f"({bias[park]['min']:+.3f} to {bias[park]['max']:+.3f})"
-                          for park, label in names.items())
+        parts = " and ".join(f"{bias[park]['all_years']:+.3f} for the {label.lower()} "
+                             f"({bias[park]['min']:+.3f} to {bias[park]['max']:+.3f})"
+                             for park, label in names.items())
+        carried = " and ".join(f"{bias[park]['capture_rate']:+.3f}" for park in names)
+        carried_years = ", ".join(str(y) for y in next(iter(bias.values()))["years"])
         seen = " and ".join(f"{bias[park]['seen']:+.3f}" for park in names)
+        trend_text = ""
+        if all("no_trend" in bias[park] for park in names):
+            before = " and ".join(f"{bias[park]['no_trend']:+.3f}" for park in names)
+            trend_text = (
+                " Solar's midday dips deepen every year as capacity grows, and analog days from "
+                "the past cannot know that. Since v1.7 each analog day's intraday pattern is "
+                "moved to the simulated day by the trend per year of the hourly shape (same "
+                f"calendar month in different years); without it the errors were {before}. "
+                "Deeper midday dips raise the other hours a little, so the wind park's error "
+                "grows slightly. The first test year has only one year to fit on, so no trend.")
         oos_text = (
             f"For each test year the model and the link are fitted on the days from "
             f"{check['train_start']} up to the day before it, with analog days from its last "
@@ -559,12 +596,10 @@ def write_step06_report(settings: Settings) -> dict[str, Path | None]:
             f"least {sc.validation_exclusion_days} days away), which leaves only the model's "
             f"structural error. {n_check} paths each.\n\nHistory / model mean:\n\n"
             f"{stats_md}\n\n{parks_md}\n\n"
-            f"Out of sample the model overstates capture rates: on average {parts}. With the "
-            f"year seen the errors fall to {seen}: most of the error is one year of change, "
-            "the midday dips deepening as solar capacity grows, which the analog days and the "
-            f"daily shape learn a year late. The {pm.delivery_year} scenarios are built the "
-            "same way, so they likely carry a similar error; Step 7 prices it as a "
-            "sensitivity (backlog PPA-8e).\n\n"
+            f"Out of sample the model's capture-rate error averages {parts}; with the year seen "
+            f"it is {seen}.{trend_text} The {pm.delivery_year} scenarios are fitted like the "
+            f"test years {carried_years}, whose mean error ({carried}) Step 7 prices as a "
+            "sensitivity.\n\n"
             f"![Out-of-sample capture rates](figures/{figs['out_of_sample'].name})")
 
     sources = f"{settings.energy_charts.license}; ERA5 via Open-Meteo ({settings.weather_license})"
