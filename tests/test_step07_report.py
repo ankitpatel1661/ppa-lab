@@ -21,7 +21,7 @@ def small_settings(settings):
                            degradation=0.005)
     ppa = PpaSettings(start_year=2026, tenor_years=3, discount_rate=0.06, risk_quantile=0.05,
                       analog_pool_start=date(2025, 1, 1),
-                      parks={"solar_park": park, "wind_park": park})
+                      parks={"solar_park": park, "wind_park": park}, curtail_below_eur_mwh=0.0)
     return dataclasses.replace(s, ppa=ppa)
 
 
@@ -40,6 +40,7 @@ def test_step07_report_end_to_end(settings):
     for key in ("stack", "revenue", "buyer", "level"):
         assert out[key].exists()
     assert "Does the capture rate rise with the price level?" in text
+    assert "Negative prices: curtail, and who keeps the value" in text
     assert "NaN" not in out["results"].read_text()          # strict JSON: null, not NaN
     results = json.loads(out["results"].read_text())
     solar = results["parks"]["solar_park"]
@@ -48,6 +49,17 @@ def test_step07_report_end_to_end(settings):
         stack["fair_price"] - stack["risk_premium"] - stack["balancing"] - stack["credit"])
     assert stack["fair_price"] == pytest.approx(stack["forward"] + stack["shape"])
     assert solar["tenor"]["years"] == [2026, 2027, 2028]
+    # curtailment (v1.8): the clause is priced on the delivered output, at its own strike
+    neg = solar["negative_prices"]
+    assert 0 < neg["curtailment"]["share"] < 1 and neg["curtailment"]["value"] > 0
+    clause = neg["clause"]
+    assert clause["stack_eur_mwh"]["fair_price"] > stack["fair_price"]      # negatives left out
+    assert clause["delivered_share"] == pytest.approx(1 - neg["curtailment"]["share"])
+    assert neg["deemed_strike"] == pytest.approx(stack["fair_price"]
+                                                 + neg["curtailment"]["value"])
+    curtailing = solar["structures"]["merchant"]["expected_revenue_eur"]
+    producing = solar["structures"]["merchant_no_curtailment"]["expected_revenue_eur"]
+    assert curtailing > producing
     # the model's capture rate by price level, for the dashboard (PPA-8d)
     levels = solar["level_response"]["level"]
     assert levels == sorted(levels) and len(levels) == len(results["level_grid"])

@@ -1,6 +1,6 @@
 # Step 8 report: hedging with power futures
 
-Generated 2026-10-15 20:51 UTC by `ppa-lab hedging`.
+Generated 2026-10-15 21:18 UTC by `ppa-lab hedging`.
 
 Inputs: the Step 7 scenarios for 2027 (496 scenarios,
 analog days from 2025-10-01). Selling a product at its forward pays, per MW,
@@ -32,27 +32,28 @@ The model's forward is the market: EEX German Power Cal-27 base 140.21 EUR/MWh (
 
 ## 2. Hedging merchant output
 
-What each park's revenue risk would be if it sold at spot, and with each hedge. Hedge ratio =
-MW sold / average output in MW.
+What each park's revenue risk would be if it sold at spot, and with each hedge. Selling at spot,
+a park stops producing at negative prices (Step 7, section 5). Hedge ratio = MW sold / average
+output sold in MW.
 
 | Park       | Strategy                         |   Sold (MW, year average) | Hedge ratio   |   CFaR95 (EUR m) | CFaR reduction   | Variance removed   |
 |:-----------|:---------------------------------|--------------------------:|:--------------|-----------------:|:-----------------|:-------------------|
-| Solar park | No hedge (merchant)              |                       0   | 0%            |             3.24 | 0%               | 0%                 |
-| Solar park | Cal base, 50% of average output  |                       6.9 | 50%           |             1.29 | 60%              | 84%                |
-| Solar park | Cal base, 100% of average output |                      13.7 | 100%          |             1.42 | 56%              | 85%                |
-| Solar park | Cal base, minimum-variance       |                      10.4 | 76%           |             0.84 | 74%              | 95%                |
-| Solar park | Quarters, minimum-variance       |                      10.5 | 76%           |             0.86 | 74%              | 95%                |
-| Solar park | Months, minimum-variance         |                      10.9 | 79%           |             0.67 | 79%              | 96%                |
-| Wind park  | No hedge (merchant)              |                       0   | 0%            |             2.13 | 0%               | 0%                 |
-| Wind park  | Cal base, 50% of average output  |                       3.6 | 50%           |             1.27 | 40%              | 66%                |
-| Wind park  | Cal base, 100% of average output |                       7.3 | 100%          |             1.11 | 48%              | 81%                |
-| Wind park  | Cal base, minimum-variance       |                       6.5 | 90%           |             1.04 | 51%              | 82%                |
-| Wind park  | Quarters, minimum-variance       |                       7.4 | 101%          |             0.89 | 58%              | 86%                |
-| Wind park  | Months, minimum-variance         |                       7.5 | 102%          |             0.69 | 68%              | 90%                |
+| Solar park | No hedge (merchant)              |                       0   | 0%            |             3.02 | 0%               | 0%                 |
+| Solar park | Cal base, 50% of average output  |                       5.7 | 50%           |             1.37 | 55%              | 77%                |
+| Solar park | Cal base, 100% of average output |                      11.3 | 100%          |             1.04 | 66%              | 92%                |
+| Solar park | Cal base, minimum-variance       |                       9.8 | 87%           |             0.84 | 72%              | 94%                |
+| Solar park | Quarters, minimum-variance       |                       9.8 | 86%           |             0.81 | 73%              | 95%                |
+| Solar park | Months, minimum-variance         |                      10.1 | 89%           |             0.67 | 78%              | 96%                |
+| Wind park  | No hedge (merchant)              |                       0   | 0%            |             2.1  | 0%               | 0%                 |
+| Wind park  | Cal base, 50% of average output  |                       3.5 | 50%           |             1.3  | 38%              | 65%                |
+| Wind park  | Cal base, 100% of average output |                       7   | 100%          |             1.07 | 49%              | 82%                |
+| Wind park  | Cal base, minimum-variance       |                       6.5 | 93%           |             1.05 | 50%              | 82%                |
+| Wind park  | Quarters, minimum-variance       |                       7.3 | 104%          |             0.9  | 57%              | 86%                |
+| Wind park  | Months, minimum-variance         |                       7.4 | 105%          |             0.7  | 67%              | 90%                |
 
 For the solar park, the minimum-variance Cal base hedge sells
-10.4 MW (76% of average output) and cuts the cash flow
-at risk by 74%; quarters and months add little, and
+9.8 MW (87% of average output) and cuts the cash flow
+at risk by 72%; quarters and months add little, and
 their monthly amounts are noisy (some even negative): with 496 scenarios the
 finer split mostly fits noise.
 
@@ -73,12 +74,12 @@ minimum-variance ratio of the P50 average output; real futures quotes would repl
 
 | Park       |   Year |   Forward proxy (EUR/MWh) |   Realised base (EUR/MWh) |   Merchant (EUR m) |   Hedge P&L (EUR m) |   Hedged (EUR m) |
 |:-----------|-------:|--------------------------:|--------------------------:|-------------------:|--------------------:|-----------------:|
-| Solar park |   2024 |                     95.18 |                     78.51 |               5.69 |                1.53 |             7.23 |
-| Solar park |   2025 |                     78.51 |                     89.32 |               6.15 |               -0.99 |             5.16 |
-| Wind park  |   2024 |                     95.18 |                     78.51 |               4.15 |                0.96 |             5.11 |
-| Wind park  |   2025 |                     78.51 |                     89.32 |               4.46 |               -0.62 |             3.84 |
+| Solar park |   2024 |                     95.18 |                     78.51 |               5.69 |                1.75 |             7.45 |
+| Solar park |   2025 |                     78.51 |                     89.32 |               6.15 |               -1.13 |             5.02 |
+| Wind park  |   2024 |                     95.18 |                     78.51 |               4.15 |                0.99 |             5.14 |
+| Wind park  |   2025 |                     78.51 |                     89.32 |               4.46 |               -0.64 |             3.82 |
 
-Across the back-test years, solar park: merchant revenue moved by EUR 0.46 m between the years, hedged revenue by EUR 2.07 m; wind park: merchant revenue moved by EUR 0.31 m between the years, hedged revenue by EUR 1.27 m. A hedge can lose money in a single year,
+Across the back-test years, solar park: merchant revenue moved by EUR 0.46 m between the years, hedged revenue by EUR 2.43 m; wind park: merchant revenue moved by EUR 0.31 m between the years, hedged revenue by EUR 1.32 m. A hedge can lose money in a single year,
 and with a naive forward (last year's price) it can even add variation, because the proxy moves
 against the realised price. Two years are an illustration, not evidence: the scenario results
 in section 2 measure the risk.

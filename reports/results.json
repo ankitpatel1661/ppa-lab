@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-10-15 20:51",
+ "generated_utc": "2026-10-15 21:18",
  "delivery_year": 2027,
  "tenor_years": 10,
  "discount_rate": 0.06,
@@ -30,6 +30,14 @@
    "capture_rate": {
     "solar_park": 0.23004703070140362,
     "wind_park": 0.8333439380395338
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.9258733116667567,
+    "wind_park": 1.1112210827192532
+   },
+   "delivered_share": {
+    "solar_park": 0.5042829834734813,
+    "wind_park": 0.8072512223281864
    }
   },
   {
@@ -38,6 +46,14 @@
    "capture_rate": {
     "solar_park": 0.3181185310533156,
     "wind_park": 0.8579119323641575
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.856579631639707,
+    "wind_park": 1.0661788347756496
+   },
+   "delivered_share": {
+    "solar_park": 0.5611206053522632,
+    "wind_park": 0.8440091907147691
    }
   },
   {
@@ -46,6 +62,14 @@
    "capture_rate": {
     "solar_park": 0.39089879541421707,
     "wind_park": 0.8783382660460999
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.8007799239129034,
+    "wind_park": 1.0314284638092892
+   },
+   "delivered_share": {
+    "solar_park": 0.6227203287461573,
+    "wind_park": 0.8774665577258391
    }
   },
   {
@@ -54,6 +78,14 @@
    "capture_rate": {
     "solar_park": 0.4349948189795792,
     "wind_park": 0.8906418354506076
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.7681478439471348,
+    "wind_park": 1.0114193365023045
+   },
+   "delivered_share": {
+    "solar_park": 0.668572526894249,
+    "wind_park": 0.8993024234519814
    }
   },
   {
@@ -62,6 +94,14 @@
    "capture_rate": {
     "solar_park": 0.4511032481534191,
     "wind_park": 0.895094201054335
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.7567468582780318,
+    "wind_park": 1.0044923812985684
+   },
+   "delivered_share": {
+    "solar_park": 0.6870327119729254,
+    "wind_park": 0.9074158290435373
    }
   },
   {
@@ -70,6 +110,14 @@
    "capture_rate": {
     "solar_park": 0.4834680329906103,
     "wind_park": 0.9039224287733781
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.7345650570913338,
+    "wind_park": 0.9911304838838596
+   },
+   "delivered_share": {
+    "solar_park": 0.727396220571755,
+    "wind_park": 0.9239671496857194
    }
   },
   {
@@ -78,6 +126,14 @@
    "capture_rate": {
     "solar_park": 0.48518929000766653,
     "wind_park": 0.9043863831063016
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.7333847093005234,
+    "wind_park": 0.9904770677051093
+   },
+   "delivered_share": {
+    "solar_park": 0.729701275514759,
+    "wind_park": 0.924821799010971
    }
   },
   {
@@ -86,6 +142,14 @@
    "capture_rate": {
     "solar_park": 0.5008599058421913,
     "wind_park": 0.9085782298276781
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.723277525550386,
+    "wind_park": 0.9846250912170493
+   },
+   "delivered_share": {
+    "solar_park": 0.7508118895769372,
+    "wind_park": 0.9326293236876355
    }
   },
   {
@@ -94,6 +158,14 @@
    "capture_rate": {
     "solar_park": 0.5418492651340531,
     "wind_park": 0.9192036431461993
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.6976387338679518,
+    "wind_park": 0.9711152406839123
+   },
+   "delivered_share": {
+    "solar_park": 0.8121881764944282,
+    "wind_park": 0.9522516068466991
    }
   },
   {
@@ -102,6 +174,14 @@
    "capture_rate": {
     "solar_park": 0.549577959686559,
     "wind_park": 0.9211385470605733
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.6930266609673295,
+    "wind_park": 0.9688092689124936
+   },
+   "delivered_share": {
+    "solar_park": 0.8247370555982243,
+    "wind_park": 0.9558456503707117
    }
   },
   {
@@ -110,6 +190,14 @@
    "capture_rate": {
     "solar_park": 0.5754137743340416,
     "wind_park": 0.9274057657738933
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.6783423388187538,
+    "wind_park": 0.961704547072585
+   },
+   "delivered_share": {
+    "solar_park": 0.8688184373979254,
+    "wind_park": 0.9674971721814412
    }
   },
   {
@@ -118,9 +206,18 @@
    "capture_rate": {
     "solar_park": 0.6024764609226079,
     "wind_park": 0.9336147999512894
+   },
+   "clause_capture_rate": {
+    "solar_park": 0.6685317836079427,
+    "wind_park": 0.9552947348749893
+   },
+   "delivered_share": {
+    "solar_park": 0.9125076880293098,
+    "wind_park": 0.978985241046966
    }
   }
  ],
+ "curtail_below_eur_mwh": 0.0,
  "forward_curve": {
   "2028": 104.75,
   "2029": 87.58
@@ -146,43 +243,51 @@
    "structures": {
     "merchant": {
      "fair_price_eur_mwh": null,
+     "energy_share": 0.8247370555982242,
+     "expected_revenue_eur": 9710265.646063067,
+     "p05_revenue_eur": 6694422.044796605,
+     "cfar_eur": 3015843.6012664624,
+     "cfar_share": 0.31058301710717945
+    },
+    "merchant_no_curtailment": {
+     "fair_price_eur_mwh": null,
+     "energy_share": 1.0,
      "expected_revenue_eur": 9336733.61665984,
      "p05_revenue_eur": 6093440.643754242,
      "cfar_eur": 3243292.9729055986,
-     "cfar_share": 0.3473691235142967,
-     "floor_value_eur_mwh": null
+     "cfar_share": 0.3473691235142967
     },
     "pay_as_produced": {
      "fair_price_eur_mwh": 77.52509309492585,
+     "energy_share": 1.0,
      "expected_revenue_eur": 9336733.61665984,
      "p05_revenue_eur": 8638798.615026044,
      "cfar_eur": 697935.0016337968,
-     "cfar_share": 0.07475151699609899,
-     "floor_value_eur_mwh": null
+     "cfar_share": 0.07475151699609899
     },
     "pay_as_produced_clause": {
-     "fair_price_eur_mwh": 77.52509309492585,
-     "expected_revenue_eur": 7700350.191908997,
-     "p05_revenue_eur": 6676272.672660231,
-     "cfar_eur": 1024077.5192487659,
-     "cfar_share": 0.13299103206043755,
-     "floor_value_eur_mwh": null
+     "fair_price_eur_mwh": 97.76039133629003,
+     "energy_share": 0.8247370555982242,
+     "expected_revenue_eur": 9710265.646063067,
+     "p05_revenue_eur": 8418887.396212127,
+     "cfar_eur": 1291378.24985094,
+     "cfar_share": 0.1329910320604377
     },
-    "merchant_floor": {
-     "fair_price_eur_mwh": null,
-     "expected_revenue_eur": 9336733.61665984,
-     "p05_revenue_eur": 6320890.015393378,
-     "cfar_eur": 3015843.6012664624,
-     "cfar_share": 0.3230084229762316,
-     "floor_value_eur_mwh": 3.10152420989615
+    "pay_as_produced_deemed": {
+     "fair_price_eur_mwh": 80.62661730482199,
+     "energy_share": 1.0,
+     "expected_revenue_eur": 9710265.646063067,
+     "p05_revenue_eur": 8984408.558584746,
+     "cfar_eur": 725857.087478321,
+     "cfar_share": 0.07475151699609915
     },
     "baseload": {
      "fair_price_eur_mwh": 141.062958818692,
-     "expected_revenue_eur": 9336733.616659842,
-     "p05_revenue_eur": 7917901.31331303,
-     "cfar_eur": 1418832.3033468127,
-     "cfar_share": 0.15196238444836246,
-     "floor_value_eur_mwh": null
+     "energy_share": 0.8247370555982242,
+     "expected_revenue_eur": 9710265.646063069,
+     "p05_revenue_eur": 8112930.209035113,
+     "cfar_eur": 1597335.4370279554,
+     "cfar_share": 0.1644996640926687
     }
    },
    "energy_mwh_expected": 120434.98748498692,
@@ -256,6 +361,139 @@
     "out_of_sample_error": 0.02872655123143536,
     "trend_implied_drift": -0.055959444013570836,
     "tenor_fair_without_level_effect": 49.6262447020271
+   },
+   "negative_prices": {
+    "curtail_below_eur_mwh": 0.0,
+    "curtailment": {
+     "share": 0.1752629444017757,
+     "mean_price": -17.69640593727653,
+     "value": 3.1015242098961506
+    },
+    "history": {
+     "2021": {
+      "share": 0.04139623881422373,
+      "mean_price": -22.492529133799252,
+      "value": 0.9311061075586388
+     },
+     "2022": {
+      "share": 0.0160053638942581,
+      "mean_price": -3.7227944590676487,
+      "value": 0.05958468002090545
+     },
+     "2023": {
+      "share": 0.07696017009994559,
+      "mean_price": -23.968296032021566,
+      "value": 1.8446041396302306
+     },
+     "2024": {
+      "share": 0.18110763616643327,
+      "mean_price": -15.77124199876524,
+      "value": 2.8562923578051467
+     },
+     "2025": {
+      "share": 0.23633874652408654,
+      "mean_price": -14.298115134025318,
+      "value": 3.3791986084326155
+     },
+     "2026": {
+      "share": 0.23542956585522168,
+      "mean_price": -20.927600808158015,
+      "value": 4.926975972656027
+     }
+    },
+    "deemed_strike": 80.62661730482199,
+    "cfar_plain_eur": 697935.0016337968,
+    "cfar_clause_eur": 1291378.24985094,
+    "clause": {
+     "stack_eur_mwh": {
+      "forward": 141.062958818692,
+      "shape": -43.30256748240198,
+      "fair_price": 97.76039133629003,
+      "risk_premium": 14.55909293207774,
+      "balancing": 1.5,
+      "credit": 1.0,
+      "indicative": 80.70129840421228
+     },
+     "premia_eur_mwh": {
+      "fair_price": 97.76039133629003,
+      "unhedged": 19.106513077613258,
+      "joint": 14.55909293207774,
+      "profile": 7.98948781361848,
+      "volume": 6.569605118459259
+     },
+     "energy_mwh_expected": 99327.1969693771,
+     "delivered_share": 0.8247370555982242,
+     "level_response": {
+      "level": [
+       52.97209311730516,
+       63.89576175935706,
+       77.09639961155878,
+       88.156815461385,
+       93.03879532346409,
+       104.70436317910679,
+       105.40793331507408,
+       112.28398812098179,
+       135.5225569127701,
+       141.062958818692,
+       163.5829864991434,
+       197.44732386387864
+      ],
+      "capture_rate": [
+       0.9258733116667567,
+       0.856579631639707,
+       0.8007799239129034,
+       0.7681478439471348,
+       0.7567468582780318,
+       0.7345650570913338,
+       0.7333847093005234,
+       0.723277525550386,
+       0.6976387338679518,
+       0.6930266609673295,
+       0.6783423388187538,
+       0.6685317836079427
+      ]
+     },
+     "volume_response": {
+      "level": [
+       52.97209311730516,
+       63.89576175935706,
+       77.09639961155878,
+       88.156815461385,
+       93.03879532346409,
+       104.70436317910679,
+       105.40793331507408,
+       112.28398812098179,
+       135.5225569127701,
+       141.062958818692,
+       163.5829864991434,
+       197.44732386387864
+      ],
+      "share": [
+       0.5042829834734813,
+       0.5611206053522632,
+       0.6227203287461573,
+       0.668572526894249,
+       0.6870327119729254,
+       0.727396220571755,
+       0.729701275514759,
+       0.7508118895769372,
+       0.8121881764944282,
+       0.8247370555982243,
+       0.8688184373979254,
+       0.9125076880293098
+      ]
+     },
+     "whole_window": {
+      "fair_price": 96.6059443338918,
+      "premium": 14.468339278663008
+     },
+     "tenor": {
+      "fair_price": 69.97443082855462,
+      "indicative": 52.91533789647688,
+      "delivered_share": 0.6945581527143542,
+      "indicative_per_potential_mwh": 36.75277933963284
+     }
+    }
    },
    "assumptions": {
     "balancing_eur_mwh": 1.5,
@@ -352,43 +590,51 @@
    "structures": {
     "merchant": {
      "fair_price_eur_mwh": null,
+     "energy_share": 0.9558456503707117,
+     "expected_revenue_eur": 8349306.649477935,
+     "p05_revenue_eur": 6248499.994540557,
+     "cfar_eur": 2100806.654937378,
+     "cfar_share": 0.2516145044293872
+    },
+    "merchant_no_curtailment": {
+     "fair_price_eur_mwh": null,
+     "energy_share": 1.0,
      "expected_revenue_eur": 8305185.082008,
      "p05_revenue_eur": 6176774.98112589,
      "cfar_eur": 2128410.10088211,
-     "cfar_share": 0.25627485478836676,
-     "floor_value_eur_mwh": null
+     "cfar_share": 0.25627485478836676
     },
     "pay_as_produced": {
      "fair_price_eur_mwh": 129.93852893031544,
+     "energy_share": 1.0,
      "expected_revenue_eur": 8305185.082008,
      "p05_revenue_eur": 7344022.754505986,
      "cfar_eur": 961162.3275020141,
-     "cfar_share": 0.11573039228038823,
-     "floor_value_eur_mwh": null
+     "cfar_share": 0.11573039228038823
     },
     "pay_as_produced_clause": {
-     "fair_price_eur_mwh": 129.93852893031544,
-     "expected_revenue_eur": 7938475.03616107,
-     "p05_revenue_eur": 7007289.940439364,
-     "cfar_eur": 931185.0957217058,
-     "cfar_share": 0.11730024865985007,
-     "floor_value_eur_mwh": null
+     "fair_price_eur_mwh": 136.6631020037702,
+     "energy_share": 0.9558456503707117,
+     "expected_revenue_eur": 8349306.649477934,
+     "p05_revenue_eur": 7369930.903356832,
+     "cfar_eur": 979375.746121102,
+     "cfar_share": 0.11730024865985014
     },
-    "merchant_floor": {
-     "fair_price_eur_mwh": null,
-     "expected_revenue_eur": 8305185.082008,
-     "p05_revenue_eur": 6204378.427070622,
-     "cfar_eur": 2100806.654937378,
-     "cfar_share": 0.2529512147162712,
-     "floor_value_eur_mwh": 0.6903026861572166
+    "pay_as_produced_deemed": {
+     "fair_price_eur_mwh": 130.62883161647264,
+     "energy_share": 1.0,
+     "expected_revenue_eur": 8349306.6494779335,
+     "p05_revenue_eur": 7383038.115664599,
+     "cfar_eur": 966268.5338133341,
+     "cfar_share": 0.1157303922803881
     },
     "baseload": {
      "fair_price_eur_mwh": 141.062958818692,
-     "expected_revenue_eur": 8305185.082008001,
-     "p05_revenue_eur": 7194579.65392409,
-     "cfar_eur": 1110605.4280839115,
-     "cfar_share": 0.13372434414374218,
-     "floor_value_eur_mwh": null
+     "energy_share": 0.9558456503707117,
+     "expected_revenue_eur": 8349306.649477935,
+     "p05_revenue_eur": 7238976.39727498,
+     "cfar_eur": 1110330.252202955,
+     "cfar_share": 0.132984725416976
     }
    },
    "energy_mwh_expected": 63916.26217703278,
@@ -462,6 +708,139 @@
     "out_of_sample_error": 0.04444415678692182,
     "trend_implied_drift": 0.0028801415869492697,
     "tenor_fair_without_level_effect": 88.90049328465273
+   },
+   "negative_prices": {
+    "curtail_below_eur_mwh": 0.0,
+    "curtailment": {
+     "share": 0.04415434962928821,
+     "mean_price": -15.633854692751019,
+     "value": 0.6903026861572167
+    },
+    "history": {
+     "2021": {
+      "share": 0.04023318423930814,
+      "mean_price": -16.603696430490558,
+      "value": 0.6680195775414696
+     },
+     "2022": {
+      "share": 0.019043572883746123,
+      "mean_price": -1.833353802296757,
+      "value": 0.03491360675573137
+     },
+     "2023": {
+      "share": 0.06316181017486214,
+      "mean_price": -11.57472571936919,
+      "value": 0.7310806287128915
+     },
+     "2024": {
+      "share": 0.07122888744772649,
+      "mean_price": -10.488029053476065,
+      "value": 0.7470506409985321
+     },
+     "2025": {
+      "share": 0.08152323524142754,
+      "mean_price": -6.511326960783986,
+      "value": 0.5308244395578424
+     },
+     "2026": {
+      "share": 0.08920942733071341,
+      "mean_price": -12.082579596371499,
+      "value": 1.077880006470064
+     }
+    },
+    "deemed_strike": 130.62883161647264,
+    "cfar_plain_eur": 961162.3275020141,
+    "cfar_clause_eur": 979375.746121102,
+    "clause": {
+     "stack_eur_mwh": {
+      "forward": 141.062958818692,
+      "shape": -4.3998568149218045,
+      "fair_price": 136.6631020037702,
+      "risk_premium": 5.9313920331276835,
+      "balancing": 2.0,
+      "credit": 1.0,
+      "indicative": 127.73170997064253
+     },
+     "premia_eur_mwh": {
+      "fair_price": 136.6631020037702,
+      "unhedged": 32.05440098703634,
+      "joint": 5.9313920331276835,
+      "profile": 2.6594473569206443,
+      "volume": 3.271944676207039
+     },
+     "energy_mwh_expected": 61094.08118987082,
+     "delivered_share": 0.9558456503707117,
+     "level_response": {
+      "level": [
+       52.97209311730516,
+       63.89576175935706,
+       77.09639961155878,
+       88.156815461385,
+       93.03879532346409,
+       104.70436317910679,
+       105.40793331507408,
+       112.28398812098179,
+       135.5225569127701,
+       141.062958818692,
+       163.5829864991434,
+       197.44732386387864
+      ],
+      "capture_rate": [
+       1.1112210827192532,
+       1.0661788347756496,
+       1.0314284638092892,
+       1.0114193365023045,
+       1.0044923812985684,
+       0.9911304838838596,
+       0.9904770677051093,
+       0.9846250912170493,
+       0.9711152406839123,
+       0.9688092689124936,
+       0.961704547072585,
+       0.9552947348749893
+      ]
+     },
+     "volume_response": {
+      "level": [
+       52.97209311730516,
+       63.89576175935706,
+       77.09639961155878,
+       88.156815461385,
+       93.03879532346409,
+       104.70436317910679,
+       105.40793331507408,
+       112.28398812098179,
+       135.5225569127701,
+       141.062958818692,
+       163.5829864991434,
+       197.44732386387864
+      ],
+      "share": [
+       0.8072512223281864,
+       0.8440091907147691,
+       0.8774665577258391,
+       0.8993024234519814,
+       0.9074158290435373,
+       0.9239671496857194,
+       0.924821799010971,
+       0.9326293236876355,
+       0.9522516068466991,
+       0.9558456503707117,
+       0.9674971721814412,
+       0.978985241046966
+      ]
+     },
+     "whole_window": {
+      "fair_price": 136.86232095984363,
+      "premium": 5.9936785497232705
+     },
+     "tenor": {
+      "fair_price": 96.99984908352614,
+      "indicative": 88.06845705039846,
+      "delivered_share": 0.9087363228721239,
+      "indicative_per_potential_mwh": 80.03100582100068
+     }
+    }
    },
    "assumptions": {
     "balancing_eur_mwh": 2.0,
@@ -540,7 +919,7 @@
   }
  },
  "hedging": {
-  "generated_utc": "2026-10-15 20:51",
+  "generated_utc": "2026-10-15 21:18",
   "delivery_year": 2027,
   "model_forwards": {
    "cal_base": 141.062958818692,
@@ -589,77 +968,77 @@
   ],
   "parks": {
    "solar_park": {
-    "average_mw": 13.748286242578416,
+    "average_mw": 11.338721115225695,
     "p50_mw": 13.80666605217779,
     "strategies": {
      "none": {
       "hedge_mw": 0.0,
       "hedge_ratio": 0.0,
-      "expected_eur": 9336733.61665984,
-      "cfar_eur": 3243292.9729055986,
+      "expected_eur": 9710265.646063067,
+      "cfar_eur": 3015843.6012664624,
       "cfar_reduction": 0.0,
       "effectiveness": 0.0
      },
      "cal_base_50": {
-      "hedge_mw": 6.874143121289208,
+      "hedge_mw": 5.669360557612848,
       "hedge_ratio": 0.5,
-      "expected_eur": 9336733.61665984,
-      "cfar_eur": 1292542.6738004787,
-      "cfar_reduction": 0.601472119664072,
-      "effectiveness": 0.8363761473630762
+      "expected_eur": 9710265.646063069,
+      "cfar_eur": 1365845.2692557108,
+      "cfar_reduction": 0.5471100461966454,
+      "effectiveness": 0.7730411326520376
      },
      "cal_base_100": {
-      "hedge_mw": 13.748286242578416,
+      "hedge_mw": 11.338721115225695,
       "hedge_ratio": 1.0,
-      "expected_eur": 9336733.616659842,
-      "cfar_eur": 1418832.30334681,
-      "cfar_reduction": 0.5625334142799602,
-      "effectiveness": 0.8508273361995243
+      "expected_eur": 9710265.64606307,
+      "cfar_eur": 1035828.1445017587,
+      "cfar_reduction": 0.6565378443143481,
+      "effectiveness": 0.9189312096421209
      },
      "cal_base_min_variance": {
-      "hedge_mw": 10.432076737896436,
-      "hedge_ratio": 0.758791063397292,
-      "expected_eur": 9336733.61665984,
-      "cfar_eur": 842239.7013028078,
-      "cfar_reduction": 0.7403134072873279,
-      "effectiveness": 0.9464694029143563
+      "hedge_mw": 9.822867362768141,
+      "hedge_ratio": 0.8663117527053331,
+      "expected_eur": 9710265.64606307,
+      "cfar_eur": 843918.735850282,
+      "cfar_reduction": 0.7201715846617875,
+      "effectiveness": 0.941348783661856
      },
      "quarters_min_variance": {
-      "hedge_mw": 10.498954116365711,
-      "hedge_ratio": 0.7636554790262128,
-      "expected_eur": 9336733.61665984,
-      "cfar_eur": 858103.8921692092,
-      "cfar_reduction": 0.7354220234379715,
-      "effectiveness": 0.951021047641319
+      "hedge_mw": 9.781814687462255,
+      "hedge_ratio": 0.8626911790190502,
+      "expected_eur": 9710265.646063069,
+      "cfar_eur": 805116.2036013622,
+      "cfar_reduction": 0.7330378129478383,
+      "effectiveness": 0.946884389267136
      },
      "months_min_variance": {
-      "hedge_mw": 10.874880852869456,
-      "hedge_ratio": 0.7909990133308377,
-      "expected_eur": 9336733.61665984,
-      "cfar_eur": 674206.1477163229,
-      "cfar_reduction": 0.7921229585644507,
-      "effectiveness": 0.9614580530257781
+      "hedge_mw": 10.101040400912588,
+      "hedge_ratio": 0.8908447697288239,
+      "expected_eur": 9710265.646063067,
+      "cfar_eur": 670787.3735329136,
+      "cfar_reduction": 0.7775788594437637,
+      "effectiveness": 0.9583810970527674
      }
     },
     "months_min_variance_mw": {
-     "M01": -5.087,
-     "M02": 9.727,
-     "M03": 23.074,
-     "M04": 5.294,
-     "M05": 26.066,
-     "M06": 11.127,
-     "M07": 34.096,
-     "M08": 4.647,
-     "M09": 12.854,
-     "M10": 9.942,
-     "M11": 0.71,
-     "M12": -2.481
+     "M01": -4.566,
+     "M02": 12.196,
+     "M03": 20.871,
+     "M04": -0.017,
+     "M05": 18.779,
+     "M06": 10.733,
+     "M07": 32.008,
+     "M08": 5.022,
+     "M09": 13.388,
+     "M10": 11.567,
+     "M11": 2.119,
+     "M12": -1.131
     },
     "quarters_min_variance_mw": {
-     "Q1": 11.22,
-     "Q2": 9.14,
-     "Q3": 17.677,
-     "Q4": 3.962
+     "Q1": 11.277,
+     "Q2": 5.03,
+     "Q3": 17.754,
+     "Q4": 5.05
     },
     "buyer": {
      "band_mw": 13.748286242578416,
@@ -673,15 +1052,15 @@
       "forward_proxy": 95.17545205479452,
       "realised_base": 78.51203324225865,
       "merchant_revenue_eur": 5694783.346720668,
-      "hedge_pnl_eur": 1533442.3909432106,
-      "hedged_revenue_eur": 7228225.737663878
+      "hedge_pnl_eur": 1750731.1688976996,
+      "hedged_revenue_eur": 7445514.515618367
      },
      "2025": {
       "forward_proxy": 78.51203324225865,
       "realised_base": 89.32172260273973,
       "merchant_revenue_eur": 6152273.461644386,
-      "hedge_pnl_eur": -992038.0906638635,
-      "hedged_revenue_eur": 5160235.370980523
+      "hedge_pnl_eur": -1132609.8823906244,
+      "hedged_revenue_eur": 5019663.579253761
      }
     },
     "market_check": {
@@ -693,77 +1072,77 @@
     }
    },
    "wind_park": {
-    "average_mw": 7.296376960848491,
+    "average_mw": 6.9742101814921025,
     "p50_mw": 7.302363106112439,
     "strategies": {
      "none": {
       "hedge_mw": 0.0,
       "hedge_ratio": 0.0,
-      "expected_eur": 8305185.082008,
-      "cfar_eur": 2128410.10088211,
+      "expected_eur": 8349306.649477935,
+      "cfar_eur": 2100806.654937378,
       "cfar_reduction": 0.0,
       "effectiveness": 0.0
      },
      "cal_base_50": {
-      "hedge_mw": 3.6481884804242455,
+      "hedge_mw": 3.4871050907460512,
       "hedge_ratio": 0.5,
-      "expected_eur": 8305185.082008,
-      "cfar_eur": 1273876.2887735944,
-      "cfar_reduction": 0.4014892673899443,
-      "effectiveness": 0.663190501451649
+      "expected_eur": 8349306.649477935,
+      "cfar_eur": 1295254.3443986606,
+      "cfar_reduction": 0.38344904736734564,
+      "effectiveness": 0.6472132104501617
      },
      "cal_base_100": {
-      "hedge_mw": 7.296376960848491,
+      "hedge_mw": 6.9742101814921025,
       "hedge_ratio": 1.0,
-      "expected_eur": 8305185.082008001,
-      "cfar_eur": 1110605.4280839106,
-      "cfar_reduction": 0.4781995125734345,
-      "effectiveness": 0.8123236414642603
+      "expected_eur": 8349306.649477935,
+      "cfar_eur": 1069550.0101185301,
+      "cfar_reduction": 0.49088603294127897,
+      "effectiveness": 0.8150106425946451
      },
      "cal_base_min_variance": {
-      "hedge_mw": 6.5306583889089955,
-      "hedge_ratio": 0.8950549600098443,
-      "expected_eur": 8305185.082008001,
-      "cfar_eur": 1039857.36111061,
-      "cfar_reduction": 0.5114393787740221,
-      "effectiveness": 0.8236467432985062
+      "hedge_mw": 6.451158308652352,
+      "hedge_ratio": 0.9250019917340883,
+      "expected_eur": 8349306.649477936,
+      "cfar_eur": 1051675.5980138462,
+      "cfar_reduction": 0.4993943895112065,
+      "effectiveness": 0.8204037836437632
      },
      "quarters_min_variance": {
-      "hedge_mw": 7.360838572573341,
-      "hedge_ratio": 1.0088347425127215,
-      "expected_eur": 8305185.082008,
-      "cfar_eur": 886044.5957111567,
-      "cfar_reduction": 0.583705886687937,
-      "effectiveness": 0.8602892975766223
+      "hedge_mw": 7.264698367577065,
+      "hedge_ratio": 1.041651768232602,
+      "expected_eur": 8349306.649477935,
+      "cfar_eur": 897578.2596513666,
+      "cfar_reduction": 0.5727458985614637,
+      "effectiveness": 0.856397951844543
      },
      "months_min_variance": {
-      "hedge_mw": 7.458298100008821,
-      "hedge_ratio": 1.0221919920022198,
-      "expected_eur": 8305185.0820079995,
-      "cfar_eur": 690832.4289047066,
-      "cfar_reduction": 0.6754232520234732,
-      "effectiveness": 0.9005196809152007
+      "hedge_mw": 7.354672649016697,
+      "hedge_ratio": 1.0545527676430302,
+      "expected_eur": 8349306.6494779335,
+      "cfar_eur": 701647.723649797,
+      "cfar_reduction": 0.6660103289368569,
+      "effectiveness": 0.8975699297274544
      }
     },
     "months_min_variance_mw": {
-     "M01": -9.824,
-     "M02": 5.82,
-     "M03": -4.499,
-     "M04": 23.049,
-     "M05": 17.587,
-     "M06": 0.781,
-     "M07": -6.95,
-     "M08": 38.05,
-     "M09": 11.644,
-     "M10": 15.202,
-     "M11": 3.192,
-     "M12": -4.453
+     "M01": -9.567,
+     "M02": 6.003,
+     "M03": -4.791,
+     "M04": 22.698,
+     "M05": 16.358,
+     "M06": 0.736,
+     "M07": -7.368,
+     "M08": 38.048,
+     "M09": 11.622,
+     "M10": 15.458,
+     "M11": 3.632,
+     "M12": -4.431
     },
     "quarters_min_variance_mw": {
-     "Q1": -2.263,
-     "Q2": 17.902,
-     "Q3": 10.612,
-     "Q4": 3.095
+     "Q1": -2.228,
+     "Q2": 17.378,
+     "Q3": 10.552,
+     "Q4": 3.257
     },
     "buyer": {
      "band_mw": 7.296376960848491,
@@ -777,15 +1156,15 @@
       "forward_proxy": 95.17545205479452,
       "realised_base": 78.51203324225865,
       "merchant_revenue_eur": 4151715.7994623156,
-      "hedge_pnl_eur": 956686.3219489038,
-      "hedged_revenue_eur": 5108402.121411219
+      "hedge_pnl_eur": 988695.4352588161,
+      "hedged_revenue_eur": 5140411.234721132
      },
      "2025": {
       "forward_proxy": 78.51203324225865,
       "realised_base": 89.32172260273973,
       "merchant_revenue_eur": 4458326.624030855,
-      "hedge_pnl_eur": -618914.2010132237,
-      "hedged_revenue_eur": 3839412.423017631
+      "hedge_pnl_eur": -639622.0279517218,
+      "hedged_revenue_eur": 3818704.5960791325
      }
     },
     "market_check": {
@@ -798,5 +1177,5 @@
    }
   }
  },
- "ppa_lab_version": "1.7.0"
+ "ppa_lab_version": "1.8.0"
 }

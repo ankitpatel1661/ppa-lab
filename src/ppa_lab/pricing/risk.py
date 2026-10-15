@@ -18,7 +18,6 @@ import pandas as pd
 
 from ppa_lab.pricing.contracts import (
     baseload,
-    collar,
     fair_pay_as_produced_price,
     merchant,
     pay_as_produced,
@@ -79,48 +78,80 @@ def risk_premia(prices: np.ndarray, volumes: np.ndarray,
     }
 
 
+def curtail(prices: np.ndarray, volumes: np.ndarray, below: float | None) -> np.ndarray:
+    """The output a park sells when it stops producing at prices below `below` (EUR/MWh):
+    q_t 1[P_t >= below]. None: it always produces."""
+    if below is None:
+        return volumes
+    return volumes * (prices >= below)
+
+
 def structure_revenues(prices: np.ndarray, volumes: np.ndarray,
-                       floor: float = 0.0) -> dict[str, tuple[float | None, np.ndarray]]:
+                       curtail_below: float | None = 0.0
+                       ) -> dict[str, tuple[float | None, np.ndarray]]:
     """The producer's annual revenue per scenario under each structure, with its strike.
 
-    pay_as_produced_clause uses the same strike as pay_as_produced (as in the Step 3
-    back-test): the buyer pays nothing for output at negative prices and the producer
-    curtails, so the clause costs the producer that output. merchant_floor is spot
-    revenue with a bought floor, net of the floor's fair premium.
+    Every structure is struck at its own fair price. A park that sells at spot, or is not
+    paid at negative prices, stops producing below `curtail_below` (0: at negative prices;
+    None: it always produces, as until v1.7): its output is q^c = `curtail`(q).
+
+    - merchant: spot sale of q^c; merchant_no_curtailment: of q (for comparison)
+    - pay_as_produced: K q, K = E[sum q P] / E[sum q]; paid for every MWh, the park produces
+    - pay_as_produced_clause: nothing paid at negative prices, the park curtails:
+      K_c q^c with K_c = E[sum q^c P] / E[sum q^c]
+    - pay_as_produced_deemed: the buyer may curtail and pays the curtailed output as if
+      produced: K_d q with K_d = E[sum q^c P] / E[sum q]
+    - baseload: band B at the base price, the rest (q^c - B) at spot
     """
+    sold = curtail(prices, volumes, curtail_below)
     energy = volumes.sum(axis=1)
-    k = fair_pay_as_produced_price(prices, volumes)
     base = float(prices.mean())
     band = float(energy.mean()) / prices.shape[1]
-    floor_cost = float((volumes * np.maximum(floor - prices, 0.0)).sum(axis=1).mean())
-    return {
-        "merchant": (None, merchant(prices, volumes).sum(axis=1)),
-        "pay_as_produced": (k, pay_as_produced(prices, volumes, k).sum(axis=1)),
-        "pay_as_produced_clause": (k, pay_as_produced(prices, volumes, k,
-                                                      pay_at_negative_prices=False).sum(axis=1)),
-        "merchant_floor": (None, collar(prices, volumes, floor=floor).sum(axis=1) - floor_cost),
-        "baseload": (base, baseload(prices, volumes, base, band).sum(axis=1)),
-    }
+    k = fair_pay_as_produced_price(prices, volumes)
+    out = {"merchant": (None, merchant(prices, sold).sum(axis=1))}
+    if curtail_below is not None:
+        out["merchant_no_curtailment"] = (None, merchant(prices, volumes).sum(axis=1))
+    out["pay_as_produced"] = (k, pay_as_produced(prices, volumes, k).sum(axis=1))
+    if curtail_below is not None:
+        k_c = fair_pay_as_produced_price(prices, sold)
+        k_d = float((prices * sold).sum() / volumes.sum())
+        out["pay_as_produced_clause"] = (k_c, pay_as_produced(prices, sold, k_c).sum(axis=1))
+        out["pay_as_produced_deemed"] = (k_d, pay_as_produced(prices, volumes, k_d).sum(axis=1))
+    out["baseload"] = (base, baseload(prices, sold, base, band).sum(axis=1))
+    return out
 
 
-def structure_table(prices: np.ndarray, volumes: np.ndarray, floor: float = 0.0,
+def structure_table(prices: np.ndarray, volumes: np.ndarray, curtail_below: float | None = 0.0,
                     quantile: float = QUANTILE) -> pd.DataFrame:
-    """Fair price, expected and P5 revenue and CFaR of each structure (producer view)."""
-    energy = volumes.sum(axis=1)
-    floor_cost = float((volumes * np.maximum(floor - prices, 0.0)).sum(axis=1).mean())
+    """Per structure (producer view): strike, share of the potential output sold or paid,
+    expected and P5 revenue and CFaR."""
+    potential = float(volumes.sum(axis=1).mean())
+    sold = float(curtail(prices, volumes, curtail_below).sum(axis=1).mean())
     rows = {}
-    for name, (strike, cash) in structure_revenues(prices, volumes, floor).items():
+    for name, (strike, cash) in structure_revenues(prices, volumes, curtail_below).items():
         expected = float(cash.mean())
+        paid_in_full = name in ("pay_as_produced", "pay_as_produced_deemed",
+                                "merchant_no_curtailment")
         rows[name] = {
             "fair_price_eur_mwh": np.nan if strike is None else strike,
+            "energy_share": 1.0 if paid_in_full else sold / potential,
             "expected_revenue_eur": expected,
             "p05_revenue_eur": float(np.quantile(cash, quantile)),
             "cfar_eur": cash_flow_at_risk(cash, quantile),
             "cfar_share": cash_flow_at_risk(cash, quantile) / expected,
-            "floor_value_eur_mwh": floor_cost / float(energy.mean()) if name == "merchant_floor"
-            else np.nan,
         }
     return pd.DataFrame.from_dict(rows, orient="index").rename_axis("structure")
+
+
+def curtailment_value(prices: np.ndarray, volumes: np.ndarray, below: float = 0.0) -> dict:
+    """What stopping below `below` is worth, per MWh of potential output: the share of the
+    output it removes, the output-weighted mean price of those hours and the avoided loss
+    E[sum q (below - P)+ 1[P < below]] / E[sum q] (EUR/MWh)."""
+    removed = volumes * (prices < below)
+    return {"share": float(removed.sum() / volumes.sum()),
+            "mean_price": float((removed * prices).sum() / removed.sum()) if removed.any()
+            else float("nan"),
+            "value": float((removed * (below - prices)).sum() / volumes.sum())}
 
 
 def level_shift(response: dict | None, level_from: float, level_to: float) -> float:
@@ -145,16 +176,19 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
                 years: int, discount_rate: float, capture_rate_drift: float = 0.0,
                 degradation: float = 0.0,
                 forward_curve: dict[int, float] | None = None,
-                level_response: dict | None = None) -> pd.DataFrame:
+                level_response: dict | None = None,
+                volume_response: dict | None = None) -> pd.DataFrame:
     """One price for a multi-year pay-as-produced PPA from the first year's fair price.
 
     Year y: forward F_y = `forward` in the first year, then `forward_curve` where it gives the
     year; a year after the last quoted one keeps that quote (flat). Capture rate
     c_y = c_0 + drift * (y - start) + g(F_y) - g(F_0) with c_0 = fair_price / forward and g
     the capture rate at a price level (`level_response`, see `level_shift`; none: g constant),
-    fair price F_y c_y, energy E_y = energy * (1 - degradation)^(y - start), discount factor
-    (1 + r)^-(y - start + 0.5) at mid-year. The tenor price is sum D E K / sum D E. Returned
-    per year, with the tenor price in `.attrs["price"]`.
+    fair price F_y c_y, energy E_y = energy * (1 - degradation)^(y - start) * v(F_y) / v(F_0)
+    with v the share of the output delivered at a price level (`volume_response`
+    {"level", "share"}, for a contract under which the park curtails; none: v constant),
+    discount factor (1 + r)^-(y - start + 0.5) at mid-year. The tenor price is
+    sum D E K / sum D E. Returned per year, with the tenor price in `.attrs["price"]`.
     """
     forward_curve = forward_curve or {}
     c0 = fair_price / forward
@@ -164,9 +198,15 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
         y = start_year + i
         f_y = forward_curve.get(y, f_y)
         rate = c0 + capture_rate_drift * i + level_shift(level_response, forward, f_y)
+        delivered = 1.0
+        if volume_response:
+            delivered = (np.interp(np.log(f_y), np.log(volume_response["level"]),
+                                   volume_response["share"])
+                         / np.interp(np.log(forward), np.log(volume_response["level"]),
+                                     volume_response["share"]))
         rows.append({
             "year": y, "forward_eur_mwh": f_y, "capture_rate": rate,
-            "energy_mwh": energy_mwh * (1.0 - degradation) ** i,
+            "energy_mwh": energy_mwh * (1.0 - degradation) ** i * delivered,
             "discount_factor": (1.0 + discount_rate) ** -(i + 0.5),
         })
     table = pd.DataFrame(rows).set_index("year")

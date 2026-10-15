@@ -81,7 +81,15 @@ with st.sidebar:
     d = default_assumptions(results, park)
     pool = st.radio("Which past represents the delivery year?",
                     ["Last 12 months (base case)", "Whole 2024-2026 window"],
-                    help="Midday solar dips deepen as capacity grows: recent days are deeper.")
+                    help="Midday solar dips deepen as capacity grows; since v1.7 old days are "
+                         "moved forward by that trend, so the choice matters little.")
+    has_clause = bool(results["parks"][park].get("negative_prices"))
+    clause = has_clause and st.radio(
+        "Negative prices", ["Paid for every MWh (base case)",
+                            "Clause: we stop producing and are not paid"],
+        help="Under a plain PPA the park is paid the strike for every MWh, so it keeps "
+             "producing at negative prices. With the clause it curtails: prices are per "
+             "delivered MWh.").startswith("Clause")
     forward_text = describe_forward(results.get("forward") or {
         "price_eur_mwh": results.get("forward_assumption")}, results.get("forward_curve") or {},
         results["delivery_year"])
@@ -99,7 +107,7 @@ with st.sidebar:
 
 mine = Assumptions(balancing=balancing, credit=credit, drift=drift, degradation=degradation,
                    discount_rate=rate, tenor_years=tenor, forward_shift=forward_shift,
-                   pool="recent" if pool.startswith("Last") else "whole")
+                   pool="recent" if pool.startswith("Last") else "whole", clause=clause)
 result, base = offer(results, park, mine), offer(results, park, d)
 s, b = result["stack"], base["stack"]
 r = results["parks"][park]
@@ -115,15 +123,28 @@ st.caption(f"ppa-lab {results.get('ppa_lab_version', '')} · German day-ahead pr
 
 merchant = r["structures"]["merchant"]["cfar_eur"] / 1e6
 pap = r["structures"]["pay_as_produced"]["cfar_eur"] / 1e6
+unit = "EUR/MWh"
+premia = r["premia_eur_mwh"]
+if clause:
+    neg = r["negative_prices"]
+    pap = neg["cfar_clause_eur"] / 1e6
+    unit = "EUR per delivered MWh"
+    premia = neg["clause"]["premia_eur_mwh"]
+    st.info(f"Negative-price clause: the park stops producing at negative prices "
+            f"({neg['curtailment']['share']:.0%} of its output in {start}, more at lower "
+            f"forwards) and is not paid for it, so it keeps what a plain PPA loses "
+            f"({neg['curtailment']['value']:.1f} EUR per MWh of output in {start}). "
+            f"Prices are per delivered MWh; per MWh of output the indicative price is about "
+            f"{s['indicative'] * neg['clause']['tenor']['delivered_share']:.1f}.")
 for col, label, value, note in zip(
         st.columns(4),
-        (f"Indicative price, {tenor} years (EUR/MWh)", "Fair price before risk (EUR/MWh)",
+        (f"Indicative price, {tenor} years ({unit})", f"Fair price before risk ({unit})",
          "Buyer's risk premium, hedged (EUR/MWh)", "Producer's CFaR95 with the PPA (EUR m)"),
         (f"{s['indicative']:.1f}", f"{s['tenor_fair_price']:.1f}", f"{s['risk_premium']:.1f}",
          f"{pap:.2f}"),
         (f"{s['indicative'] - b['indicative']:+.1f} vs the base case",
          f"capture rate {s['fair_price'] / s['forward']:.2f} in {start}",
-         f"{r['premia_eur_mwh']['unhedged']:.1f} without a baseload hedge",
+         f"{premia['unhedged']:.1f} without a baseload hedge",
          f"{merchant:.2f} if merchant (−{1 - pap / merchant:.0%} with the PPA)"), strict=True):
     col.metric(label, value)
     col.caption(note)

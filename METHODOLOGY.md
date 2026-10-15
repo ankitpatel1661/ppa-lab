@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.7** (ticket PPA-8e): cash flows and fair prices of the standard structures,
+**Version 1.8** (ticket PPA-7b): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
@@ -20,7 +20,8 @@ price level, which 2023-2026 history confirms for solar (section 10). Since vers
 prices have their own scale in the transform (section 8), and the model is tested on years it
 has not seen (section 9). Since version 1.7 historical days are moved forward by the measured
 build-out trend of the intraday shape (section 8), which removed most of the out-of-sample solar
-error.
+error. Since version 1.8 parks stop producing at negative prices when they sell at spot or have
+a negative-price clause, and the clause is priced at its own fair strike (section 10).
 
 ---
 
@@ -438,12 +439,32 @@ Code: `src/ppa_lab/pricing/risk.py`; report `reports/step07_ppa_pricing.md`; res
 scenarios (section 9, with analog days from `[ppa] analog_pool_start`) and the $T$ hours of the
 first delivery year.
 
-**Structures (producer view).** The contract functions of section 3, unchanged, on every
-scenario; annual revenue $R_s$ per structure, each struck at its fair price (section 4):
-merchant; pay-as-produced at $K^\star$; pay-as-produced with the negative-price clause at the
-same $K^\star$ (the clause costs the producer its output at $P < 0$); merchant plus a floor $F$
-net of its fair premium $E[\sum_t q_t (F - P_t)^+]$; baseload at $K_B^\star = \bar P$ with band
-$B = E[\sum_t q_t]/T$. Risk: $\text{CFaR}_{95} = E[R] - q_{5\%}(R)$.
+**Structures (producer view).** The contract functions of section 3 on every scenario; annual
+revenue $R_s$ per structure, each struck at its own fair price (section 4). Since version 1.8 a
+park that sells at spot, or is not paid at negative prices, stops producing below $c$
+(`[ppa] curtail_below_eur_mwh`, 0: its marginal cost is about zero and no subsidy is paid at
+negative prices, §51 EEG); it sells $q^c_t = q_t \mathbb 1[P_t \ge c]$:
+
+| Structure | Annual revenue | Fair strike |
+|---|---|---|
+| Merchant, curtailing (merchant without curtailing for comparison) | $\sum_t q^c_t P_t$ | spot |
+| Pay-as-produced: paid for every MWh, so the park produces | $K \sum_t q_t$ | $K^\star = E[\sum q P] / E[\sum q]$ |
+| Negative-price clause: curtailed, unpaid | $K_c \sum_t q^c_t$ | $K_c^\star = E[\sum q^c P] / E[\sum q^c]$ |
+| Deemed output: the buyer curtails, pays the output as if produced | $K_d \sum_t q_t$ | $K_d^\star = E[\sum q^c P] / E[\sum q]$ ($= K^\star + v$ for $c = 0$) |
+| Baseload at the base price, band $B = E[\sum_t q_t]/T$ | $K_B B T + \sum_t (q^c_t - B) P_t$ | $K_B^\star = \bar P$ |
+
+with $v = E[\sum_t q_t (c - P_t)^+] / E[\sum_t q_t]$ the value of curtailing per MWh of output.
+At their fair strikes the curtailing structures earn $v$ per MWh more in expectation than the
+plain PPA, which forgoes it. A floor at 0 (until v1.7 in the set) adds nothing to a park that
+curtails: curtailing is that floor, for free. Risk: $\text{CFaR}_{95} = E[R] - q_{5\%}(R)$.
+
+**The clause over the tenor.** The clause is priced like the plain PPA (premium, stack, tenor)
+on the delivered output $q^c$. Its tenor price follows the curtailed output's capture rate
+$\gamma_c(F)$ and its delivered share $v_c(F) = E[\sum q^c] / E[\sum q]$ at each year's forward,
+both measured on the scenarios rebuilt at each forward (as $\gamma$, below):
+$E_i \propto (1 - g)^i\, v_c(F_i) / v_c(F_0)$. At lower forwards more hours are negative, so
+the clause delivers less and keeps more value: for the solar park 82.5% of the output is
+delivered at 141 EUR/MWh and 66.9% at 88.
 
 **Buyer's premium.** The buyer of a pay-as-produced PPA at strike $K$ is worth, per scenario,
 
@@ -577,7 +598,7 @@ sources and stand in for EEX settlement prices.
 | Two sites stand in for national weather | National solar and wind, and weather abroad, are only proxied; weather explains about half of daily price moves | v2: national and neighbour weather |
 | Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
 | Linear daily response per season | No saturation (e.g. once prices hit zero, more wind changes little) | Analog patterns carry part of it; v2 |
-| Parks produce at negative prices unless the contract has the clause | Merchant revenue includes negative-price hours (solar: 9% of output at 2027 prices); a rational merchant would curtail | The clause structure (sections 3, 10); v2: curtailment in the merchant case |
+| Parks curtail at negative prices when they sell at spot or have the clause (v1.8); under a plain PPA they produce | 2027: 17.5% of the solar output (4.4% wind) at an average −17.7 EUR/MWh; curtailing saves 3.1 EUR/MWh of output, about 30% of the output over the tenor at lower forwards. Out of sample the model's share of solar output at negative prices was 3 pp below history | v1.8 (PPA-7b): Step 7 section 5; clause and deemed output priced |
 | One delivery year of scenarios; later years by the forward curve, the level response, drift and degradation | Later years' capture rates come from the first year's scenarios rebuilt at each year's forward (first year's calendar, quarter shape and analog days) | v1.5 (PPA-8d); v2: scenarios per contract year |
 | Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
 | Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (solar premium 5.4 instead of 8.4 EUR/MWh in v1.2); transaction costs v2 |
@@ -591,7 +612,7 @@ sources and stand in for EEX settlement prices.
 | Market quotes from secondary web sources | Not official EEX settlements; dates differ | Replace with EEX data |
 | Measured generation is after curtailment | Slightly higher capture prices than official market values (Step 2) | Backlog PPA-2b |
 | Balancing, route-to-market and credit costs as fixed EUR/MWh | Not modelled from imbalance prices or counterparty data | Stated assumptions in PPA-7; models in v2 |
-| Negative-price clause assumes curtailment | No cost of producing at negative prices | – |
+| Curtailment is instant and free, the threshold the same in every hour | Real parks need a ramp, the direct marketer's systems and sometimes the grid operator; some parks earn guarantees of origin or have variable costs | Threshold in `[ppa]`; notebook 7.2b |
 | Option premiums not included in cash flows (history) | Floors and caps shown as payoffs only in the back-test | PPA-7 prices the floor on scenarios |
 | No taxes, grid fees, guarantees of origin | Not part of the energy price | – |
 
@@ -622,3 +643,5 @@ sources and stand in for EEX settlement prices.
   out-of-sample test (section 9); limitations updated.
 - **v1.7, PPA-8e:** the build-out trend of the intraday shape (section 8), checked out of
   sample (section 9); limitations updated.
+- **v1.8, PPA-7b:** curtailment at negative prices; the negative-price clause and deemed output
+  at their own fair strikes, the clause over the tenor (section 10); limitations updated.

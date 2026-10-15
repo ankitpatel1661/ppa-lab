@@ -105,8 +105,29 @@ def test_structures_table_is_in_eur_millions():
         "pay_as_produced": {"fair_price_eur_mwh": 41.1, "expected_revenue_eur": 2.26e6,
                             "p05_revenue_eur": 2.06e6, "cfar_eur": 0.20e6}}
     t = structures_table(r, "solar_park")
-    assert t.loc["merchant", "Cash flow at risk 95% (EUR m)"] == pytest.approx(1.44)
-    assert t.loc["pay_as_produced", "Strike (EUR/MWh)"] == pytest.approx(41.1)
+    merchant = "Merchant, curtailing at negative prices"
+    assert t.loc[merchant, "Cash flow at risk 95% (EUR m)"] == pytest.approx(1.44)
+    assert t.loc["Pay-as-produced PPA", "Strike (EUR/MWh)"] == pytest.approx(41.1)
+
+
+def test_the_negative_price_clause_is_priced_per_delivered_mwh():
+    r = results_fixture()
+    r["forward_curve"] = {"2028": 60.0}
+    clause = {"stack_eur_mwh": {"forward": 80.0, "shape": -30.0, "fair_price": 50.0,
+                                "risk_premium": 7.0, "balancing": 1.5, "credit": 1.0},
+              "energy_mwh_expected": 44_000.0, "whole_window": None,
+              "level_response": {"level": [60.0, 80.0], "capture_rate": [0.55, 0.625]},
+              "volume_response": {"level": [60.0, 80.0], "share": [0.6, 0.8]}}
+    r["parks"]["solar_park"]["negative_prices"] = {"clause": clause}
+    a = Assumptions(**{**default_assumptions(r, "solar_park").__dict__, "clause": True,
+                       "degradation": 0.0, "tenor_years": 2})
+    o = offer(r, "solar_park", a)
+    assert o["stack"]["fair_price"] == pytest.approx(50.0)
+    assert o["stack"]["risk_premium"] == 7.0
+    assert o["years"]["capture_rate"].tolist() == pytest.approx([0.625, 0.55])
+    assert o["years"]["energy_mwh"].tolist() == pytest.approx([44_000.0, 33_000.0])
+    with pytest.raises(ValueError, match="no negative-price clause"):
+        offer(results_fixture(), "solar_park", a)
 
 
 def test_hedging_table_when_step8_results_are_published():

@@ -31,6 +31,7 @@ class Assumptions:
     tenor_years: int
     forward_shift: float = 0.0   # relative change of the forward, e.g. -0.1
     pool: str = "recent"         # "recent" (configured analog pool) or "whole" (whole window)
+    clause: bool = False         # negative-price clause: the park curtails, unpaid (v1.8)
 
 
 def load_results(path: Path = RESULTS) -> dict:
@@ -57,11 +58,18 @@ def offer(results: dict, park: str, a: Assumptions) -> dict:
     credit; indicative = forward + shape + trend - premium - balancing - credit. The forward
     shift moves the whole curve, and the capture rate with it along the model's response to
     the price level (Step 7, PPA-8d). The premium and costs per MWh are applied to every year,
-    as in Step 7.
+    as in Step 7. With the negative-price clause all of it is per delivered MWh: the park
+    stops producing at negative prices and is not paid (Step 7, v1.8).
     """
     r = results["parks"][park]
+    volumes = None
+    if a.clause:
+        if not r.get("negative_prices"):
+            raise ValueError("these results have no negative-price clause (v1.8 and later)")
+        r = {**r, **r["negative_prices"]["clause"]}
+        volumes = r["volume_response"]
     stack0 = r["stack_eur_mwh"]
-    if a.pool == "whole":
+    if a.pool == "whole" and r.get("whole_window"):
         fair1, premium = r["whole_window"]["fair_price"], r["whole_window"]["premium"]
     else:
         fair1, premium = stack0["fair_price"], stack0["risk_premium"]
@@ -73,13 +81,25 @@ def offer(results: dict, park: str, a: Assumptions) -> dict:
     curve = {int(y): f_y * scale for y, f_y in (results.get("forward_curve") or {}).items()}
     years = tenor_price(fair1, forward, r["energy_mwh_expected"], results["delivery_year"],
                         a.tenor_years, a.discount_rate, capture_rate_drift=a.drift,
-                        degradation=a.degradation, forward_curve=curve, level_response=response)
+                        degradation=a.degradation, forward_curve=curve, level_response=response,
+                        volume_response=volumes)
     tenor_fair = years.attrs["price"]
     stack = {"forward": forward, "shape": fair1 - forward, "fair_price": fair1,
              "trend": tenor_fair - fair1, "tenor_fair_price": tenor_fair,
              "risk_premium": premium, "balancing": a.balancing, "credit": a.credit}
     stack["indicative"] = tenor_fair - premium - a.balancing - a.credit
     return {"stack": stack, "years": years}
+
+
+STRUCTURE_LABELS = {
+    "merchant": "Merchant, curtailing at negative prices",
+    "merchant_no_curtailment": "Merchant, producing at negative prices",
+    "pay_as_produced": "Pay-as-produced PPA",
+    "pay_as_produced_clause": "Pay-as-produced, negative-price clause",
+    "pay_as_produced_deemed": "Pay-as-produced, buyer curtails, deemed output paid",
+    "merchant_floor": "Merchant + floor at 0 (premium paid)",
+    "baseload": "Baseload PPA",
+}
 
 
 def structures_table(results: dict, park: str) -> pd.DataFrame:
@@ -91,6 +111,9 @@ def structures_table(results: dict, park: str) -> pd.DataFrame:
         "P5 revenue (EUR m)": t["p05_revenue_eur"] / 1e6,
         "Cash flow at risk 95% (EUR m)": t["cfar_eur"] / 1e6,
     })
+    if "energy_share" in t:
+        out.insert(1, "Output sold or paid (%)", 100 * t["energy_share"])
+    out.index = [STRUCTURE_LABELS.get(k, k) for k in out.index]
     return out.astype(float).round(2)
 
 

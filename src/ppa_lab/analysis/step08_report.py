@@ -34,6 +34,7 @@ from ppa_lab.hedging.hedge import (
 )
 from ppa_lab.hedging.products import MONTHS, QUARTERS, product_masks
 from ppa_lab.pricing.forwards import describe_forward
+from ppa_lab.pricing.risk import curtail
 from ppa_lab.weather.yields import annual_energy, p_values
 
 log = logging.getLogger(__name__)
@@ -174,13 +175,15 @@ def write_step08_report(settings: Settings) -> dict[str, Path | None]:
     tables, monthly, results, hedged_lead = {}, {}, {}, None
     for park in names:
         volumes = scen.volume(park)
-        cash = (prices * volumes).sum(axis=1)
-        average_mw = float(volumes.sum(axis=1).mean()) / hours
+        # the merchant park stops producing at negative prices (v1.8), so it sells less
+        sold = curtail(prices, volumes, ppa.curtail_below_eur_mwh)
+        cash = (prices * sold).sum(axis=1)
+        average_mw = float(sold.sum(axis=1).mean()) / hours
         t = hedge_strategies(cash, prices, masks, forwards, average_mw, q)
         tables[park] = t.drop(columns=["products_mw"], errors="ignore")
         month_mw = t.loc["months_min_variance", "products_mw"]
         monthly[park] = pd.DataFrame({
-            "expected_mw": [float(volumes[:, masks[m]].mean()) for m in MONTHS],
+            "expected_mw": [float(sold[:, masks[m]].mean()) for m in MONTHS],
             "hedge_mw": [month_mw[m] for m in MONTHS]}, index=MONTHS)
         if hedged_lead is None:
             payoff = hedge_payoffs(prices, masks, forwards, ["cal_base"])
@@ -287,8 +290,9 @@ so every hedge is fair in expectation and only changes the spread.
 
 ## 2. Hedging merchant output
 
-What each park's revenue risk would be if it sold at spot, and with each hedge. Hedge ratio =
-MW sold / average output in MW.
+What each park's revenue risk would be if it sold at spot, and with each hedge. Selling at spot,
+a park stops producing at negative prices (Step 7, section 5). Hedge ratio = MW sold / average
+output sold in MW.
 
 {_strategies_md(tables, names)}
 

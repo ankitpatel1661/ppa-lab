@@ -7,6 +7,7 @@ import pytest
 from ppa_lab.pricing.risk import (
     buyer_value,
     cash_flow_at_risk,
+    curtailment_value,
     level_shift,
     premium,
     risk_premia,
@@ -68,30 +69,58 @@ def test_profile_and_volume_parts_of_the_premium():
 
 
 def test_structures_move_risk_from_the_producer():
-    p = level_and_shape() - 70.0                       # deep middays go negative
+    p = level_and_shape() + 30.0                       # no negative prices: curtailment idle
     q = np.tile(SOLAR, (400, 1))
-    t = structure_table(p, q, floor=0.0)
-    assert list(t.index) == ["merchant", "pay_as_produced", "pay_as_produced_clause",
-                             "merchant_floor", "baseload"]
+    t = structure_table(p, q)
+    assert list(t.index) == ["merchant", "merchant_no_curtailment", "pay_as_produced",
+                             "pay_as_produced_clause", "pay_as_produced_deemed", "baseload"]
     # Same expected revenue at fair prices, very different risk.
     merchant = t.loc["merchant", "expected_revenue_eur"]
-    assert t.loc["pay_as_produced", "expected_revenue_eur"] == pytest.approx(merchant)
-    assert t.loc["baseload", "expected_revenue_eur"] == pytest.approx(merchant)
-    assert t.loc["merchant_floor", "expected_revenue_eur"] == pytest.approx(merchant)
+    for name in t.index:
+        assert t.loc[name, "expected_revenue_eur"] == pytest.approx(merchant)
     assert t.loc["pay_as_produced", "cfar_eur"] == pytest.approx(0.0, abs=1e-6)  # fixed volumes
     assert t.loc["merchant", "cfar_eur"] > t.loc["baseload", "cfar_eur"]
-    assert (p < 0).any() and t.loc["merchant_floor", "floor_value_eur_mwh"] > 0
 
 
-def test_the_clause_costs_the_producer_the_output_at_negative_prices():
+def test_curtailing_keeps_the_value_a_plain_ppa_destroys():
     p = np.array([[-10.0, 50.0], [20.0, 40.0]])
     q = np.array([[2.0, 2.0], [2.0, 2.0]])
-    t = structure_table(p, q, floor=0.0)
-    k = (p * q).sum() / q.sum()                        # 25.0
-    # Clause at the same strike: nothing for the 2 MWh produced at -10 in scenario 1.
-    expected = k * (2 + 4) / 2
-    assert t.loc["pay_as_produced_clause", "expected_revenue_eur"] == pytest.approx(expected)
-    assert t.loc["pay_as_produced_clause", "fair_price_eur_mwh"] == pytest.approx(k)
+    t = structure_table(p, q)
+    k = (p * q).sum() / q.sum()                        # 25.0: the park produces at -10
+    assert t.loc["pay_as_produced", "fair_price_eur_mwh"] == pytest.approx(k)
+    # stopping at -10 avoids a loss of 2 MWh x 10 EUR in scenario 1: +10 EUR on average
+    gain = 10.0
+    assert t.loc["merchant", "expected_revenue_eur"] == pytest.approx(
+        t.loc["merchant_no_curtailment", "expected_revenue_eur"] + gain)
+    # the clause pays only the 6 MWh produced at prices >= 0, at their own fair strike
+    assert t.loc["pay_as_produced_clause", "fair_price_eur_mwh"] == pytest.approx(
+        (100 + 40 + 80) / 6)
+    assert t.loc["pay_as_produced_clause", "energy_share"] == pytest.approx(0.75)
+    # deemed: the buyer curtails and pays all 8 MWh, the strike rises by the avoided loss
+    assert t.loc["pay_as_produced_deemed", "fair_price_eur_mwh"] == pytest.approx(
+        k + gain / 4)
+    for name in ("pay_as_produced_clause", "pay_as_produced_deemed", "baseload"):
+        assert t.loc[name, "expected_revenue_eur"] == pytest.approx(
+            t.loc["merchant", "expected_revenue_eur"])
+    # without curtailment the old set: no clause variants, the merchant produces
+    old = structure_table(p, q, curtail_below=None)
+    assert list(old.index) == ["merchant", "pay_as_produced", "baseload"]
+    assert old.loc["merchant", "expected_revenue_eur"] == pytest.approx(
+        t.loc["merchant_no_curtailment", "expected_revenue_eur"])
+
+
+def test_curtailment_value_per_mwh_of_potential_output():
+    p = np.array([[-10.0, 50.0], [20.0, 40.0]])
+    q = np.array([[2.0, 2.0], [2.0, 2.0]])
+    v = curtailment_value(p, q)
+    assert v == {"share": 0.25, "mean_price": -10.0, "value": pytest.approx(20 / 8)}
+
+
+def test_the_tenor_follows_the_delivered_volume():
+    shares = {"level": [50.0, 100.0], "share": [0.6, 0.8]}
+    t = tenor_price(fair_price=80.0, forward=100.0, energy_mwh=80.0, start_year=2027, years=2,
+                    discount_rate=0.0, forward_curve={2028: 50.0}, volume_response=shares)
+    assert t["energy_mwh"].tolist() == pytest.approx([80.0, 60.0])      # 80 x 0.6 / 0.8
 
 
 def test_tenor_price_with_flat_assumptions_is_the_one_year_price():

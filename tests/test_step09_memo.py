@@ -42,6 +42,10 @@ def pricing_fixture() -> dict:
                            "fair_price": fair - 12, "indicative": indicative - 12}]},
             "level_effect": {"history": {"coef": 0.27, "ci_low": 0.10, "ci_high": 0.45},
                              "history_years": "2023-2026", "out_of_sample_error": 0.123},
+            "negative_prices": {"curtailment": {"share": 0.25, "mean_price": -8.0, "value": 2.0},
+                                "cfar_clause_eur": 0.4e6,
+                                "clause": {"tenor": {"indicative": 45.0,
+                                                     "indicative_per_potential_mwh": 33.75}}},
         }
     return {"delivery_year": 2027, "tenor_years": 10, "discount_rate": 0.06,
             "analog_pool_start": "2025-10-01", "scenarios": 496,
@@ -62,8 +66,8 @@ def test_memo_states_the_answer_and_publishes_the_results(settings):
     assert "Bottom line" in text and "32.5" in text and "40.0" in text   # indicative and fair
     assert "2027-2036" in text and "Borrentin" in text
     assert "−86%" in text                                    # CFaR 1.4 m -> 0.2 m
-    assert "6.0 EUR/MWh" in text                             # premium + credit vs merchant
-    assert "25% of the solar output" in text                 # clause: 1 - 1.65 / 2.2
+    assert "8.0 EUR/MWh" in text              # premium + credit + curtailing vs merchant
+    assert "25% of the solar output" in text and "45.0 EUR/MWh per delivered MWh" in text
     assert "±3.0 EUR/MWh" in text and "+7.0 EUR/MWh" in text # the levers
     assert "Forward curve −10% / +10%: **−4.0 / +4.0 EUR/MWh**" in text
     assert "Cal-27 base 85.00 EUR/MWh (quote of 2026-10-09, via tacto.ai)" in text

@@ -28,6 +28,8 @@ from ppa_lab.pricing.forwards import describe_forward, quarter_forwards
 from ppa_lab.pricing.risk import (
     buyer_value,
     capture_rate_at,
+    curtail,
+    curtailment_value,
     level_shift,
     risk_premia,
     structure_revenues,
@@ -43,10 +45,11 @@ from ppa_lab.weather.yields import annual_energy, p_values
 log = logging.getLogger(__name__)
 
 STRUCTURES = {
-    "merchant": "Merchant (no contract)",
+    "merchant": "Merchant (no contract), curtailing at negative prices",
+    "merchant_no_curtailment": "Merchant, producing at negative prices",
     "pay_as_produced": "Pay-as-produced PPA",
-    "pay_as_produced_clause": "Pay-as-produced, nothing paid at negative prices",
-    "merchant_floor": "Merchant + floor at 0 EUR/MWh (premium paid)",
+    "pay_as_produced_clause": "Pay-as-produced, negative-price clause (curtailed, unpaid)",
+    "pay_as_produced_deemed": "Pay-as-produced, buyer curtails and pays the output",
     "baseload": "Baseload PPA (band = average output)",
 }
 GREY = "#a9a9a4"
@@ -56,8 +59,10 @@ GREY = "#a9a9a4"
 # Calculations
 # --------------------------------------------------------------------------- #
 def price_park(prices: np.ndarray, volumes: np.ndarray, cost: PpaParkSettings,
-               quantile: float) -> dict:
-    """Premia, price stack and structures of one park for the delivery year."""
+               quantile: float, curtail_below: float | None = None,
+               structures: bool = True) -> dict:
+    """Premia, price stack and structures of one park for the delivery year. `volumes` are
+    the MWh the contract pays for (for the negative-price clause: the curtailed output)."""
     premia = risk_premia(prices, volumes, quantile)
     forward = float(prices.mean())
     fair = premia["fair_price"]
@@ -65,8 +70,10 @@ def price_park(prices: np.ndarray, volumes: np.ndarray, cost: PpaParkSettings,
              "risk_premium": premia["joint"], "balancing": cost.balancing_eur_mwh,
              "credit": cost.credit_eur_mwh}
     stack["indicative"] = fair - premia["joint"] - cost.balancing_eur_mwh - cost.credit_eur_mwh
-    return {"premia": premia, "stack": stack, "energy_mwh": float(volumes.sum(axis=1).mean()),
-            "structures": structure_table(prices, volumes, quantile=quantile)}
+    out = {"premia": premia, "stack": stack, "energy_mwh": float(volumes.sum(axis=1).mean())}
+    if structures:
+        out["structures"] = structure_table(prices, volumes, curtail_below, quantile)
+    return out
 
 
 def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate: float,
@@ -118,6 +125,52 @@ LEVEL_HIGH = "Capture rate vs price level: high end of history"
 TECH_COLUMNS = {"solar": "solar_mw", "wind": "wind_onshore_mw"}
 
 
+def price_clause(base: Scenarios, whole: Scenarios | None, park: str, cost: PpaParkSettings,
+                 quantile: float, below: float, grid: list[dict], ppa, plain: dict,
+                 prices: pd.Series, generation: pd.Series, tz: str) -> dict:
+    """The negative-price clause for one park (v1.8): the park curtails below `below` and is
+    paid only for what it delivers, at that output's own fair price. Stack, premium, tenor
+    price (along the curtailed output's capture rate and delivered share by price level), the
+    value of curtailing in 2027 and in history, and the deemed-volume strike."""
+    potential = base.volume(park)
+    sold = curtail(base.prices, potential, below)
+    clause = price_park(base.prices, sold, cost, quantile, structures=False)
+    response = park_response(grid, park, "clause_capture_rate")
+    volumes = volume_response(grid, park)
+    s = clause["stack"]
+    years = tenor_price(s["fair_price"], s["forward"], clause["energy_mwh"], ppa.start_year,
+                        ppa.tenor_years, ppa.discount_rate,
+                        capture_rate_drift=cost.capture_rate_drift, degradation=cost.degradation,
+                        forward_curve=ppa.forward_curve, level_response=response,
+                        volume_response=volumes)
+    weights = years["discount_factor"]
+    full = plain["energy_mwh"] * (1.0 - cost.degradation) ** np.arange(len(years))
+    delivered = float((weights * years["energy_mwh"]).sum() / (weights * full).sum())
+    fair = years.attrs["price"]
+    indicative = fair - s["risk_premium"] - s["balancing"] - s["credit"]
+    whole_window = None
+    if whole is not None:
+        w = risk_premia(whole.prices, curtail(whole.prices, whole.volume(park), below), quantile)
+        whole_window = {"fair_price": w["fair_price"], "premium": w["joint"]}
+    structures = plain["structures"]
+    return {
+        "curtail_below_eur_mwh": below,
+        "curtailment": curtailment_value(base.prices, potential, below),
+        "history": curtailment_history(prices, generation, tz, below).to_dict(orient="index"),
+        "deemed_strike": float(structures.loc["pay_as_produced_deemed", "fair_price_eur_mwh"]),
+        "cfar_plain_eur": float(structures.loc["pay_as_produced", "cfar_eur"]),
+        "cfar_clause_eur": float(structures.loc["pay_as_produced_clause", "cfar_eur"]),
+        "clause": {"stack_eur_mwh": s, "premia_eur_mwh": clause["premia"],
+                   "energy_mwh_expected": clause["energy_mwh"],
+                   "delivered_share": clause["energy_mwh"] / plain["energy_mwh"],
+                   "level_response": response, "volume_response": volumes,
+                   "whole_window": whole_window,
+                   "tenor": {"fair_price": fair, "indicative": indicative,
+                             "delivered_share": delivered,
+                             "indicative_per_potential_mwh": indicative * delivered}},
+    }
+
+
 def tenor_forwards(first: float, curve: dict[int, float], end_year: int,
                    start: int) -> dict[str, float]:
     """The forward of each contract year that has its own quote, labelled by year ("+" when
@@ -154,11 +207,24 @@ def level_grid(settings: Settings, recent: float) -> list[float]:
     return sorted({round(float(x), 2) for x in (*quoted, recent, *spread)})
 
 
-def capture_rates(scenarios: Scenarios, names) -> dict[str, float]:
-    """Each park's capture rate on a scenario set: its volume-weighted price over the average."""
-    average = float(scenarios.prices.mean())
-    return {park: float((scenarios.prices * scenarios.volume(park)).sum()
-                        / scenarios.volume(park).sum()) / average for park in names}
+def capture_rates(scenarios: Scenarios, names, curtail_below: float | None = None
+                  ) -> dict[str, float]:
+    """Each park's capture rate on a scenario set: its volume-weighted price over the average
+    (of the output left after curtailing below `curtail_below`, if given)."""
+    p = scenarios.prices
+    average = float(p.mean())
+    out = {}
+    for park in names:
+        q = curtail(p, scenarios.volume(park), curtail_below)
+        out[park] = float((p * q).sum() / q.sum()) / average
+    return out
+
+
+def delivered_shares(scenarios: Scenarios, names, curtail_below: float) -> dict[str, float]:
+    """Share of each park's output left after curtailing below `curtail_below`."""
+    p = scenarios.prices
+    return {park: float(curtail(p, scenarios.volume(park), curtail_below).sum()
+                        / scenarios.volume(park).sum()) for park in names}
 
 
 def model_response(settings: Settings, inputs: dict, base: Scenarios, names,
@@ -167,23 +233,54 @@ def model_response(settings: Settings, inputs: dict, base: Scenarios, names,
 
     The scenarios are rebuilt at each level with the same random draws (the base set is
     reused at its own forward). Per level: the forward, the scenarios' average price and the
-    parks' capture rates.
+    parks' capture rates; with curtailment (v1.8) also the capture rate of the curtailed
+    output and the share of the output delivered.
     """
     pm = settings.price_model
+    below = settings.ppa.curtail_below_eur_mwh
     pool = pd.Timestamp(settings.ppa.analog_pool_start)
     rows = []
     for level in levels:
         scenarios = base if level == round(pm.forward_eur_mwh, 2) else scenario_set(
             replace(settings, price_model=replace(pm, forward_eur_mwh=level)), inputs, pool)
-        rows.append({"forward": level, "average": float(scenarios.prices.mean()),
-                     "capture_rate": capture_rates(scenarios, names)})
+        row = {"forward": level, "average": float(scenarios.prices.mean()),
+               "capture_rate": capture_rates(scenarios, names)}
+        if below is not None:
+            row["clause_capture_rate"] = capture_rates(scenarios, names, below)
+            row["delivered_share"] = delivered_shares(scenarios, names, below)
+        rows.append(row)
     return sorted(rows, key=lambda r: r["average"])
 
 
-def park_response(rows: list[dict], park: str) -> dict:
-    """One park's capture rate by price level, in the form `level_shift` reads."""
+def park_response(rows: list[dict], park: str, key: str = "capture_rate") -> dict:
+    """One park's capture rate by price level, in the form `level_shift` reads (`key`:
+    "capture_rate" or, for the negative-price clause, "clause_capture_rate")."""
     return {"level": [r["average"] for r in rows],
-            "capture_rate": [r["capture_rate"][park] for r in rows]}
+            "capture_rate": [r[key][park] for r in rows]}
+
+
+def volume_response(rows: list[dict], park: str) -> dict:
+    """One park's delivered share of its output by price level (curtailment), as
+    `tenor_price` reads it."""
+    return {"level": [r["average"] for r in rows],
+            "share": [r["delivered_share"][park] for r in rows]}
+
+
+def curtailment_history(prices: pd.Series, generation: pd.Series, tz: str,
+                        below: float) -> pd.DataFrame:
+    """Per complete local year: the park's output share at prices below `below`, their
+    output-weighted mean price and the avoided loss per MWh of output (EUR/MWh)."""
+    q = generation.reindex(prices.index)
+    ok = q.notna().to_numpy()
+    p, q = prices.to_numpy()[ok], q.to_numpy()[ok]
+    year = prices.index[ok].tz_convert(tz).year
+    rows = {}
+    for y in sorted(set(year)):
+        m = np.asarray(year == y)
+        if m.sum() < 24 * 200:                     # at least 200 days (2026: to September)
+            continue
+        rows[int(y)] = curtailment_value(p[m][None, :], q[m][None, :], below)
+    return pd.DataFrame(rows).T.rename_axis("year")
 
 
 def line_response(levels: list[float], ref_level: float, ref_rate: float, slope: float) -> dict:
@@ -347,12 +444,65 @@ def _structures_md(priced: dict[str, dict], names: dict[str, str]) -> str:
                 "Park": names[park], "Structure": STRUCTURES[key],
                 "Strike (EUR/MWh)": "spot" if np.isnan(r["fair_price_eur_mwh"])
                 else f"{r['fair_price_eur_mwh']:.2f}",
+                "Output sold or paid": f"{r['energy_share']:.0%}",
                 "Expected revenue (EUR m)": _m(r["expected_revenue_eur"]),
                 "P5 revenue (EUR m)": _m(r["p05_revenue_eur"]),
                 "Cash flow at risk 95% (EUR m)": _m(r["cfar_eur"]),
                 "CFaR / expected": f"{r['cfar_share']:.0%}",
             })
     return pd.DataFrame(rows).to_markdown(index=False)
+
+
+def _pct(x: float) -> str:
+    return f"{x:.1%}"
+
+
+def _negative_md(negative: dict[str, dict], priced: dict[str, dict], tenors: dict[str, list],
+                 names: dict[str, str], start: int, years: int) -> str:
+    """The negative-price table: what curtailing is worth, and the three ways to share it."""
+    def row(label, cell):
+        return f"| {label} | " + " | ".join(cell(p) for p in negative) + " |"
+
+    n, s = negative, {p: priced[p]["stack"] for p in negative}
+    c = {p: n[p]["clause"] for p in negative}
+    lines = ["| EUR/MWh | " + " | ".join(names[p] for p in negative) + " |",
+             "|---|" + "---|" * len(negative),
+             row(f"Output at negative prices, {start}",
+                 lambda p: _pct(n[p]["curtailment"]["share"])),
+             row("Their output-weighted mean price",
+                 lambda p: _n(n[p]["curtailment"]["mean_price"])),
+             row("Saved by curtailing, per MWh of output",
+                 lambda p: f"{n[p]['curtailment']['value']:.2f}"),
+             row(f"Plain PPA: fair price {start}; {years}-year indicative",
+                 lambda p: f"{s[p]['fair_price']:.2f}; {tenors[p][0]['indicative']:.2f}"),
+             row(f"Clause: fair price {start} per delivered MWh",
+                 lambda p: f"{c[p]['stack_eur_mwh']['fair_price']:.2f}"),
+             row("Clause: buyer's premium after a baseload hedge",
+                 lambda p: f"{c[p]['stack_eur_mwh']['risk_premium']:.2f} (plain "
+                           f"{s[p]['risk_premium']:.2f})"),
+             row(f"Clause: {years}-year fair; indicative, per delivered MWh",
+                 lambda p: f"{c[p]['tenor']['fair_price']:.2f}; {c[p]['tenor']['indicative']:.2f}"),
+             row(f"Clause: {years}-year indicative per MWh of output (delivered "
+                 "share)", lambda p: f"{c[p]['tenor']['indicative_per_potential_mwh']:.2f} "
+                                     f"({_pct(c[p]['tenor']['delivered_share'])})"),
+             row(f"Deemed output: fair price {start}", lambda p: f"{n[p]['deemed_strike']:.2f}"),
+             row(f"Producer's CFaR95 {start}: plain; clause (EUR m)",
+                 lambda p: f"{_m(n[p]['cfar_plain_eur'])}; {_m(n[p]['cfar_clause_eur'])}")]
+    return "\n".join(lines)
+
+
+def _curtailment_history_md(negative: dict[str, dict], names: dict[str, str]) -> str:
+    years = sorted({int(y) for v in negative.values() for y in v["history"]})
+    lines = ["| Year | " + " | ".join(f"{names[p]}: output at negative prices; saved per MWh"
+                                     for p in negative) + " |",
+             "|---|" + "---|" * len(negative)]
+    for y in years:
+        cells = []
+        for p in negative:
+            h = negative[p]["history"].get(y) or negative[p]["history"].get(str(y))
+            cells.append("–" if h is None else f"{_pct(h['share'])}; {h['value']:.2f}")
+        lines.append(f"| {y} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
 
 
 def _premia_md(priced: dict[str, dict], names: dict[str, str]) -> str:
@@ -528,11 +678,13 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     check_path = settings.processed_dir / "out_of_sample.json"
     check = json.loads(check_path.read_text()) if check_path.exists() else None
 
-    priced, tenors, results, effects = {}, {}, {}, {}
+    priced, tenors, results, effects, negative = {}, {}, {}, {}, {}
     end_year = ppa.start_year + ppa.tenor_years - 1
+    below = ppa.curtail_below_eur_mwh
+    all_prices = hourly_prices(settings) if below is not None else None
     for park in names:
         cost = ppa.parks[park]
-        priced[park] = price_park(base.prices, base.volume(park), cost, q)
+        priced[park] = price_park(base.prices, base.volume(park), cost, q, below)
         alt, whole_window = None, None
         if whole is not None:
             whole_premia = risk_premia(whole.prices, whole.volume(park), q)
@@ -561,6 +713,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             stack["fair_price"], stack["forward"], priced[park]["energy_mwh"], ppa.start_year,
             ppa.tenor_years, ppa.discount_rate, capture_rate_drift=cost.capture_rate_drift,
             degradation=cost.degradation, forward_curve=ppa.forward_curve).attrs["price"]
+        if below is not None:
+            negative[park] = price_clause(base, whole, park, cost, q, below, grid, ppa,
+                                          priced[park], all_prices, inputs["gen"][park], tz)
         annual = annual_energy(inputs["gen"][park], tz).loc[
             settings.weather_first_year:settings.scenarios.weather_last_year]
         pv = p_values(annual)
@@ -573,6 +728,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             "whole_window": whole_window,
             "level_response": response,
             "level_effect": e,
+            "negative_prices": negative.get(park),
             "assumptions": {"balancing_eur_mwh": cost.balancing_eur_mwh,
                             "credit_eur_mwh": cost.credit_eur_mwh,
                             "capture_rate_drift": cost.capture_rate_drift,
@@ -601,6 +757,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         "level_effect": None if regs is None else {
             k: regs[k] for k in ("start_year", "first_year", "last_year")},
         "level_grid": grid,
+        "curtail_below_eur_mwh": below,
         "forward_curve": {str(y): f_y for y, f_y in sorted(ppa.forward_curve.items())},
         "parks": results}), indent=1, allow_nan=False))
 
@@ -609,7 +766,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     figs = {
         "stack": fig_stack({p: r["stack"] for p, r in priced.items()}, names,
                            fig_dir / "step07_price_stack.png"),
-        "revenue": fig_revenue(structure_revenues(base.prices, base.volume(lead)), names[lead],
+        "revenue": fig_revenue(structure_revenues(base.prices, base.volume(lead), below),
+                               names[lead],
                                fig_dir / "step07_revenue.png"),
         "buyer": fig_buyer(base.prices, base.volume(lead), names[lead], q,
                            fig_dir / "step07_buyer_risk.png"),
@@ -690,6 +848,44 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         + "\n\nSo the base case moves each year's capture rate along the model's response "
         f"(chart below); holding the first year's capture rate over the tenor instead (as "
         f"before v1.5) would give fair prices of {without} EUR/MWh.")
+    curtail_text, negative_text = "", "Not configured (`[ppa] curtail_below_eur_mwh`)."
+    if negative:
+        curtail_text = (
+            f"A park that sells at spot, or is not paid at negative prices, stops producing "
+            f"below {below:g} EUR/MWh, so those structures earn more on average by the value of "
+            "curtailing (section 5); the plain PPA and the merchant that keeps producing forgo "
+            "it. ")
+        gap = ""
+        if check:
+            like = [y for y in check["years"] if y.get("trend", True)] or check["years"]
+            diffs = [y["parks"][lead]["negative_output_share"]["p50"]
+                     - y["parks"][lead]["negative_output_share"]["history"] for y in like]
+            gap = (f" Out of sample (Step 6, section 4) the model put the {names[lead].lower()}'s "
+                   f"output at negative prices {abs(np.mean(diffs)) * 100:.0f} percentage points "
+                   f"{'below' if np.mean(diffs) < 0 else 'above'} history, so these values are "
+                   f"{'if anything low' if np.mean(diffs) < 0 else 'if anything high'}.")
+        negative_text = (
+            "In hours with negative prices output is worth less than nothing. A park that sells "
+            "at spot stops producing then: its marginal cost is about zero, and no subsidy is "
+            "paid at negative prices (§51 EEG). Under a plain pay-as-produced PPA it is paid the "
+            "strike for every MWh, so it keeps producing and the buyer sells that output at a "
+            "loss: the value of curtailing is lost to both sides. Three ways to handle it:\n\n"
+            "- **Plain PPA** (the base case above): nobody curtails; the fair price includes "
+            "the negative hours.\n"
+            "- **Negative-price clause**: nothing is paid at negative prices and the park "
+            "curtails. The strike is the fair price of the output delivered, higher per MWh, "
+            "and the park keeps the value of curtailing, but it takes back volume risk: sunny, "
+            "cheap years have more negative hours.\n"
+            "- **Deemed output**: the buyer may curtail and pays the curtailed output as if "
+            "produced. The strike rises by the value of curtailing; the producer's risk stays "
+            "that of the plain PPA.\n\n"
+            + _negative_md(negative, priced, tenors, names, ppa.start_year, ppa.tenor_years)
+            + "\n\nThe clause's tenor price follows the curtailed output's capture rate and its "
+            "delivered share at each year's forward (more negative hours at lower forwards), "
+            "plus the capture-rate trend; the first year's premium and costs apply to every "
+            "year. In history the parks' output at negative prices grew with the build-out:\n\n"
+            + _curtailment_history_md(negative, names) + "\n\n2026: January to September."
+            + gap)
     report = header + f"""Inputs: the Step 6 joint scenarios for {ppa.start_year}
 ({base.prices.shape[0]} scenarios: {len(set(base.weather_years))} weather years x
 {settings.scenarios.paths_per_weather_year} price paths), with intraday patterns from analog days
@@ -699,9 +895,8 @@ Forward: {describe_forward(forward, ppa.forward_curve, ppa.start_year)}. The sce
 
 ## 1. What each structure leaves with the producer ({ppa.start_year})
 
-All structures struck at their fair price, so the expected revenue is the same (the
-negative-price clause at the plain strike costs the producer its output at negative prices).
-The spread of annual revenue is what changes: the 95% cash flow at risk.
+All structures struck at their own fair price. {curtail_text}The spread of annual revenue is
+what changes most: the 95% cash flow at risk.
 
 {_structures_md(priced, names)}
 
@@ -729,17 +924,21 @@ are applied to every year (a simplification).
 
 {_tenor_md(tenors, names)}
 {level_note}
-## 5. Does the capture rate rise with the price level?
+## 5. Negative prices: curtail, and who keeps the value
+
+{negative_text}
+
+## 6. Does the capture rate rise with the price level?
 
 {level_section}
 
 ![Capture rate vs price level](figures/{figs["level"].name})
 
-## 6. The answer
+## 7. The answer
 
 {answer}
 
-## 7. Charts
+## 8. Charts
 
 ![Price stack](figures/{figs["stack"].name})
 

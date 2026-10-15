@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.8.0] (ticket PPA-7b: curtailment at negative prices)
+
+### Changed
+- A park that sells at spot, or is not paid at negative prices, stops producing below
+  `[ppa] curtail_below_eur_mwh` (0): its output is q 1[P >= 0] (`curtail`,
+  `curtailment_value` in `pricing/risk.py`). Under a plain pay-as-produced PPA it is paid for
+  every MWh and keeps producing.
+- Step 7 structures, each at its own fair strike: merchant curtailing (and, for comparison,
+  producing), plain pay-as-produced, the negative-price clause (curtailed, unpaid; strike
+  E[sum q^c P] / E[sum q^c], until v1.8 the plain strike), deemed output (the buyer curtails
+  and pays the output as if produced), baseload. The merchant + floor at 0 is gone: a park
+  that curtails owns that floor for free. New column: share of the output sold or paid.
+- The clause is priced over the tenor (premium, stack, tenor price) on the delivered output,
+  along its capture rate and delivered share at each year's forward (`volume_response` in
+  `tenor_price`; the level grid stores both).
+- New Step 7 section 5 with the 2027 numbers, the three ways to share the value, and the
+  parks' output at negative prices in 2021-2026.
+- Step 8 hedges the output a merchant park sells (curtailing). Memo: the give-away against
+  spot includes the value of curtailing; recommendation 2 prices the clause. Dashboard:
+  "Negative prices" switch (plain PPA or clause, per delivered MWh); readable structure names.
+- Notebook 7.2b: play with the curtailment threshold.
+
+### Findings
+- 2027: 17.5% of the solar output (wind 4.4%) falls in hours with negative prices, at an
+  average of −17.7 EUR/MWh; curtailing saves 3.1 EUR/MWh of output (wind 0.7). In history the
+  solar park's share rose from 1.6% (2022) to 23.6% (2025), worth 4.9 EUR/MWh in 2026.
+- Clause: 2027 fair price 97.8 per delivered MWh; buyer's premium 14.6 (plain 10.5); ten-year
+  indicative 52.9 per delivered MWh, 36.8 per MWh of output (69.5% delivered) against 28.1 for
+  the plain PPA; producer's CFaR95 EUR 1.29 m (plain 0.70 m). Deemed output: 80.6 in 2027.
+- Merchant CFaR95 (curtailing): solar EUR 3.02 m (3.24 m producing). Step 8: Cal base for
+  87% of the output sold cuts it by 72%.
+
 ## [1.7.0] (ticket PPA-8e: capture rates that follow the build-out)
 
 ### Changed

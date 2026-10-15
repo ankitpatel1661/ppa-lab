@@ -124,6 +124,8 @@ class PpaSettings:
     forward_curve: dict[int, float] = field(default_factory=dict)
     # first year of the history that tests whether capture rates rise with the price level
     level_effect_start_year: int | None = None
+    # a park selling at spot, or not paid at negative prices, stops below this price (v1.8)
+    curtail_below_eur_mwh: float | None = None
 
 
 @dataclass(frozen=True)

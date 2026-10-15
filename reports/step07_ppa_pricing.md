@@ -1,6 +1,6 @@
 # Step 7 report: pricing the PPAs and their risk
 
-Generated 2026-10-15 20:50 UTC by `ppa-lab pricing`.
+Generated 2026-10-15 21:16 UTC by `ppa-lab pricing`.
 
 Inputs: the Step 6 joint scenarios for 2027
 (496 scenarios: 31 weather years x
@@ -11,22 +11,23 @@ Forward: EEX German Power Cal-27 base 140.21 EUR/MWh (quote of 2026-10-09, via t
 
 ## 1. What each structure leaves with the producer (2027)
 
-All structures struck at their fair price, so the expected revenue is the same (the
-negative-price clause at the plain strike costs the producer its output at negative prices).
-The spread of annual revenue is what changes: the 95% cash flow at risk.
+All structures struck at their own fair price. A park that sells at spot, or is not paid at negative prices, stops producing below 0 EUR/MWh, so those structures earn more on average by the value of curtailing (section 5); the plain PPA and the merchant that keeps producing forgo it. The spread of annual revenue is
+what changes most: the 95% cash flow at risk.
 
-| Park       | Structure                                        | Strike (EUR/MWh)   |   Expected revenue (EUR m) |   P5 revenue (EUR m) |   Cash flow at risk 95% (EUR m) | CFaR / expected   |
-|:-----------|:-------------------------------------------------|:-------------------|---------------------------:|---------------------:|--------------------------------:|:------------------|
-| Solar park | Merchant (no contract)                           | spot               |                       9.34 |                 6.09 |                            3.24 | 35%               |
-| Solar park | Pay-as-produced PPA                              | 77.53              |                       9.34 |                 8.64 |                            0.7  | 7%                |
-| Solar park | Pay-as-produced, nothing paid at negative prices | 77.53              |                       7.7  |                 6.68 |                            1.02 | 13%               |
-| Solar park | Merchant + floor at 0 EUR/MWh (premium paid)     | spot               |                       9.34 |                 6.32 |                            3.02 | 32%               |
-| Solar park | Baseload PPA (band = average output)             | 141.06             |                       9.34 |                 7.92 |                            1.42 | 15%               |
-| Wind park  | Merchant (no contract)                           | spot               |                       8.31 |                 6.18 |                            2.13 | 26%               |
-| Wind park  | Pay-as-produced PPA                              | 129.94             |                       8.31 |                 7.34 |                            0.96 | 12%               |
-| Wind park  | Pay-as-produced, nothing paid at negative prices | 129.94             |                       7.94 |                 7.01 |                            0.93 | 12%               |
-| Wind park  | Merchant + floor at 0 EUR/MWh (premium paid)     | spot               |                       8.31 |                 6.2  |                            2.1  | 25%               |
-| Wind park  | Baseload PPA (band = average output)             | 141.06             |                       8.31 |                 7.19 |                            1.11 | 13%               |
+| Park       | Structure                                                  | Strike (EUR/MWh)   | Output sold or paid   |   Expected revenue (EUR m) |   P5 revenue (EUR m) |   Cash flow at risk 95% (EUR m) | CFaR / expected   |
+|:-----------|:-----------------------------------------------------------|:-------------------|:----------------------|---------------------------:|---------------------:|--------------------------------:|:------------------|
+| Solar park | Merchant (no contract), curtailing at negative prices      | spot               | 82%                   |                       9.71 |                 6.69 |                            3.02 | 31%               |
+| Solar park | Merchant, producing at negative prices                     | spot               | 100%                  |                       9.34 |                 6.09 |                            3.24 | 35%               |
+| Solar park | Pay-as-produced PPA                                        | 77.53              | 100%                  |                       9.34 |                 8.64 |                            0.7  | 7%                |
+| Solar park | Pay-as-produced, negative-price clause (curtailed, unpaid) | 97.76              | 82%                   |                       9.71 |                 8.42 |                            1.29 | 13%               |
+| Solar park | Pay-as-produced, buyer curtails and pays the output        | 80.63              | 100%                  |                       9.71 |                 8.98 |                            0.73 | 7%                |
+| Solar park | Baseload PPA (band = average output)                       | 141.06             | 82%                   |                       9.71 |                 8.11 |                            1.6  | 16%               |
+| Wind park  | Merchant (no contract), curtailing at negative prices      | spot               | 96%                   |                       8.35 |                 6.25 |                            2.1  | 25%               |
+| Wind park  | Merchant, producing at negative prices                     | spot               | 100%                  |                       8.31 |                 6.18 |                            2.13 | 26%               |
+| Wind park  | Pay-as-produced PPA                                        | 129.94             | 100%                  |                       8.31 |                 7.34 |                            0.96 | 12%               |
+| Wind park  | Pay-as-produced, negative-price clause (curtailed, unpaid) | 136.66             | 96%                   |                       8.35 |                 7.37 |                            0.98 | 12%               |
+| Wind park  | Pay-as-produced, buyer curtails and pays the output        | 130.63             | 100%                  |                       8.35 |                 7.38 |                            0.97 | 12%               |
+| Wind park  | Baseload PPA (band = average output)                       | 141.06             | 96%                   |                       8.35 |                 7.24 |                            1.11 | 13%               |
 
 ## 2. The buyer's risk premium
 
@@ -76,7 +77,41 @@ are applied to every year (a simplification).
 
 Each year's capture rate moves with that year's forward along the model's own response to the price level (section 5), on top of the trend. The two rows on the capture rate vs price level use history's 95% interval for that slope instead, from the recent level (105 EUR/MWh): a flatter slope gives a lower capture rate at the high 2027 forward but a higher one once the curve falls below the recent level. The last row takes the model's mean out-of-sample capture-rate error off every year (solar park +0.029, wind park +0.044; test years 2025, 2026, fitted like 2027; Step 6, section 4): fitted on the years before, the model overstated capture rates even with the price level given. The 2027 scenarios carry history's build-out trend up to 2027 (Step 6, section 4); continued for one more year at the same forward it would move the capture rate by solar park −5.6 pp, wind park +0.3 pp. The base case assumes solar park -1 pp, wind park +0 pp a year after that: storage, flexible demand and curtailment are expected to slow the fall, and a straight line would take solar's capture rate towards zero within a decade (the −2 pp row is the steeper view).
 
-## 5. Does the capture rate rise with the price level?
+## 5. Negative prices: curtail, and who keeps the value
+
+In hours with negative prices output is worth less than nothing. A park that sells at spot stops producing then: its marginal cost is about zero, and no subsidy is paid at negative prices (§51 EEG). Under a plain pay-as-produced PPA it is paid the strike for every MWh, so it keeps producing and the buyer sells that output at a loss: the value of curtailing is lost to both sides. Three ways to handle it:
+
+- **Plain PPA** (the base case above): nobody curtails; the fair price includes the negative hours.
+- **Negative-price clause**: nothing is paid at negative prices and the park curtails. The strike is the fair price of the output delivered, higher per MWh, and the park keeps the value of curtailing, but it takes back volume risk: sunny, cheap years have more negative hours.
+- **Deemed output**: the buyer may curtail and pays the curtailed output as if produced. The strike rises by the value of curtailing; the producer's risk stays that of the plain PPA.
+
+| EUR/MWh | Solar park | Wind park |
+|---|---|---|
+| Output at negative prices, 2027 | 17.5% | 4.4% |
+| Their output-weighted mean price | −17.70 | −15.63 |
+| Saved by curtailing, per MWh of output | 3.10 | 0.69 |
+| Plain PPA: fair price 2027; 10-year indicative | 77.53; 28.10 | 129.94; 78.15 |
+| Clause: fair price 2027 per delivered MWh | 97.76 | 136.66 |
+| Clause: buyer's premium after a baseload hedge | 14.56 (plain 10.54) | 5.93 (plain 5.49) |
+| Clause: 10-year fair; indicative, per delivered MWh | 69.97; 52.92 | 97.00; 88.07 |
+| Clause: 10-year indicative per MWh of output (delivered share) | 36.75 (69.5%) | 80.03 (90.9%) |
+| Deemed output: fair price 2027 | 80.63 | 130.63 |
+| Producer's CFaR95 2027: plain; clause (EUR m) | 0.70; 1.29 | 0.96; 0.98 |
+
+The clause's tenor price follows the curtailed output's capture rate and its delivered share at each year's forward (more negative hours at lower forwards), plus the capture-rate trend; the first year's premium and costs apply to every year. In history the parks' output at negative prices grew with the build-out:
+
+| Year | Solar park: output at negative prices; saved per MWh | Wind park: output at negative prices; saved per MWh |
+|---|---|---|
+| 2021 | 4.1%; 0.93 | 4.0%; 0.67 |
+| 2022 | 1.6%; 0.06 | 1.9%; 0.03 |
+| 2023 | 7.7%; 1.84 | 6.3%; 0.73 |
+| 2024 | 18.1%; 2.86 | 7.1%; 0.75 |
+| 2025 | 23.6%; 3.38 | 8.2%; 0.53 |
+| 2026 | 23.5%; 4.93 | 8.9%; 1.08 |
+
+2026: January to September. Out of sample (Step 6, section 4) the model put the solar park's output at negative prices 3 percentage points below history, so these values are if anything low.
+
+## 6. Does the capture rate rise with the price level?
 
 The price model shifts all hours together in arcsinh units, so a higher price level lifts the hours near zero and solar's capture rate rises with it. The usual shape-factor view scales all hours instead, and the capture rate stays put. The 2027 forward (141 EUR/MWh) lies above the recent level (105) and the curve falls to 88, so the answer moves the price.
 
@@ -98,11 +133,11 @@ So the base case moves each year's capture rate along the model's response (char
 
 ![Capture rate vs price level](figures/step07_level_effect.png)
 
-## 6. The answer
+## 7. The answer
 
-For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **41.1 EUR/MWh** (first year: forward 141.1 × expected capture rate 0.55 = 77.5). After a profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 2.5 EUR/MWh, the indicative price is **28.1 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.24 m (merchant) to EUR 0.70 m per year: only volume risk is left.
+For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **41.1 EUR/MWh** (first year: forward 141.1 × expected capture rate 0.55 = 77.5). After a profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 2.5 EUR/MWh, the indicative price is **28.1 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant) to EUR 0.70 m per year: only volume risk is left.
 
-## 7. Charts
+## 8. Charts
 
 ![Price stack](figures/step07_price_stack.png)
 

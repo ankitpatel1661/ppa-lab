@@ -122,6 +122,12 @@ analog_pool_start = 2025-10-01
 # Does the capture rate rise with the price level (PPA-8d)? Step 7 tests it on monthly history
 # from this year on: 2023 is the first year of today's solar build-out without the 2022 crisis.
 level_effect_start_year = 2023
+# Curtailment (v1.8): a park that sells at spot, or is not paid at negative prices (the
+# negative-price clause), stops producing when the day-ahead price is below this level: its
+# marginal cost is close to zero and no subsidy is paid then (§51 EEG). Under a plain
+# pay-as-produced PPA it is paid the strike for every MWh, so it keeps producing. Remove the
+# line for parks that always produce (until v1.7).
+curtail_below_eur_mwh = 0.0
 
 [ppa.forward_curve]
 # Cal base forwards of the later contract years (EEX German Power, EUR/MWh); a year after the

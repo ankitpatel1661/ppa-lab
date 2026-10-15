@@ -98,7 +98,9 @@ def memo_text(results: dict, settings: Settings) -> str:
     span = f"{start}-{start + years - 1}"
     cfar_m = solar["structures"]["merchant"]["cfar_eur"]
     cfar_p = solar["structures"]["pay_as_produced"]["cfar_eur"]
-    give_away = s["risk_premium"] + s["credit"]             # balancing is paid either way
+    neg = solar.get("negative_prices")
+    saved = neg["curtailment"]["value"] if neg else 0.0     # a curtailing merchant keeps it
+    give_away = s["risk_premium"] + s["credit"] + saved     # balancing is paid either way
     give_away_m = give_away * solar["p50_mwh"] / 1e6
     sens = solar["tenor"]["sensitivity"]
     base_ind = solar["tenor"]["indicative"]
@@ -129,13 +131,20 @@ def memo_text(results: dict, settings: Settings) -> str:
         h = e.get("history")
         if h and "slope_recent" in e and h["ci_low"] <= e["slope_recent"] <= h["ci_high"]:
             later_rate += f" (and {e['history_years']} history)"
-    structures = solar["structures"]
-    clause = structures.get("pay_as_produced_clause")
-    negative = "a large share"
-    if clause is not None:
-        plain = structures["pay_as_produced"]["expected_revenue_eur"]
-        paid = clause["expected_revenue_eur"] / plain
-        negative = f"{1 - paid:.0%}"
+    clause_line = ("Keep a negative-price clause out, or price it separately: a large share "
+                   "of the solar output falls in hours with negative prices.")
+    keep_line = "the premium and the credit cost"
+    if neg:
+        c = neg["clause"]["tenor"]
+        clause_line = (
+            f"Offer a negative-price clause as the alternative: we stop producing at negative "
+            f"prices ({neg['curtailment']['share']:.0%} of the solar output in {start}, more "
+            f"later) and are paid {c['indicative']:.1f} EUR/MWh per delivered MWh: "
+            f"{c['indicative_per_potential_mwh']:.1f} per MWh of output against {base_ind:.1f} "
+            f"without the clause, at a higher cash flow at risk (EUR "
+            f"{neg['cfar_clause_eur'] / 1e6:.2f} m instead of {cfar_p / 1e6:.2f} m).")
+        keep_line = (f"the premium, the credit cost and the {saved:.1f} EUR/MWh that stopping at "
+                     "negative prices saves")
     hedge_line = ("hedge the level of any unsold volume with baseload forwards.")
     market_line = ""
     hedging = results.get("hedging")
@@ -188,7 +197,7 @@ EUR {cfar_m / 1e6:.2f} m to {cfar_p / 1e6:.2f} m per year (**−{1 - cfar_p / cf
   {solar['p90_1y_mwh'] / 1e3:.1f} GWh (P90, 31 weather years).
 - **Price and shape** go to the buyer. Its premium is mostly profile risk for solar (how deep
   the midday dip is) and volume risk for wind; the price level it can hedge with forwards.
-- Against spot sales we give away the premium and the credit cost (balancing is paid either way).
+- Against spot sales we give away {keep_line} (balancing is paid either way).
 
 ## What would change the price
 
@@ -200,8 +209,7 @@ For comparison, the risk premium and the costs together take
 ## Recommendations
 
 1. Quote within the range above; do not go below {base_ind:.1f} EUR/MWh.
-2. Keep a negative-price clause out, or price it separately: {negative} of the solar output
-   falls in hours with negative prices and would be unpaid.
+2. {clause_line}
 3. Agree the cannibalisation view with Risk before signing, and {hedge_line}
 
 ## Method and limits
@@ -211,8 +219,8 @@ each with simulated hourly prices that respond to that weather (calibrated on 20
 day-ahead prices, analog days from {results['analog_pool_start']}). Fair price
 = E[Σ q P] / E[Σ q]; premium = 5% shortfall of the buyer's hedged value per MWh; later years by
 the forward curve, {later_rate}, discounted at {results['discount_rate']:.0%}. Forward:
-{forward_text}. Limits: {forward_limit}, the costs are illustrative, the parks produce their
-potential output (no curtailment), and the shape comes from one market regime
+{forward_text}. Limits: {forward_limit}, the costs are illustrative, grid curtailment is not
+modelled, and the shape comes from one market regime
 (2024-2026).{market_line}
 """
 

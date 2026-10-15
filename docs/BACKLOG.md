@@ -22,6 +22,7 @@ that step is written.
 | PPA-6b | 6b | Out-of-sample test of the joint model; negative prices with their own scale | **Done** (v1.6) |
 | PPA-8e | 8e | Capture rates that follow the build-out (out-of-sample solar error +0.12 → +0.03) | **Done** (v1.7) |
 | PPA-8f | later | Build-out and storage scenario for 2028-2036 instead of the −1 pp a year view | To do |
+| PPA-7b | 7b | Curtailment at negative prices; the negative-price clause at its own fair strike | **Done** (v1.8) |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
@@ -233,6 +234,21 @@ storage, flexible demand and curtailment to slow the fall.
       trend continued gives −5.6 pp a year, which would reach zero within a decade; the base
       case keeps −1 pp as a stated view and shows −2 pp (moved to PPA-8f).
 
+## PPA-7b: Curtailment at negative prices (v1.8)
+
+**Story:** As a pricing analyst I want the parks to stop producing when prices are negative,
+as real parks do, and the negative-price clause priced at its own fair strike, because 17.5% of
+the solar output falls in negative hours in 2027 and about 30% over the tenor.
+
+**Acceptance criteria**
+- [x] Merchant and spot-settled structures curtail below a configured price (0); the plain PPA
+      does not (the park is paid for every MWh). Tested by hand on a two-scenario example.
+- [x] The clause at E[sum q^c P] / E[sum q^c] with its own premium, stack and tenor price
+      (delivered share and capture rate by price level); the deemed-output strike K* + value.
+- [x] The value of curtailing in 2027 and in 2021-2026 history; Step 7 section 5.
+- [x] Step 8 hedges the curtailing merchant; the memo prices the clause; the dashboard can
+      switch to it.
+
 ## PPA-8f: Build-out and storage after the delivery year (open)
 
 - [ ] Solar and storage build-out scenarios for 2028-2036 (EEG targets, the grid development
@@ -284,8 +300,8 @@ extrapolation, which keeps more energy in cheap hours.
 
 ## Later ideas (not scheduled)
 
-- Scenarios v2: recency-weighted analog pool or a fundamental view of 2027 solar capacity;
-  national and neighbour-country weather; curtailment at negative prices; wind 2024 gap.
+- Scenarios v2: national and neighbour-country weather; wind 2024 gap; grid curtailment
+  (redispatch) as volume risk.
 - Price model v2: a point mass just below zero for negative prices (v1.6 has a scale of its
   own); block bootstrap or a weather link for multi-day patterns; a monthly forward curve
   instead of one annual level.

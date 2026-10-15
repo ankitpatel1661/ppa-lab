@@ -22,8 +22,10 @@ with their market, shape and volume risks.
 > percentage point a year). After a profile and volume risk premium of 10.5 EUR/MWh and
 > balancing and credit costs of 2.5 EUR/MWh, the indicative price is **28.1 EUR/MWh**. Expected
 > annual energy is 120.9 GWh (P50, matching the published ~121 GWh; one-year P90 113.4 GWh).
-> Under the PPA the producer's 95% cash flow at risk falls from EUR 3.24 m (merchant) to
-> EUR 0.70 m per year.*
+> Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant,
+> stopping at negative prices) to EUR 0.70 m per year. With a negative-price clause (the park
+> stops producing at negative prices and is not paid) the indicative price is 52.9 EUR per
+> delivered MWh: 36.8 per MWh of output, at a cash flow at risk of EUR 1.29 m.*
 >
 > *How far to trust it: tested on years it had not seen, the model first overstated solar's
 > capture rate by 0.09 to 0.14, because solar's midday dips deepen every year. It now moves
@@ -57,7 +59,8 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 | Fair price, 10 years along the forward curve | 41.1 | 86.6 |
 | **Indicative price, 10 years** (after premium, balancing and credit costs) | **28.1** | **78.1** |
 | Indicative, less the model's remaining out-of-sample error (Step 6) | 25.3 | 73.9 |
-| Producer's CFaR95 in 2027: merchant → pay-as-produced | EUR 3.24 m → 0.70 m | EUR 2.13 m → 0.96 m |
+| With a negative-price clause: indicative per delivered MWh (per MWh of output) | 52.9 (36.8) | 88.1 (80.0) |
+| Producer's CFaR95 in 2027: merchant → pay-as-produced (with the clause) | EUR 3.02 m → 0.70 m (1.29 m) | EUR 2.10 m → 0.96 m (0.98 m) |
 
 - **The curve matters as much as the level:** 2027 trades at 141, but the discount- and
   energy-weighted forward over ten years is 97 EUR/MWh, so the ten-year price sits far below
@@ -77,6 +80,14 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 - **After 2027 the trend is a view, not a measurement:** history's trend continued would cut
   solar's capture rate by 5.6 pp a year at the same price level; the base case assumes 1 pp,
   because storage and curtailment are expected to slow it (2 pp: −7.0 EUR/MWh).
+- **Negative prices: curtail, and decide who keeps the value:** in 2027 17.5% of the solar
+  output falls in hours with negative prices (an average of −17.7 EUR/MWh), and over ten years
+  about 30%, because later forwards are lower. A park selling at spot stops producing then; under
+  a plain PPA it is paid for every MWh and keeps producing, so the buyer sells that output at a
+  loss. A negative-price clause keeps that value with the producer (36.8 instead of 28.1 EUR per
+  MWh of output) but gives back volume risk (cash flow at risk 1.29 instead of 0.70 m); letting
+  the buyer curtail and pay the output as if produced keeps the value without that risk
+  ([Step 7, section 5](reports/step07_ppa_pricing.md)).
 - **The market's winter premium hurts solar and helps wind:** solar produces in the cheaper
   Q2 and Q3 (capture rate 0.55), wind in the expensive winter (0.92).
 - **Most of the buyer's risk is hedgeable:** a baseload forward removes 59-84% of it. Solar's
@@ -88,8 +99,8 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   model's remaining out-of-sample error (−2.8); history's range for how fast the capture rate
   moves with the level matters less (−0.7 to +1.5), and which historical days represent 2027
   no longer matters (0.0: the build-out trend moves them all to 2027).
-- **Hedging the unsold output:** Cal base futures for 76% (solar) and 90% (wind) of the average
-  output cut the merchant cash flow at risk by 74% and 51% (Step 8).
+- **Hedging the unsold output:** Cal base futures for 87% (solar) and 92% (wind) of the average
+  output sold cut the merchant cash flow at risk by 72% and 50% (Step 8).
 
 **Read more:** [one-page management memo](reports/step09_memo.md) ([PDF](reports/step09_memo.pdf))
 · [methodology](METHODOLOGY.md) · [Step 7 report](reports/step07_ppa_pricing.md) ·
@@ -107,8 +118,8 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 | 4 | How much do the parks produce? | Borrentin P50 121 GWh, Everswinkel 64 GWh (calibrated to the published yields); P90 −6 to −9% | [report](reports/step04_generation.md) | [page](docs/learning_track/step04_weather_to_power.md) |
 | 5 | Which price years are plausible? | Prices forget in about a day; negative prices bunch just below zero, as in history; midday dips deepen with the build-out | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
 | 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 150 → 131 EUR/MWh; tested on years it never saw (solar error 0.12, 0.03 with the build-out trend) | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
-| 7 | What price, and how much risk is left? | 28.1 EUR/MWh indicative over ten years; CFaR −78% with the PPA; capture rate rises with the price level, as history confirms | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
-| 8 | How much to sell forward, and is our forward right? | Cal base at 76% of output cuts merchant CFaR by 74% (solar); the forward is now the market's curve and seasonal shape | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
+| 7 | What price, and how much risk is left? | 28.1 EUR/MWh indicative over ten years (52.9 per delivered MWh with a negative-price clause); CFaR −77% with the PPA; capture rate rises with the price level, as history confirms | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
+| 8 | How much to sell forward, and is our forward right? | Cal base at 87% of the output sold cuts merchant CFaR by 72% (solar); the forward is now the market's curve and seasonal shape | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
 | 9 | How do we tell management? | One-page memo and a dashboard with live assumptions | [memo](reports/step09_memo.md) | [page](docs/learning_track/step09_memo_dashboard.md) |
 
 Every step has tests, a report, a learning-track page, a notebook section and exercises.
@@ -117,7 +128,7 @@ Every step has tests, a report, a learning-track page, a notebook section and ex
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 255 offline tests, about 30 seconds
+make test      # 258 offline tests, about 30 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 make app       # the dashboard (reads the committed results; no download needed)
 ```
