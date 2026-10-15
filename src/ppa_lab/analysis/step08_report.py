@@ -111,8 +111,9 @@ def _market_text(market: dict, market_rows: list[str], pricing: dict | None, hg,
         return "Run `ppa-lab pricing` first for the market check."
     if abs(market["quote"] / market["model_forward"] - 1.0) > 0.05:
         return ("The model's forward differs from the latest published quote. At the latest "
-                "market quote, with the same capture rate, premium and costs (the dashboard's "
-                "forward knob):\n\n" + "\n".join(market_rows))
+                "market quote, with the capture rate moved along the model's response to the "
+                "price level and the same premium and costs (the dashboard's forward knob):"
+                "\n\n" + "\n".join(market_rows))
     quotes = sorted((x for x in hg.market_quotes
                      if x.product == "cal_base" and x.delivery_year == ppa.start_year),
                     key=lambda x: x.date)

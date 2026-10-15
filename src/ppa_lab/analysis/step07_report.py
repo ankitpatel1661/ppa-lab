@@ -18,14 +18,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from ppa_lab.analysis.level_effect import level_regression, monthly_panel, share_pace
 from ppa_lab.analysis.plotting import BLUE, GREEN, INK, INK_2, ORANGE, save, style
-from ppa_lab.analysis.step05_report import calibration_history
+from ppa_lab.analysis.step05_report import calibration_history, hourly_prices
 from ppa_lab.analysis.step06_report import complete_weather_years, load_weather_inputs, parks
 from ppa_lab.config import PpaParkSettings, Settings
 from ppa_lab.prices.model import fit
 from ppa_lab.pricing.forwards import describe_forward, quarter_forwards
 from ppa_lab.pricing.risk import (
     buyer_value,
+    capture_rate_at,
+    level_shift,
     risk_premia,
     structure_revenues,
     structure_table,
@@ -34,6 +37,7 @@ from ppa_lab.pricing.risk import (
 from ppa_lab.scenarios.generator import Scenarios, build_scenarios
 from ppa_lab.scenarios.link import fit_link, restrict_pool
 from ppa_lab.scenarios.weather import monthly_climatology
+from ppa_lab.timeutils import to_hourly
 from ppa_lab.weather.yields import annual_energy, p_values
 
 log = logging.getLogger(__name__)
@@ -68,20 +72,25 @@ def price_park(prices: np.ndarray, volumes: np.ndarray, cost: PpaParkSettings,
 def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate: float,
                alternative_fair: float | None = None,
                curve: dict[int, float] | None = None,
-               scaled_shape_fair: float | None = None) -> list[dict]:
+               response: dict | None = None,
+               history: dict[str, dict] | None = None) -> list[dict]:
     """The tenor price under the base assumptions and the sensitivities.
 
     `curve` gives the forwards of later contract years (see `tenor_price`); the forward
-    sensitivities shift the whole curve.
+    sensitivities shift the whole curve. `response` is the capture rate by price level (see
+    `level_shift`): the capture rate moves with each year's forward and with the forward
+    sensitivities. `history` maps a case name to another response, used for the first year too.
     """
     stack = priced["stack"]
     deductions = stack["risk_premium"] + stack["balancing"] + stack["credit"]
     curve = curve or {}
 
-    def row(label: str, fair: float, forward: float, drift: float, scale: float = 1.0) -> dict:
+    def row(label: str, fair: float, forward: float, drift: float, scale: float = 1.0,
+            levels: dict | None = response) -> dict:
         t = tenor_price(fair, forward, priced["energy_mwh"], start, years, rate,
                         capture_rate_drift=drift, degradation=cost.degradation,
-                        forward_curve={y: scale * f_y for y, f_y in curve.items()})
+                        forward_curve={y: scale * f_y for y, f_y in curve.items()},
+                        level_response=levels)
         return {"case": label, "fair_price": t.attrs["price"],
                 "indicative": t.attrs["price"] - deductions}
 
@@ -89,16 +98,33 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
     rows = [row("Base case", k, f, d)]
     for step in (-0.02, -0.01, 0.01):
         rows.append(row(trend_case(step), k, f, d + step))
-    rows.append(row("Forward −10%", 0.9 * k, 0.9 * f, d, 0.9))
-    rows.append(row("Forward +10%", 1.1 * k, 1.1 * f, d, 1.1))
+    for scale, label in ((0.9, "Forward −10%"), (1.1, "Forward +10%")):
+        moved = scale * f * (k / f + level_shift(response, f, scale * f))
+        rows.append(row(label, moved, scale * f, d, scale))
     if alternative_fair is not None:
         rows.append(row("Analog days from the whole window", alternative_fair, f, d))
-    if scaled_shape_fair is not None:
-        rows.append(row(SCALED_SHAPE, scaled_shape_fair, f, d))
+    for label, levels in (history or {}).items():
+        rows.append(row(label, f * capture_rate_at(levels, f), f, d, levels=levels))
     return rows
 
 
-SCALED_SHAPE = "Capture rate of the recent price level"
+LEVEL_LOW = "Capture rate vs price level: low end of history"
+LEVEL_HIGH = "Capture rate vs price level: high end of history"
+TECH_COLUMNS = {"solar": "solar_mw", "wind": "wind_onshore_mw"}
+
+
+def tenor_forwards(first: float, curve: dict[int, float], end_year: int,
+                   start: int) -> dict[str, float]:
+    """The forward of each contract year that has its own quote, labelled by year ("+" when
+    it holds for the later years too)."""
+    out = {str(start): first}
+    for year, price in sorted(curve.items()):
+        out[str(year)] = price
+    last = max([start, *curve])
+    if last < end_year:
+        label = str(last)
+        out[f"{label}+"] = out.pop(label)
+    return out
 
 
 def trend_case(step: float) -> str:
@@ -114,24 +140,77 @@ def recent_level(settings: Settings) -> float:
     return float(history[local_day >= pd.Timestamp(settings.ppa.analog_pool_start)].mean())
 
 
-def scaled_shape_fair_prices(settings: Settings, inputs: dict, base: Scenarios,
-                             names) -> tuple[float, dict[str, float]] | None:
-    """Fair prices if the price shape stayed as at the recent price level.
+def level_grid(settings: Settings, recent: float) -> list[float]:
+    """Forwards at which the model's capture rates are measured: the tenor's forwards, the
+    recent level and eight levels from 60% of the lowest to 140% of the highest forward, so the
+    forward sensitivities and the dashboard's ±30% shift stay inside."""
+    quoted = [settings.price_model.forward_eur_mwh, *settings.ppa.forward_curve.values()]
+    spread = np.geomspace(0.6 * min(quoted), 1.4 * max(quoted), 8)
+    return sorted({round(float(x), 2) for x in (*quoted, recent, *spread)})
 
-    The scenarios are rebuilt at the recent level (same random draws) and all prices are scaled
-    to the forward: the usual shape-factor view, in which the capture rate does not depend on
-    the level. None when the forward is within 2% of the recent level.
+
+def capture_rates(scenarios: Scenarios, names) -> dict[str, float]:
+    """Each park's capture rate on a scenario set: its volume-weighted price over the average."""
+    average = float(scenarios.prices.mean())
+    return {park: float((scenarios.prices * scenarios.volume(park)).sum()
+                        / scenarios.volume(park).sum()) / average for park in names}
+
+
+def model_response(settings: Settings, inputs: dict, base: Scenarios, names,
+                   levels: list[float]) -> list[dict]:
+    """The price model's capture rate of each park at each forward level (PPA-8d).
+
+    The scenarios are rebuilt at each level with the same random draws (the base set is
+    reused at its own forward). Per level: the forward, the scenarios' average price and the
+    parks' capture rates.
     """
-    level = recent_level(settings)
     pm = settings.price_model
-    if abs(pm.forward_eur_mwh / level - 1.0) < 0.02:
+    pool = pd.Timestamp(settings.ppa.analog_pool_start)
+    rows = []
+    for level in levels:
+        scenarios = base if level == round(pm.forward_eur_mwh, 2) else scenario_set(
+            replace(settings, price_model=replace(pm, forward_eur_mwh=level)), inputs, pool)
+        rows.append({"forward": level, "average": float(scenarios.prices.mean()),
+                     "capture_rate": capture_rates(scenarios, names)})
+    return sorted(rows, key=lambda r: r["average"])
+
+
+def park_response(rows: list[dict], park: str) -> dict:
+    """One park's capture rate by price level, in the form `level_shift` reads."""
+    return {"level": [r["average"] for r in rows],
+            "capture_rate": [r["capture_rate"][park] for r in rows]}
+
+
+def line_response(levels: list[float], ref_level: float, ref_rate: float, slope: float) -> dict:
+    """Capture rate ref_rate + slope ln(level / ref_level): history's view, from the recent
+    level."""
+    return {"level": list(levels),
+            "capture_rate": [ref_rate + slope * float(np.log(x / ref_level)) for x in levels]}
+
+
+def model_slope(response: dict, low: float, high: float) -> float:
+    """The model's change of capture rate per unit of ln(level) between two levels (NaN when
+    they are the same)."""
+    span = float(np.log(high / low))
+    return level_shift(response, low, high) / span if abs(span) > 1e-3 else float("nan")
+
+
+def level_regressions(settings: Settings) -> dict | None:
+    """The PPA-8d regression for solar and wind on monthly history: from the configured start
+    year and on all years. None without power data."""
+    path = settings.processed_dir / "power_15min.parquet"
+    if not path.exists():
         return None
-    ref = scenario_set(replace(settings, price_model=replace(pm, forward_eur_mwh=level)), inputs,
-                       pd.Timestamp(settings.ppa.analog_pool_start))
-    scale = float(base.prices.mean() / ref.prices.mean())
-    fair = {park: scale * float((ref.prices * ref.volume(park)).sum() / ref.volume(park).sum())
-            for park in names}
-    return level, fair
+    power = to_hourly(pd.read_parquet(path))
+    panel = monthly_panel(hourly_prices(settings), power, settings.timezone, TECH_COLUMNS)
+    start = settings.ppa.level_effect_start_year
+    years = [int(panel.index.year.min()), int(panel.index.year.max())]
+    out = {"start_year": start or years[0], "first_year": years[0], "last_year": years[1]}
+    for tech, column in TECH_COLUMNS.items():
+        out[tech] = level_regression(panel, tech, start)
+        out[f"{tech}_all_years"] = level_regression(panel, tech)
+        out[f"{tech}_share_pace"] = share_pace(power, settings.timezone, column, out["start_year"])
+    return out
 
 
 def scenario_set(settings: Settings, inputs: dict, pool_start: pd.Timestamp) -> Scenarios:
@@ -219,6 +298,35 @@ def fig_buyer(prices: np.ndarray, volumes: np.ndarray, label: str, quantile: flo
     return save(fig, path)
 
 
+def fig_level(rows: list[dict], effects: dict[str, dict], names: dict[str, str],
+              tenor_forwards: dict[str, float], path: Path) -> Path:
+    """Per park: the model's capture rate by price level against history's 95% band."""
+    fig, axes = plt.subplots(1, len(names), figsize=(11, 3.8))
+    x = np.array([r["average"] for r in rows])
+    for ax, park in zip(np.atleast_1d(axes), names, strict=True):
+        e = effects[park]
+        ax.plot(x, [r["capture_rate"][park] for r in rows], color=BLUE, marker="o",
+                markersize=3.5, linewidth=1.8, label="price model (scenarios at each level)")
+        reg = e.get("history")
+        if reg is not None:
+            ln = np.log(x / e["ref_level"])
+            ax.fill_between(x, e["ref_rate"] + reg["ci_low"] * ln,
+                            e["ref_rate"] + reg["ci_high"] * ln, color=ORANGE, alpha=0.18,
+                            linewidth=0, label=f"history {e['history_years']}: 95% band")
+            ax.plot(x, e["ref_rate"] + reg["coef"] * ln, color=ORANGE, linestyle="--",
+                    linewidth=1.2, label=f"history: slope {reg['coef']:.2f}")
+        ax.plot([e["ref_level"]], [e["ref_rate"]], "o", color=INK, markersize=5,
+                label=f"recent level ({e['ref_level']:.0f})")
+        for label, level in tenor_forwards.items():
+            ax.axvline(level, color=GREY, linestyle=":", linewidth=1.0)
+            ax.text(level, 1.0, f" {label}", transform=ax.get_xaxis_transform(), fontsize=7.5,
+                    color=INK_2, va="top", rotation=90)
+        ax.set_xlabel("Average price of the year (EUR/MWh)", color=INK_2, fontsize=9)
+        ax.legend(frameon=False, fontsize=7.5, loc="lower right")
+        style(ax, f"{names[park]}: capture rate vs price level", "Capture rate")
+    return save(fig, path)
+
+
 # --------------------------------------------------------------------------- #
 # Text
 # --------------------------------------------------------------------------- #
@@ -273,15 +381,90 @@ def _stack_md(priced: dict[str, dict], names: dict[str, str]) -> str:
 
 
 def _tenor_md(tenors: dict[str, list[dict]], names: dict[str, str]) -> str:
-    cases = [r["case"] for r in next(iter(tenors.values()))]
+    cases = list(dict.fromkeys(r["case"] for rs in tenors.values() for r in rs))
     rows = []
-    for i, case in enumerate(cases):
+    for case in cases:
         row = {"Case": case}
         for park, rs in tenors.items():
-            row[f"{names[park]}: fair"] = f"{rs[i]['fair_price']:.2f}"
-            row[f"{names[park]}: indicative"] = f"{rs[i]['indicative']:.2f}"
+            r = next((r for r in rs if r["case"] == case), None)
+            row[f"{names[park]}: fair"] = "–" if r is None else f"{r['fair_price']:.2f}"
+            row[f"{names[park]}: indicative"] = "–" if r is None else f"{r['indicative']:.2f}"
         rows.append(row)
     return pd.DataFrame(rows).to_markdown(index=False)
+
+
+def _n(x: float) -> str:
+    """Two decimals with a true minus sign."""
+    return f"{round(x, 2) + 0.0:.2f}".replace("-", "−")
+
+
+def _slope(reg: dict | None) -> str:
+    if reg is None:
+        return "–"
+    return f"{_n(reg['coef'])} ({_n(reg['ci_low'])} to {_n(reg['ci_high'])})"
+
+
+def _level_md(effects: dict[str, dict], regs: dict, names: dict[str, str], low: float,
+              high: float, start: int) -> str:
+    ref = next(iter(effects.values()))["ref_level"]
+    rows = [
+        (f"History {regs['start_year']}-{regs['last_year']}: slope (95% interval)",
+         lambda e: _slope(e["history"])),
+        ("t-statistic; months", lambda e: "–" if e["history"] is None
+         else f"{e['history']['t']:.1f}; {e['history']['n']}"),
+        (f"History {regs['first_year']}-{regs['last_year']}, all years",
+         lambda e: _slope(e["history_all_years"])),
+        (f"Model: recent level ({ref:.0f}) to forward {start}", lambda e: _n(e["slope_recent"])),
+        (f"Model: over the tenor's forwards ({low:.0f} to {high:.0f})",
+         lambda e: _n(e["slope_tenor"])),
+    ]
+    lines = ["| Change of capture rate per unit of ln(price) | "
+             + " | ".join(names[p] for p in effects) + " |",
+             "|---|" + "---|" * len(effects)]
+    for label, cell in rows:
+        lines.append(f"| {label} | " + " | ".join(cell(e) for e in effects.values()) + " |")
+    return "\n".join(lines)
+
+
+def _build_out(effects: dict[str, dict], names: dict[str, str], drifts: dict[str, float]) -> str:
+    """What history's build-out coefficient means at the recent pace, against the assumed trend."""
+    def pp(x: float, digits: int) -> str:
+        return f"{round(x * 100, digits) + 0.0:+.{digits}f}".replace("-", "−")
+
+    parts = []
+    for park, e in effects.items():
+        reg, pace = e["history"], e.get("share_pace")
+        if reg is None or pace is None:
+            continue
+        parts.append(f"{names[park].lower()} {_n(reg['share_coef'])} per unit of its share of "
+                     f"load, which grew {pace['per_year'] * 100:.1f} pp a year in "
+                     f"{pace['from']}-{pace['to']}: {pp(reg['share_coef'] * pace['per_year'], 1)} "
+                     f"pp of capture rate a year (base-case trend {pp(drifts[park], 0)} pp)")
+    if not parts:
+        return ""
+    return ("\n\nBuild-out, from the same regression at a fixed price level: " + "; ".join(parts)
+            + ". The trend assumes that storage, flexible demand and curtailment slow solar's "
+            "fall; the −2 pp row of section 4 is closer to history's pace.")
+
+
+def _level_verdict(effects: dict[str, dict], names: dict[str, str]) -> str:
+    parts = []
+    for park, e in effects.items():
+        reg = e["history"]
+        if reg is None:
+            continue
+        where = "inside" if reg["ci_low"] <= e["slope_recent"] <= reg["ci_high"] else "outside"
+        if reg["ci_low"] > 0:
+            history = (f"the capture rate rises with the price level (slope {_n(reg['coef'])}, "
+                       f"t = {reg['t']:.1f}), so the shape-factor view (slope 0) is rejected")
+        elif reg["ci_high"] < 0:
+            history = f"the capture rate falls with the price level (slope {_n(reg['coef'])})"
+        else:
+            history = (f"history cannot tell the slope from zero ({_n(reg['coef'])}, "
+                       f"t = {reg['t']:.1f})")
+        parts.append(f"**{names[park]}**: {history}; the model's {_n(e['slope_recent'])} lies "
+                     f"{where} the 95% interval.")
+    return " ".join(parts)
 
 
 def to_strict_json(obj):
@@ -309,7 +492,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     if inputs is None:
         path.write_text(header + "No site weather or generation found: run `ppa-lab weather` "
                         "first (Step 4).\n")
-        return {"report": path, "results": None, "stack": None, "revenue": None, "buyer": None}
+        return {"report": path, "results": None, "stack": None, "revenue": None, "buyer": None,
+                "level": None}
 
     solar, wind = parks(settings)
     names = {p.name: ("Solar park" if p is solar else "Wind park") for p in (solar, wind)
@@ -320,9 +504,17 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     if pd.Timestamp(ppa.analog_pool_start) > pd.Timestamp(pm.calibration_start):
         whole = scenario_set(settings, inputs, pd.Timestamp(pm.calibration_start))
 
-    scaled = scaled_shape_fair_prices(settings, inputs, base, names)
+    # Does the capture rate move with the price level? The model's answer at each forward,
+    # and history's (PPA-8d)
+    recent = recent_level(settings)
+    grid = model_response(settings, inputs, base, names, level_grid(settings, recent))
+    ref = next(r for r in grid if r["forward"] == round(recent, 2))
+    regs = level_regressions(settings)
+    techs = {p.name: ("solar" if p is solar else "wind") for p in (solar, wind)}
+    f0 = float(base.prices.mean())
+    low = min([pm.forward_eur_mwh, *ppa.forward_curve.values()])
 
-    priced, tenors, results = {}, {}, {}
+    priced, tenors, results, effects = {}, {}, {}, {}
     end_year = ppa.start_year + ppa.tenor_years - 1
     for park in names:
         cost = ppa.parks[park]
@@ -332,9 +524,25 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             whole_premia = risk_premia(whole.prices, whole.volume(park), q)
             alt = whole_premia["fair_price"]
             whole_window = {"fair_price": alt, "premium": whole_premia["joint"]}
+        response = park_response(grid, park)
+        reg = regs[techs[park]] if regs else None
+        e = effects[park] = {
+            "ref_level": ref["average"], "ref_rate": ref["capture_rate"][park],
+            "slope_recent": model_slope(response, ref["average"], f0),
+            "slope_tenor": model_slope(response, low, f0), "history": reg,
+            "history_all_years": regs[f"{techs[park]}_all_years"] if regs else None,
+            "history_years": f"{regs['start_year']}-{regs['last_year']}" if regs else None,
+            "share_pace": regs[f"{techs[park]}_share_pace"] if regs else None}
+        history = None if reg is None else {
+            label: line_response(response["level"], e["ref_level"], e["ref_rate"], reg[end])
+            for label, end in ((LEVEL_LOW, "ci_low"), (LEVEL_HIGH, "ci_high"))}
         tenors[park] = tenor_rows(priced[park], cost, ppa.start_year, ppa.tenor_years,
-                                  ppa.discount_rate, alt, ppa.forward_curve,
-                                  scaled[1][park] if scaled else None)
+                                  ppa.discount_rate, alt, ppa.forward_curve, response, history)
+        stack = priced[park]["stack"]
+        e["tenor_fair_without_level_effect"] = tenor_price(
+            stack["fair_price"], stack["forward"], priced[park]["energy_mwh"], ppa.start_year,
+            ppa.tenor_years, ppa.discount_rate, capture_rate_drift=cost.capture_rate_drift,
+            degradation=cost.degradation, forward_curve=ppa.forward_curve).attrs["price"]
         annual = annual_energy(inputs["gen"][park], tz).loc[
             settings.weather_first_year:settings.scenarios.weather_last_year]
         pv = p_values(annual)
@@ -345,6 +553,8 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             "energy_mwh_expected": priced[park]["energy_mwh"],
             "p50_mwh": pv["p50"], "p90_1y_mwh": pv["p90_1y"],
             "whole_window": whole_window,
+            "level_response": response,
+            "level_effect": e,
             "assumptions": {"balancing_eur_mwh": cost.balancing_eur_mwh,
                             "credit_eur_mwh": cost.credit_eur_mwh,
                             "capture_rate_drift": cost.capture_rate_drift,
@@ -369,7 +579,10 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         "tenor_years": ppa.tenor_years, "discount_rate": ppa.discount_rate,
         "analog_pool_start": str(ppa.analog_pool_start),
         "scenarios": int(base.prices.shape[0]), "forward": forward,
-        "recent_level_eur_mwh": scaled[0] if scaled else None,
+        "recent_level_eur_mwh": recent,
+        "level_effect": None if regs is None else {
+            k: regs[k] for k in ("start_year", "first_year", "last_year")},
+        "level_grid": grid,
         "forward_curve": {str(y): f_y for y, f_y in sorted(ppa.forward_curve.items())},
         "parks": results}), indent=1, allow_nan=False))
 
@@ -382,6 +595,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
                                fig_dir / "step07_revenue.png"),
         "buyer": fig_buyer(base.prices, base.volume(lead), names[lead], q,
                            fig_dir / "step07_buyer_risk.png"),
+        "level": fig_level(grid, effects, names, tenor_forwards(f0, ppa.forward_curve, end_year,
+                                                                 ppa.start_year),
+                           fig_dir / "step07_level_effect.png"),
     }
 
     lead_r = results[lead]
@@ -405,12 +621,36 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
 
     trends = ", ".join(f"{names[p].lower()} {ppa.parks[p].capture_rate_drift * 100:+.0f} pp"
                        for p in names)
-    scaled_note = "" if scaled is None else (
-        f"\nLast row: the capture rate of the recent price level ({scaled[0]:.1f} EUR/MWh, the "
-        "analog pool's average), with all prices scaled to the forward (the usual shape-factor "
-        "view). In the model the capture rate rises with the level, because hours near zero are "
-        "lifted too; the forward lies outside the levels in the data, so both are shown "
-        "(METHODOLOGY, section 12).\n")
+    lead_e = effects[lead]
+    level_note = (
+        f"\nEach year's capture rate moves with that year's forward along the model's own "
+        f"response to the price level (section 5), on top of the trend. The last two rows use "
+        f"history's 95% interval for that slope instead, from the recent level "
+        f"({lead_e['ref_level']:.0f} EUR/MWh): a flatter slope gives a lower capture rate at the "
+        f"high {ppa.start_year} forward but a higher one once the curve falls below the recent "
+        f"level.\n" if lead_e["history"] is not None else
+        "\nEach year's capture rate moves with that year's forward along the model's own "
+        "response to the price level (section 5), on top of the trend.\n")
+    without = ", ".join(f"{names[p].lower()} {effects[p]['tenor_fair_without_level_effect']:.1f}"
+                        for p in names)
+    level_section = (
+        "The price model shifts all hours together in arcsinh units, so a higher price level "
+        "lifts the hours near zero and solar's capture rate rises with it. The usual "
+        "shape-factor view scales all hours instead, and the capture rate stays put. The "
+        f"{ppa.start_year} forward ({f0:.0f} EUR/MWh) lies above the recent level "
+        f"({lead_e['ref_level']:.0f}) and the curve falls to {low:.0f}, so the answer moves "
+        "the price.\n\nHistory decides: monthly capture rates regressed on ln(average price), "
+        "with month effects and the technology's share of load (its build-out) held fixed; "
+        "HC1 standard errors (`analysis/level_effect.py`). The model's slope comes from "
+        "rebuilding the scenarios at each forward with the same random draws.\n\n"
+        + (_level_md(effects, regs, names, low, f0, ppa.start_year) + "\n\n"
+           + _level_verdict(effects, names)
+           + _build_out(effects, names, {p: ppa.parks[p].capture_rate_drift for p in names})
+           if regs else
+           "No power data for the history check: run `ppa-lab data` first.")
+        + "\n\nSo the base case moves each year's capture rate along the model's response "
+        f"(chart below); holding the first year's capture rate over the tenor instead (as "
+        f"before v1.5) would give fair prices of {without} EUR/MWh.")
     report = header + f"""Inputs: the Step 6 joint scenarios for {ppa.start_year}
 ({base.prices.shape[0]} scenarios: {len(set(base.weather_years))} weather years x
 {settings.scenarios.paths_per_weather_year} price paths), with intraday patterns from analog days
@@ -449,12 +689,18 @@ trend per year after {ppa.start_year} (base case): {trends}; solar output degrad
 are applied to every year (a simplification).
 
 {_tenor_md(tenors, names)}
-{scaled_note}
-## 5. The answer
+{level_note}
+## 5. Does the capture rate rise with the price level?
+
+{level_section}
+
+![Capture rate vs price level](figures/{figs["level"].name})
+
+## 6. The answer
 
 {answer}
 
-## 6. Charts
+## 7. Charts
 
 ![Price stack](figures/{figs["stack"].name})
 

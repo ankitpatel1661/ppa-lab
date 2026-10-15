@@ -117,6 +117,8 @@ class PpaSettings:
     parks: dict[str, PpaParkSettings]
     # Cal base forwards of later contract years; a year after the last one keeps it (flat)
     forward_curve: dict[int, float] = field(default_factory=dict)
+    # first year of the history that tests whether capture rates rise with the price level
+    level_effect_start_year: int | None = None
 
 
 @dataclass(frozen=True)
@@ -313,6 +315,10 @@ def _validate(s: Settings) -> None:
             if not ppa.start_year < year <= last or price <= 0:
                 raise ValueError(f"ppa.forward_curve: {year} = {price} must be a later year of "
                                  f"the tenor ({ppa.start_year + 1}-{last}) with a positive price")
+        y = ppa.level_effect_start_year
+        if y is not None and not s.start.year <= y < s.end.year:
+            raise ValueError(f"ppa.level_effect_start_year {y} must lie inside the market data "
+                             f"({s.start.year}-{s.end.year - 1})")
         unknown = set(ppa.parks) - {p.name for p in s.parks}
         if unknown:
             raise ValueError(f"[ppa.parks] names unknown parks: {sorted(unknown)}")

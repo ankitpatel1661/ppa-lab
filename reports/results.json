@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-10-15 16:28",
+ "generated_utc": "2026-10-15 19:38",
  "delivery_year": 2027,
  "tenor_years": 10,
  "discount_rate": 0.06,
@@ -18,6 +18,109 @@
   "quarters_date": "2026-09-14"
  },
  "recent_level_eur_mwh": 104.04500684931507,
+ "level_effect": {
+  "start_year": 2023,
+  "first_year": 2021,
+  "last_year": 2026
+ },
+ "level_grid": [
+  {
+   "forward": 52.55,
+   "average": 52.76563876381129,
+   "capture_rate": {
+    "solar_park": 0.20713297973241637,
+    "wind_park": 0.8052699063632006
+   }
+  },
+  {
+   "forward": 63.43,
+   "average": 63.717398804409,
+   "capture_rate": {
+    "solar_park": 0.3257078642145917,
+    "wind_park": 0.8388594343778111
+   }
+  },
+  {
+   "forward": 76.57,
+   "average": 76.94309382415912,
+   "capture_rate": {
+    "solar_park": 0.4209327663361601,
+    "wind_park": 0.8655786345001694
+   }
+  },
+  {
+   "forward": 87.58,
+   "average": 88.02417393139378,
+   "capture_rate": {
+    "solar_park": 0.476707866360686,
+    "wind_park": 0.881076061133037
+   }
+  },
+  {
+   "forward": 92.44,
+   "average": 92.91536131360705,
+   "capture_rate": {
+    "solar_park": 0.49659863975353546,
+    "wind_park": 0.8865677811560351
+   }
+  },
+  {
+   "forward": 104.05,
+   "average": 104.59944311244126,
+   "capture_rate": {
+    "solar_park": 0.5355845387797125,
+    "wind_park": 0.8972672697258576
+   }
+  },
+  {
+   "forward": 104.75,
+   "average": 105.30389194011556,
+   "capture_rate": {
+    "solar_park": 0.5376162562778027,
+    "wind_park": 0.8978222804096302
+   }
+  },
+  {
+   "forward": 111.59,
+   "average": 112.18726455222482,
+   "capture_rate": {
+    "solar_park": 0.555903456959165,
+    "wind_park": 0.9028050921113533
+   }
+  },
+  {
+   "forward": 134.7,
+   "average": 135.44262553766478,
+   "capture_rate": {
+    "solar_park": 0.6017064509613334,
+    "wind_park": 0.9151713961015507
+   }
+  },
+  {
+   "forward": 140.21,
+   "average": 140.98704886434865,
+   "capture_rate": {
+    "solar_park": 0.6099636683012872,
+    "wind_park": 0.9173809525795485
+   }
+  },
+  {
+   "forward": 162.61,
+   "average": 163.5262273840346,
+   "capture_rate": {
+    "solar_park": 0.6365284512617706,
+    "wind_park": 0.9244415430271963
+   }
+  },
+  {
+   "forward": 196.29,
+   "average": 197.4136475857305,
+   "capture_rate": {
+    "solar_park": 0.6625325329379417,
+    "wind_park": 0.9312729397091036
+   }
+  }
+ ],
  "forward_curve": {
   "2028": 104.75,
   "2029": 87.58
@@ -89,6 +192,69 @@
     "fair_price": 94.44613137978111,
     "premium": 7.630816690899774
    },
+   "level_response": {
+    "level": [
+     52.76563876381129,
+     63.717398804409,
+     76.94309382415912,
+     88.02417393139378,
+     92.91536131360705,
+     104.59944311244126,
+     105.30389194011556,
+     112.18726455222482,
+     135.44262553766478,
+     140.98704886434865,
+     163.5262273840346,
+     197.4136475857305
+    ],
+    "capture_rate": [
+     0.20713297973241637,
+     0.3257078642145917,
+     0.4209327663361601,
+     0.476707866360686,
+     0.49659863975353546,
+     0.5355845387797125,
+     0.5376162562778027,
+     0.555903456959165,
+     0.6017064509613334,
+     0.6099636683012872,
+     0.6365284512617706,
+     0.6625325329379417
+    ]
+   },
+   "level_effect": {
+    "ref_level": 104.59944311244126,
+    "ref_rate": 0.5355845387797125,
+    "slope_recent": 0.2491514344786717,
+    "slope_tenor": 0.28428594712192634,
+    "history": {
+     "coef": 0.2720994413859931,
+     "se": 0.08822494123092867,
+     "t": 3.08415554138793,
+     "ci_low": 0.09918173267125724,
+     "ci_high": 0.445017150100729,
+     "share_coef": -2.8965303031610055,
+     "r2": 0.9182534920175591,
+     "n": 45
+    },
+    "history_all_years": {
+     "coef": 0.09587934150495338,
+     "se": 0.01888725149187756,
+     "t": 5.0764051903574305,
+     "ci_low": 0.05886100852192706,
+     "ci_high": 0.13289767448797968,
+     "share_coef": -3.066109867874861,
+     "r2": 0.8928561802688043,
+     "n": 69
+    },
+    "history_years": "2023-2026",
+    "share_pace": {
+     "from": 2022,
+     "to": 2025,
+     "per_year": 0.012631558326000644
+    },
+    "tenor_fair_without_level_effect": 55.45839490546958
+   },
    "assumptions": {
     "balancing_eur_mwh": 1.5,
     "credit_eur_mwh": 1.0,
@@ -108,48 +274,53 @@
      2035,
      2036
     ],
-    "fair_price": 55.45839490546958,
-    "indicative": 44.65416489041887,
+    "fair_price": 45.65876514996184,
+    "indicative": 34.85453513491112,
     "sensitivity": [
      {
       "case": "Base case",
-      "fair_price": 55.45839490546958,
-      "indicative": 44.65416489041887
+      "fair_price": 45.65876514996184,
+      "indicative": 34.85453513491112
      },
      {
       "case": "Capture-rate trend 2 pp/yr steeper",
-      "fair_price": 48.44239586442593,
-      "indicative": 37.63816584937521
+      "fair_price": 38.64276610891818,
+      "indicative": 27.838536093867464
      },
      {
       "case": "Capture-rate trend 1 pp/yr steeper",
-      "fair_price": 51.950395384947754,
-      "indicative": 41.146165369897034
+      "fair_price": 42.15076562944002,
+      "indicative": 31.346535614389307
      },
      {
       "case": "Capture-rate trend 1 pp/yr flatter",
-      "fair_price": 58.96639442599142,
-      "indicative": 48.162164410940704
+      "fair_price": 49.16676467048368,
+      "indicative": 38.36253465543297
      },
      {
       "case": "Forward \u221210%",
-      "fair_price": 49.912555414922636,
-      "indicative": 39.108325399871916
+      "fair_price": 37.721907899387084,
+      "indicative": 26.917677884336367
      },
      {
       "case": "Forward +10%",
-      "fair_price": 61.00423439601655,
-      "indicative": 50.20000438096584
+      "fair_price": 53.381447658299805,
+      "indicative": 42.577217643249085
      },
      {
       "case": "Analog days from the whole window",
-      "fair_price": 61.25180944385198,
-      "indicative": 50.44757942880126
+      "fair_price": 51.45217968834426,
+      "indicative": 40.64794967329354
      },
      {
-      "case": "Capture rate of the recent price level",
-      "fair_price": 48.26660519130667,
-      "indicative": 37.46237517625595
+      "case": "Capture rate vs price level: low end of history",
+      "fair_price": 47.66428040511629,
+      "indicative": 36.86005039006557
+     },
+     {
+      "case": "Capture rate vs price level: high end of history",
+      "fair_price": 45.55911847262606,
+      "indicative": 34.75488845757535
      }
     ]
    }
@@ -220,6 +391,69 @@
     "fair_price": 129.46278524073412,
     "premium": 6.500506472915058
    },
+   "level_response": {
+    "level": [
+     52.76563876381129,
+     63.717398804409,
+     76.94309382415912,
+     88.02417393139378,
+     92.91536131360705,
+     104.59944311244126,
+     105.30389194011556,
+     112.18726455222482,
+     135.44262553766478,
+     140.98704886434865,
+     163.5262273840346,
+     197.4136475857305
+    ],
+    "capture_rate": [
+     0.8052699063632006,
+     0.8388594343778111,
+     0.8655786345001694,
+     0.881076061133037,
+     0.8865677811560351,
+     0.8972672697258576,
+     0.8978222804096302,
+     0.9028050921113533,
+     0.9151713961015507,
+     0.9173809525795485,
+     0.9244415430271963,
+     0.9312729397091036
+    ]
+   },
+   "level_effect": {
+    "ref_level": 104.59944311244126,
+    "ref_rate": 0.8972672697258576,
+    "slope_recent": 0.06737579436436604,
+    "slope_tenor": 0.07747614715002483,
+    "history": {
+     "coef": 0.022784629097280452,
+     "se": 0.05888070664215589,
+     "t": 0.38696256204519974,
+     "ci_low": -0.09261943621590597,
+     "ci_high": 0.13818869441046688,
+     "share_coef": -0.36457571860927945,
+     "r2": 0.49823473986231515,
+     "n": 45
+    },
+    "history_all_years": {
+     "coef": -0.0033362846891221857,
+     "se": 0.020021733050462814,
+     "t": -0.16663316211006346,
+     "ci_low": -0.042578160685639486,
+     "ci_high": 0.03590559130739512,
+     "share_coef": -0.2918036294490655,
+     "r2": 0.39892934266194213,
+     "n": 69
+    },
+    "history_years": "2023-2026",
+    "share_pace": {
+     "from": 2022,
+     "to": 2025,
+     "per_year": 0.008026122823153736
+    },
+    "tenor_fair_without_level_effect": 88.52891602436264
+   },
    "assumptions": {
     "balancing_eur_mwh": 2.0,
     "credit_eur_mwh": 1.0,
@@ -239,55 +473,60 @@
      2035,
      2036
     ],
-    "fair_price": 88.52891602436264,
-    "indicative": 80.02466153269478,
+    "fair_price": 85.84978016857578,
+    "indicative": 77.3455256769079,
     "sensitivity": [
      {
       "case": "Base case",
-      "fair_price": 88.52891602436264,
-      "indicative": 80.02466153269478
+      "fair_price": 85.84978016857578,
+      "indicative": 77.3455256769079
      },
      {
       "case": "Capture-rate trend 2 pp/yr steeper",
-      "fair_price": 81.4424440129994,
-      "indicative": 72.93818952133154
+      "fair_price": 78.76330815721255,
+      "indicative": 70.25905366554468
      },
      {
       "case": "Capture-rate trend 1 pp/yr steeper",
-      "fair_price": 84.98568001868102,
-      "indicative": 76.48142552701316
+      "fair_price": 82.30654416289417,
+      "indicative": 73.8022896712263
      },
      {
       "case": "Capture-rate trend 1 pp/yr flatter",
-      "fair_price": 92.07215203004426,
-      "indicative": 83.5678975383764
+      "fair_price": 89.39301617425738,
+      "indicative": 80.88876168258952
      },
      {
       "case": "Forward \u221210%",
-      "fair_price": 79.67602442192639,
-      "indicative": 71.1717699302585
+      "fair_price": 76.33255141106659,
+      "indicative": 67.82829691939872
      },
      {
       "case": "Forward +10%",
-      "fair_price": 97.3818076267989,
-      "indicative": 88.87755313513102
+      "fair_price": 95.30070005531594,
+      "indicative": 86.79644556364806
      },
      {
       "case": "Analog days from the whole window",
-      "fair_price": 88.61375783519271,
-      "indicative": 80.10950334352484
+      "fair_price": 85.93462197940585,
+      "indicative": 77.43036748773798
      },
      {
-      "case": "Capture rate of the recent price level",
-      "fair_price": 86.58752419067535,
-      "indicative": 78.08326969900747
+      "case": "Capture rate vs price level: low end of history",
+      "fair_price": 87.16823155790796,
+      "indicative": 78.66397706624008
+     },
+     {
+      "case": "Capture rate vs price level: high end of history",
+      "fair_price": 85.72206554218386,
+      "indicative": 77.21781105051599
      }
     ]
    }
   }
  },
  "hedging": {
-  "generated_utc": "2026-10-15 16:28",
+  "generated_utc": "2026-10-15 19:38",
   "delivery_year": 2027,
   "model_forwards": {
    "cal_base": 140.98704886434865,
@@ -435,8 +674,8 @@
      "quote": 140.21,
      "date": "2026-10-09",
      "model_forward": 140.98704886434865,
-     "indicative_model": 44.65416489041887,
-     "indicative_market": 44.34850644074555
+     "indicative_model": 34.85453513491112,
+     "indicative_market": 34.41029965283771
     }
    },
    "wind_park": {
@@ -539,11 +778,11 @@
      "quote": 140.21,
      "date": "2026-10-09",
      "model_forward": 140.98704886434865,
-     "indicative_model": 80.02466153269478,
-     "indicative_market": 79.5367352003624
+     "indicative_model": 77.34552567690791,
+     "indicative_market": 76.81911110509049
     }
    }
   }
  },
- "ppa_lab_version": "1.4.0"
+ "ppa_lab_version": "1.5.0"
 }

@@ -6,6 +6,40 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.5.0] (ticket PPA-8d: the capture rate and the price level)
+
+### Changed
+- Each later contract year's capture rate moves with that year's forward along the price
+  model's own response to the level (`tenor_price(level_response=...)`, `level_shift` in
+  `pricing/risk.py`). Before, the 2027 capture rate (at a forward of 141) was held for years
+  priced at 88. The response is measured by rebuilding the 2027 scenarios at twelve forwards
+  with the same draws (about 50 s more in `ppa-lab pricing`) and published per park in the
+  results, so the dashboard's forward knob and Step 8's market check move the capture rate
+  too.
+- The forward sensitivities (±10%) move the capture rate with the level, so they are no
+  longer symmetric.
+- The Step 7 sensitivity "Capture rate of the recent price level" (the shape-factor view) is
+  replaced by history's 95% range for the slope, from the recent level.
+- New Step 7 section 5 and chart `step07_level_effect.png`: history's regression against the
+  model's slope; `[ppa] level_effect_start_year = 2023`.
+- Memo: "later years: lower forwards and capture rates"; the level lever shows history's
+  range; the forward lever shows both directions.
+
+### Added
+- `analysis/level_effect.py`: monthly panel (base price, capture rate and share of load per
+  technology), OLS with month effects and HC1 standard errors, build-out pace.
+
+### Findings
+- Solar's capture rate rises with the price level: slope 0.27 per unit of ln(price) on
+  2023-2026 (95% 0.10 to 0.45, t = 3.1, 45 months); the model's 0.25 lies inside and the
+  shape-factor view (0) is rejected. On 2021-2026 the slope is 0.10: at a 9-11% solar share
+  in 2021-2022, hours near zero were rare. Wind: 0.02 (−0.09 to 0.14), model 0.07.
+- Borrentin: 10-year fair price 45.7 EUR/MWh (55.5 in v1.4), indicative **34.9** (44.7).
+  Everswinkel: fair 85.8 (88.5), indicative 77.3 (80.0).
+- History's build-out coefficient (−2.9 per unit of share of load) at the 2022-2025 pace
+  means about −3.7 pp of solar capture rate a year at a fixed level, steeper than the −1 pp
+  base-case trend (new backlog item PPA-8e).
+
 ## [1.4.0] (ticket PPA-1b: history from 2021, the 2022 gas crisis)
 
 ### Changed

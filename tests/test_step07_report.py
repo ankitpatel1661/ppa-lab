@@ -4,6 +4,7 @@ import dataclasses
 import json
 from datetime import date
 
+import numpy as np
 import pytest
 
 from conftest import FakeWeatherClient, write_synthetic_market
@@ -36,8 +37,9 @@ def test_step07_report_end_to_end(settings):
     text = out["report"].read_text()
     for phrase in ("risk premium", "Indicative", "cash flow at risk", "2026-2028"):
         assert phrase in text
-    for key in ("stack", "revenue", "buyer"):
+    for key in ("stack", "revenue", "buyer", "level"):
         assert out[key].exists()
+    assert "Does the capture rate rise with the price level?" in text
     assert "NaN" not in out["results"].read_text()          # strict JSON: null, not NaN
     results = json.loads(out["results"].read_text())
     solar = results["parks"]["solar_park"]
@@ -46,6 +48,9 @@ def test_step07_report_end_to_end(settings):
         stack["fair_price"] - stack["risk_premium"] - stack["balancing"] - stack["credit"])
     assert stack["fair_price"] == pytest.approx(stack["forward"] + stack["shape"])
     assert solar["tenor"]["years"] == [2026, 2027, 2028]
+    # the model's capture rate by price level, for the dashboard (PPA-8d)
+    levels = solar["level_response"]["level"]
+    assert levels == sorted(levels) and len(levels) == len(results["level_grid"])
     # the analog-pool sensitivity is stored too (the dashboard offers both pools)
     assert solar["whole_window"]["fair_price"] > 0 and solar["whole_window"]["premium"] >= 0
     # the assumptions behind the numbers travel with them
@@ -64,19 +69,30 @@ def test_step07_report_explains_missing_weather(settings):
     assert out["results"] is None
 
 
-def test_tenor_rows_follow_the_curve_and_add_the_scaled_shape_case():
-    from ppa_lab.analysis.step07_report import SCALED_SHAPE, tenor_rows
+def test_tenor_rows_follow_the_curve_and_move_the_capture_rate_with_the_level():
+    from ppa_lab.analysis.step07_report import LEVEL_LOW, line_response, tenor_rows
     from ppa_lab.config import PpaParkSettings
     priced = {"stack": {"forward": 100.0, "fair_price": 60.0, "risk_premium": 5.0,
                         "balancing": 1.5, "credit": 1.0}, "energy_mwh": 1000.0}
     cost = PpaParkSettings(balancing_eur_mwh=1.5, credit_eur_mwh=1.0, capture_rate_drift=0.0,
                            degradation=0.0)
     flat = tenor_rows(priced, cost, 2027, 3, 0.0)
-    curve = tenor_rows(priced, cost, 2027, 3, 0.0, curve={2028: 70.0}, scaled_shape_fair=50.0)
+    curve = tenor_rows(priced, cost, 2027, 3, 0.0, curve={2028: 70.0})
     assert flat[0]["fair_price"] == pytest.approx(60.0)
     assert curve[0]["fair_price"] == pytest.approx((60.0 + 42.0 + 42.0) / 3)   # 0.6 x 70, flat
     up = next(r for r in curve if r["case"] == "Forward +10%")
     assert up["fair_price"] == pytest.approx(1.1 * curve[0]["fair_price"])    # whole curve
-    scaled = next(r for r in curve if r["case"] == SCALED_SHAPE)
-    assert scaled["fair_price"] == pytest.approx((50.0 + 35.0 + 35.0) / 3)     # capture rate 0.5
-    assert scaled["indicative"] == pytest.approx(scaled["fair_price"] - 7.5)
+
+    # the model's response: capture rate 0.6 at 100, 0.5 at 70 (and 0.65 at 110)
+    levels = [70.0, 100.0, 110.0]
+    response = {"level": levels, "capture_rate": [0.5, 0.6, 0.65]}
+    history = {LEVEL_LOW: line_response(levels, 70.0, 0.5, 0.0)}           # no level effect
+    moved = tenor_rows(priced, cost, 2027, 3, 0.0, curve={2028: 70.0}, response=response,
+                       history=history)
+    assert moved[0]["fair_price"] == pytest.approx((60.0 + 35.0 + 35.0) / 3)   # 0.5 x 70
+    up = next(r for r in moved if r["case"] == "Forward +10%")
+    rate_77 = 0.5 + 0.1 * np.log(77 / 70) / np.log(100 / 70)                 # linear in ln
+    assert up["fair_price"] == pytest.approx((110 * 0.65 + 2 * 77 * rate_77) / 3)
+    low = next(r for r in moved if r["case"] == LEVEL_LOW)
+    assert low["fair_price"] == pytest.approx((50.0 + 35.0 + 35.0) / 3)       # 0.5 throughout
+    assert low["indicative"] == pytest.approx(low["fair_price"] - 7.5)

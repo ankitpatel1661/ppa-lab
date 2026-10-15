@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ppa_lab import __version__
-from ppa_lab.analysis.step07_report import SCALED_SHAPE, trend_case
+from ppa_lab.analysis.step07_report import LEVEL_HIGH, LEVEL_LOW, trend_case
 from ppa_lab.config import Settings
 from ppa_lab.pricing.forwards import describe_forward
 
@@ -43,6 +43,10 @@ td:nth-child(n+2), th:nth-child(n+2) { text-align: right; }
 """
 
 
+def _signed(x: float) -> str:
+    return f"{'+' if x >= 0 else '−'}{abs(x):.1f}"
+
+
 def _case(rows: list[dict], name: str) -> dict | None:
     return next((r for r in rows if r["case"] == name), None)
 
@@ -54,7 +58,11 @@ def _stack_table(results: dict) -> str:
     later = ("Later years: forward curve falls"
              if curve and min(curve.values()) < results["forward"]["price_eur_mwh"]
              else "Later years: forward curve")
-    if any(r["assumptions"]["capture_rate_drift"] for r in results["parks"].values()):
+    level = any(r.get("level_response") for r in results["parks"].values())
+    trend = any(r["assumptions"]["capture_rate_drift"] for r in results["parks"].values())
+    if level:
+        later = later.replace("forward curve falls", "lower forwards") + " and capture rates"
+    elif trend:
         later += ", capture-rate trend"
     rows = [(f"Forward {start} (average of the scenarios)", "forward", ""),
             ("Shape: output falls in cheap hours", "shape", ""),
@@ -95,20 +103,33 @@ def memo_text(results: dict, settings: Settings) -> str:
     sens = solar["tenor"]["sensitivity"]
     base_ind = solar["tenor"]["indicative"]
     levers = []
-    recent = results.get("recent_level_eur_mwh")
     for name, label, sign in (("Analog days from the whole window",
                                f"Older days represent {start} (whole 2024-2026 window instead "
                                "of the last 12 months)", None),
-                              (trend_case(0.01), "Capture-rate trend ±1 pp per year", "±"),
-                              ("Forward +10%", "Forward curve ±10%", "±"),
-                              (SCALED_SHAPE, "The capture rate stays as at the recent price level"
-                               + (f" ({recent:.0f} EUR/MWh)" if recent else "")
-                               + " instead of rising with the forward", None)):
+                              (trend_case(0.01), "Capture-rate trend ±1 pp per year", "±")):
         row = _case(sens, name)
         if row is not None:
             delta = row["indicative"] - base_ind
             mark = sign or ("+" if delta >= 0 else "−")
             levers.append(f"- {label}: **{mark}{abs(delta):.1f} EUR/MWh**")
+    down, up = _case(sens, "Forward −10%"), _case(sens, "Forward +10%")
+    if down is not None and up is not None:
+        levers.append(f"- Forward curve −10% / +10%: **{_signed(down['indicative'] - base_ind)} "
+                      f"/ {_signed(up['indicative'] - base_ind)} EUR/MWh**")
+    low, high = _case(sens, LEVEL_LOW), _case(sens, LEVEL_HIGH)
+    history = (solar.get("level_effect") or {}).get("history")
+    if low is not None and high is not None and history is not None:
+        deltas = sorted(r["indicative"] - base_ind for r in (low, high))
+        years_text = solar["level_effect"]["history_years"]
+        levers.append(f"- Capture rate vs price level, history's 95% range ({years_text}): "
+                      f"**{_signed(deltas[0])} to {_signed(deltas[1])} EUR/MWh**")
+    later_rate = "with the first year's capture rate"
+    if solar.get("level_response"):
+        later_rate = "capture rates moving with the price level as in the model"
+        e = solar.get("level_effect") or {}
+        h = e.get("history")
+        if h and "slope_recent" in e and h["ci_low"] <= e["slope_recent"] <= h["ci_high"]:
+            later_rate += f" (and {e['history_years']} history)"
     structures = solar["structures"]
     clause = structures.get("pay_as_produced_clause")
     negative = "a large share"
@@ -190,7 +211,7 @@ For comparison, the risk premium and the costs together take
 each with simulated hourly prices that respond to that weather (calibrated on 2024-2026 German
 day-ahead prices, analog days from {results['analog_pool_start']}). Fair price
 = E[Σ q P] / E[Σ q]; premium = 5% shortfall of the buyer's hedged value per MWh; later years by
-the forward curve and a flat capture rate, discounted at {results['discount_rate']:.0%}. Forward:
+the forward curve, {later_rate}, discounted at {results['discount_rate']:.0%}. Forward:
 {forward_text}. Limits: {forward_limit}, the costs are illustrative, the parks produce their
 potential output (no curtailment), and the shape comes from one market regime
 (2024-2026).{market_line}

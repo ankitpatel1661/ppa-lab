@@ -229,11 +229,16 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `scenarios` | Number of joint scenarios |
 | `forward` | The delivery year's Cal base forward: `price_eur_mwh`, `date` (trading day of the quote) and `source` (URL); `date` and `source` are null for an assumed forward. Since v1.2 also `quarters` (quarter `"1"`..`"4"` → forward, EUR/MWh: the market's seasonal shape at the Cal level) and `quarters_date`. Results before v1.1 have `forward_assumption` (85.0) instead |
 | `forward_curve` | Cal base forwards of later contract years, `{"2028": ..., "2029": ...}` (EUR/MWh); years after the last one keep it |
+| `recent_level_eur_mwh` | Average day-ahead price of the analog pool (the recent regime) |
+| `level_grid` | Since v1.5: per forward at which the scenarios were rebuilt, `forward` (configured), `average` (the scenarios' average price) and `capture_rate` per park |
+| `level_effect` | Since v1.5: `start_year` of the history regression, `first_year` and `last_year` of the data |
 | `parks.<park>.premia_eur_mwh` | `fair_price`, `unhedged`, `joint` (after the baseload hedge), `profile`, `volume` |
 | `parks.<park>.stack_eur_mwh` | `forward` (scenario average), `shape`, `fair_price`, `risk_premium`, `balancing`, `credit`, `indicative` |
 | `parks.<park>.structures.<structure>` | `fair_price_eur_mwh`, `expected_revenue_eur`, `p05_revenue_eur`, `cfar_eur`, `cfar_share`, `floor_value_eur_mwh` for `merchant`, `pay_as_produced`, `pay_as_produced_clause`, `merchant_floor`, `baseload` |
 | `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
-| `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor (along the forward curve), and `sensitivity` (one row per case; the forward cases shift the whole curve) |
+| `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor (along the forward curve), and `sensitivity` (one row per case; the forward cases shift the whole curve and move the capture rate with it) |
+| `parks.<park>.level_response` | Since v1.5: `level` (scenario average prices, increasing) and `capture_rate`: the model's capture rate by price level, read linearly in ln(level) by `level_shift` |
+| `parks.<park>.level_effect` | Since v1.5: `ref_level`, `ref_rate` (the recent level and its capture rate), `slope_recent` and `slope_tenor` (the model's slope per unit of ln level), `history` and `history_all_years` (regression: `coef`, `se`, `t`, `ci_low`, `ci_high`, `share_coef`, `r2`, `n`; null without power data), `history_years`, `share_pace` (`from`, `to`, `per_year`), `tenor_fair_without_level_effect` |
 | `parks.<park>.whole_window` | `fair_price` and `premium` with analog days from the whole calibration window |
 | `parks.<park>.assumptions` | `balancing_eur_mwh`, `credit_eur_mwh`, `capture_rate_drift`, `degradation` (from `[ppa.parks.*]`) |
 | `discount_rate` | annual discount rate of the tenor price |
@@ -377,7 +382,8 @@ not a forecast of a particular hour.
 | `risk_premia(prices, volumes, quantile)` | `fair_price`, `unhedged`, `joint`, `profile`, `volume` (EUR/MWh) |
 | `structure_revenues(prices, volumes, floor)` | structure → (strike, annual revenue per scenario) |
 | `structure_table(prices, volumes, floor, quantile)` | per structure: fair price, expected and P5 revenue, CFaR, CFaR share, floor value |
-| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ..., forward_curve)` | per year: forward (first year, then the curve, flat after its last year), capture rate, fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ..., forward_curve, level_response)` | per year: forward (first year, then the curve, flat after its last year), capture rate (moved along `level_response` when given), fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+| `level_shift(response, level_from, level_to)`, `capture_rate_at(response, level)` | change of the capture rate between two price levels, and the capture rate at one level, from a level response (linear in ln level, flat beyond its ends) |
 
 ### Hedging (`ppa_lab.hedging`)
 
@@ -395,6 +401,14 @@ not a forecast of a particular hour.
 
 One row per local year: time-weighted mean price, min and max, three definitions of
 negative hours, longest negative streak.
+
+### Capture rate vs price level (`ppa_lab.analysis.level_effect`, v1.5)
+
+| Function | Returns |
+|---|---|
+| `monthly_panel(prices, power, tz, columns)` | per local month: `base` (mean price) and per technology `capture_rate_<tech>` and `share_<tech>` (generation over load); months with missing hours dropped |
+| `level_regression(panel, tech, start_year)` | OLS of the capture rate on ln(base) and the share of load with month effects, HC1: `coef`, `se`, `t`, `ci_low`, `ci_high`, `share_coef`, `r2`, `n`; None when the data cannot separate the effects |
+| `share_pace(power, tz, column, first_year)` | growth of a technology's share of load per year, from `first_year` − 1 to the last complete year: `from`, `to`, `per_year` |
 
 ---
 

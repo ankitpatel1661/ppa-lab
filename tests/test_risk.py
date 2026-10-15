@@ -7,6 +7,7 @@ import pytest
 from ppa_lab.pricing.risk import (
     buyer_value,
     cash_flow_at_risk,
+    level_shift,
     premium,
     risk_premia,
     structure_table,
@@ -124,3 +125,22 @@ def test_tenor_price_holds_the_last_quoted_year_flat():
     t = tenor_price(fair_price=40.0, forward=140.0, energy_mwh=100.0, start_year=2027, years=5,
                     discount_rate=0.0, forward_curve={2029: 90.0, 2028: 105.0})
     assert t["forward_eur_mwh"].tolist() == [140.0, 105.0, 90.0, 90.0, 90.0]
+
+
+RESPONSE = {"level": [50.0, 100.0, 200.0], "capture_rate": [0.40, 0.50, 0.60]}
+
+
+def test_level_shift_interpolates_in_log_level_and_is_flat_beyond_the_ends():
+    assert level_shift(None, 140.0, 90.0) == 0.0
+    assert level_shift(RESPONSE, 100.0, 200.0) == pytest.approx(0.10)
+    assert level_shift(RESPONSE, 100.0, 100.0 * 2 ** 0.5) == pytest.approx(0.05)   # half way in ln
+    assert level_shift(RESPONSE, 200.0, 400.0) == 0.0
+    assert level_shift(RESPONSE, 100.0, 25.0) == pytest.approx(-0.10)
+
+
+def test_tenor_price_moves_the_capture_rate_with_the_forward_curve():
+    t = tenor_price(fair_price=100.0, forward=200.0, energy_mwh=100.0, start_year=2027, years=3,
+                    discount_rate=0.0, capture_rate_drift=-0.01,
+                    forward_curve={2028: 100.0, 2029: 50.0}, level_response=RESPONSE)
+    assert t["capture_rate"].tolist() == pytest.approx([0.50, 0.39, 0.28])
+    assert t["fair_price_eur_mwh"].tolist() == pytest.approx([100.0, 39.0, 14.0])

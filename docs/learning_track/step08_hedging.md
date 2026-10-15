@@ -279,6 +279,51 @@ to be in the models already (solar losses 10% incl. availability; wind 12%: wake
 electrical); adding it again would have counted it twice. Grid curtailment is compensated in
 Germany (§13a EnWG), so it is a contract question, not a price one.
 
+### 4.8 Update (v1.5): does the capture rate rise with the price level?
+
+Lesson 2 of section 4.6 left an open question. The arcsinh price model says solar's capture
+rate rises with the level, because hours near zero are lifted too; the usual shape-factor view
+says it stays put. With history from 2021 (v1.4) it can be tested.
+
+**The test.** One row per month of 2023-2026 (45 months): solar's capture rate against the log
+of the month's average price, with a dummy per calendar month (season) and solar's share of
+load (build-out), so that only the level is left to explain. Robust (HC1) standard errors.
+
+| Change of capture rate per unit of ln(price) | Solar | Wind |
+|---|---|---|
+| History 2023-2026 (95% interval) | **0.27** (0.10 to 0.45), t = 3.1 | 0.02 (−0.09 to 0.14) |
+| History 2021-2026 | 0.10 (0.06 to 0.13) | −0.00 |
+| Price model, 105 → 141 EUR/MWh | **0.25** | 0.07 |
+
+The model's slope lies inside history's interval, and slope 0 (the shape-factor view) lies
+outside it for solar. In 2021-2022 solar was only 9-11% of load, so near-zero hours were rare
+and the level had little to lift: the slope over all years is smaller, as the mechanism says.
+
+**The bug it found.** The ten-year price held the 2027 capture rate (0.61, at a forward of
+141) for years priced at 88, where the model itself gives 0.48. The fix rebuilds the 2027
+scenarios at twelve forwards with the same random draws and reads each year's capture rate off
+that curve (`reports/figures/step07_level_effect.png`).
+
+| 2027-2036, EUR/MWh | v1.4 | v1.5 |
+|---|---|---|
+| Solar: fair price, 10 years | 55.5 | 45.7 |
+| Solar: indicative price, 10 years | 44.7 | **34.9** |
+| Wind: indicative price, 10 years | 80.0 | **77.3** |
+| Solar: history's 95% range for the slope | (shape-factor row: 37.5) | 34.8 to 36.9 |
+
+Three lessons:
+
+1. **Test a model's mechanism, not only its outputs.** The validation of Step 5 compares
+   distributions at one level; the level effect only shows when the level moves, so it needed
+   its own test, with build-out held fixed (without that control the solar slope is 0.09 and
+   not significant: build-out and falling prices moved together).
+2. **A consistent model fixes a consistent error.** Once the slope was confirmed, the error was
+   not the model but the tenor arithmetic, which used the model in year 1 and ignored it in
+   years 2-10. Consistency across years cost 9.8 EUR/MWh, more than the risk premium.
+3. **The same regression flags the next question.** Its build-out coefficient (−2.9 per unit of
+   solar's share of load) at the 2022-2025 pace means about −3.7 pp of capture rate a year,
+   against the −1 pp the base case assumes (backlog PPA-8e).
+
 ---
 
 ## 5. Hands-on: run it yourself

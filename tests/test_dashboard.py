@@ -2,6 +2,7 @@
 
 import json
 
+import numpy as np
 import pytest
 
 from ppa_lab.dashboard import Assumptions, default_assumptions, load_results, offer
@@ -69,6 +70,22 @@ def test_the_offer_follows_the_forward_curve_and_the_shift_moves_all_of_it():
     assert shifted["years"]["forward_eur_mwh"].tolist() == pytest.approx(
         [88.0, 66.0] + [55.0] * 8)
     assert shifted["stack"]["trend"] < 0                                 # a falling curve
+
+
+def test_the_capture_rate_moves_with_the_level_when_the_response_is_published():
+    r = results_fixture()
+    r["forward_curve"] = {"2028": 60.0}
+    # capture rate 0.5 at 80, 0.4 at 60 (linear in ln level)
+    r["parks"]["solar_park"]["level_response"] = {"level": [60.0, 80.0],
+                                                  "capture_rate": [0.4, 0.5]}
+    a = default_assumptions(r, "solar_park")
+    o = offer(r, "solar_park", a)
+    assert o["stack"]["fair_price"] == pytest.approx(40.0)              # first year unchanged
+    assert o["years"].loc[2028, "capture_rate"] == pytest.approx(0.4)
+    shifted = offer(r, "solar_park", Assumptions(**{**a.__dict__, "forward_shift": -0.1}))
+    rate = 0.4 + 0.1 * np.log(72 / 60) / np.log(80 / 60)
+    assert shifted["stack"]["fair_price"] == pytest.approx(72.0 * rate)  # lower capture rate
+    assert shifted["years"].loc[2028, "capture_rate"] == pytest.approx(0.4)   # flat below 60
 
 
 def test_missing_results_say_how_to_make_them(tmp_path):

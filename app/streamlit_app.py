@@ -86,7 +86,8 @@ with st.sidebar:
         "price_eur_mwh": results.get("forward_assumption")}, results.get("forward_curve") or {},
         results["delivery_year"])
     forward_shift = st.slider("Shift of the forward curve (%)", -30, 30, 0, 5,
-                              help=f"Base case: {forward_text}.") / 100
+                              help=f"Base case: {forward_text}. The capture rate moves with "
+                                   "the level, along the price model's response.") / 100
     drift = st.slider("Capture-rate trend (pp per year)", -3.0, 2.0, d.drift * 100, 0.5) / 100
     tenor = st.slider("Tenor (years)", 1, 15, d.tenor_years)
     rate = st.slider("Discount rate (%)", 0.0, 12.0, d.discount_rate * 100, 0.5) / 100

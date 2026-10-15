@@ -101,6 +101,9 @@ risk_quantile = 0.05              # premia and cash flow at risk at the 5% quant
 # Step 6, section 4.3): the most recent 12 months, because solar's midday dips deepen
 # year by year as capacity grows. The whole window is reported as a sensitivity.
 analog_pool_start = 2025-10-01
+# Does the capture rate rise with the price level (PPA-8d)? Step 7 tests it on monthly history
+# from this year on: 2023 is the first year of today's solar build-out without the 2022 crisis.
+level_effect_start_year = 2023
 
 [ppa.forward_curve]
 # Cal base forwards of the later contract years (EEX German Power, EUR/MWh); a year after the

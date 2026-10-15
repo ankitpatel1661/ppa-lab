@@ -36,8 +36,12 @@ def pricing_fixture() -> dict:
                            "indicative": indicative + 4},
                           {"case": "Analog days from the whole window", "fair_price": fair + 7,
                            "indicative": indicative + 7},
-                          {"case": "Capture rate of the recent price level",
-                           "fair_price": fair - 6, "indicative": indicative - 6}]},
+                          {"case": "Capture rate vs price level: low end of history",
+                           "fair_price": fair - 2, "indicative": indicative - 2},
+                          {"case": "Capture rate vs price level: high end of history",
+                           "fair_price": fair + 1.5, "indicative": indicative + 1.5}]},
+            "level_effect": {"history": {"coef": 0.27, "ci_low": 0.10, "ci_high": 0.45},
+                             "history_years": "2023-2026"},
         }
     return {"delivery_year": 2027, "tenor_years": 10, "discount_rate": 0.06,
             "analog_pool_start": "2025-10-01", "scenarios": 496,
@@ -61,8 +65,9 @@ def test_memo_states_the_answer_and_publishes_the_results(settings):
     assert "6.0 EUR/MWh" in text                             # premium + credit vs merchant
     assert "25% of the solar output" in text                 # clause: 1 - 1.65 / 2.2
     assert "±3.0 EUR/MWh" in text and "+7.0 EUR/MWh" in text # the levers
+    assert "Forward curve −10% / +10%: **−4.0 / +4.0 EUR/MWh**" in text
     assert "Cal-27 base 85.00 EUR/MWh (quote of 2026-10-09, via tacto.ai)" in text
-    assert "recent price level (104 EUR/MWh) instead of rising with the forward: **−6.0" in text
+    assert "history's 95% range (2023-2026): **−2.0 to +1.5 EUR/MWh**" in text
     assert "2028: 70.00, 2029: 60.00" in text and "Later years: forward curve falls" in text
     assert len(text.splitlines()) < 75                        # one page
     published = json.loads(out["results"].read_text())

@@ -123,18 +123,38 @@ def structure_table(prices: np.ndarray, volumes: np.ndarray, floor: float = 0.0,
     return pd.DataFrame.from_dict(rows, orient="index").rename_axis("structure")
 
 
+def level_shift(response: dict | None, level_from: float, level_to: float) -> float:
+    """Change of the capture rate when the price level moves from `level_from` to `level_to`.
+
+    `response` = {"level": [...], "capture_rate": [...]}: the capture rate at each price level
+    (EUR/MWh, increasing), interpolated linearly in ln(level) and flat beyond the ends. The
+    price model's own response is measured by rebuilding the scenarios at each level (Step 7,
+    PPA-8d). None: no change.
+    """
+    if not response:
+        return 0.0
+    return capture_rate_at(response, level_to) - capture_rate_at(response, level_from)
+
+
+def capture_rate_at(response: dict, level: float) -> float:
+    """The capture rate of a level response (see `level_shift`) at one price level."""
+    return float(np.interp(np.log(level), np.log(response["level"]), response["capture_rate"]))
+
+
 def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year: int,
                 years: int, discount_rate: float, capture_rate_drift: float = 0.0,
                 degradation: float = 0.0,
-                forward_curve: dict[int, float] | None = None) -> pd.DataFrame:
+                forward_curve: dict[int, float] | None = None,
+                level_response: dict | None = None) -> pd.DataFrame:
     """One price for a multi-year pay-as-produced PPA from the first year's fair price.
 
     Year y: forward F_y = `forward` in the first year, then `forward_curve` where it gives the
     year; a year after the last quoted one keeps that quote (flat). Capture rate
-    c_y = c_0 + drift * (y - start) with c_0 = fair_price / forward, fair price F_y c_y,
-    energy E_y = energy * (1 - degradation)^(y - start), discount factor (1 + r)^-(y - start
-    + 0.5) at mid-year. The tenor price is sum D E K / sum D E. Returned per year, with the
-    tenor price in `.attrs["price"]`.
+    c_y = c_0 + drift * (y - start) + g(F_y) - g(F_0) with c_0 = fair_price / forward and g
+    the capture rate at a price level (`level_response`, see `level_shift`; none: g constant),
+    fair price F_y c_y, energy E_y = energy * (1 - degradation)^(y - start), discount factor
+    (1 + r)^-(y - start + 0.5) at mid-year. The tenor price is sum D E K / sum D E. Returned
+    per year, with the tenor price in `.attrs["price"]`.
     """
     forward_curve = forward_curve or {}
     c0 = fair_price / forward
@@ -143,8 +163,9 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
     for i in range(years):
         y = start_year + i
         f_y = forward_curve.get(y, f_y)
+        rate = c0 + capture_rate_drift * i + level_shift(level_response, forward, f_y)
         rows.append({
-            "year": y, "forward_eur_mwh": f_y, "capture_rate": c0 + capture_rate_drift * i,
+            "year": y, "forward_eur_mwh": f_y, "capture_rate": rate,
             "energy_mwh": energy_mwh * (1.0 - degradation) ** i,
             "discount_factor": (1.0 + discount_rate) ** -(i + 0.5),
         })

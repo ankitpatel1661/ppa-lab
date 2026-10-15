@@ -126,11 +126,15 @@ assumptions (`[ppa.parks.*]` in the configuration: 1.5 and 1.0 EUR/MWh for solar
 
 The scenarios cover 2027. A ten-year price needs assumptions for the later years:
 
-    K_y = F_y · c_y,   c_y = c_2027 + drift · (y − 2027),   E_y = E_2027 · (1 − degradation)^(y − 2027)
+    K_y = F_y · c_y,   c_y = c_2027 + drift · (y − 2027) + γ(F_y) − γ(F_2027),
+    E_y = E_2027 · (1 − degradation)^(y − 2027)
     K_10y = Σ_y D_y E_y K_y / Σ_y D_y E_y,   D_y = (1 + r)^−(y − 2027 + 0.5)
 
-an energy- and discount-weighted average of the yearly fair prices. With a flat forward and a
-flat capture rate it equals the 2027 price; the sensitivities show what a trend does. The
+an energy- and discount-weighted average of the yearly fair prices. γ(F) is the capture rate
+at price level F: since v1.5 the scenarios are rebuilt at each year's forward, so a year at 88
+EUR/MWh gets the capture rate of an 88 year, not 2027's (Step 8 page, section 4.8). With a flat
+forward and a flat capture rate it equals the 2027 price; the sensitivities show what a trend
+does. The
 risk premium and the costs per MWh of the first year are applied to every year (a
 simplification: a ten-year contract averages weather years but adds uncertainty about the
 level and the capture-rate trend).
@@ -178,13 +182,15 @@ analysis/step07_report.py ─► reports/step07_ppa_pricing.md + 3 charts      (
 
 Builds the Step 6 scenarios twice (the configured pool and the whole window), prices both
 parks, writes the structure, premium, stack and tenor tables, the answer paragraph, three
-charts and `ppa_pricing.json`. About 12 seconds. `ppa-lab all` now ends with this step.
+charts and `ppa_pricing.json`. About a minute: the capture rate's response to the price level
+rebuilds the scenarios at twelve forwards (v1.5). `ppa-lab all` now ends with this step.
 
 ### 3.3 Tests: what each one protects
 
 | Test file | Protects against |
 |---|---|
-| `test_risk.py` (9) | wrong CFaR or premium arithmetic; a buyer that does not break even at the fair price; a hedge that does not remove the level risk of flat volumes; a profile/volume split that does not add up or misses the volume–price link; structures with different expected revenue at fair strikes; a free floor; a clause that ignores negative prices; tenor prices without drift, degradation or discounting; a forward curve that is ignored |
+| `test_risk.py` (12) | wrong CFaR or premium arithmetic; a buyer that does not break even at the fair price; a hedge that does not remove the level risk of flat volumes; a profile/volume split that does not add up or misses the volume–price link; structures with different expected revenue at fair strikes; a free floor; a clause that ignores negative prices; tenor prices without drift, degradation or discounting; a forward curve that is ignored; a capture rate that does not move with the level, or is read off the wrong scale (it is linear in ln level, flat beyond the measured range) |
+| `test_level_effect.py` (6) | a regression that misses a known slope or invents one, a sample that does not start where configured, capture rates and shares computed wrongly, an answer where the data cannot separate level from build-out, a build-out pace from incomplete years |
 | `test_step07_report.py` (2), `test_config.py` (+1), `test_cli.py` (+1) | the report end to end and its internal consistency (indicative = fair − premium − costs), the missing-weather message, `[ppa]` validation, `ppa-lab pricing` and `all` |
 
 Planted bugs that the tests catch: the joint premium without the hedge, the profile premium

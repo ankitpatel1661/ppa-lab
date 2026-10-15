@@ -18,7 +18,8 @@ that step is written.
 | PPA-8b | 8b | Anchor the price level to the market forward curve | **Done** (v1.1) |
 | PPA-8c | 8c | Quarterly forward curve (market winter premium); solar cannibalisation trend | **Done** (v1.2) |
 | PPA-1b | 1b | History from 2021: the 2022 gas crisis in Steps 1-2 | **Done** (v1.4) |
-| PPA-8d | next | Capture rate vs price level on 2021-2022 (gas crisis) data | To do (data ready, v1.4) |
+| PPA-8d | 8d | Capture rate vs price level: test on history, move later years' capture rates | **Done** (v1.5) |
+| PPA-8e | later | Solar capture-rate trend from build-out scenarios instead of −1 pp a year | To do |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
@@ -164,8 +165,41 @@ rises with the level (0.48 at 85, 0.63 at 141), which history supports only for 
 - [x] Calibrate quarterly levels to market quarter forwards (v1.2: Q1-Q4/27 of 14 Sep 2026,
       scaled to the Cal forward).
 - [x] Solar capture-rate trend in the base case (v1.2: −1 pp a year).
-- [ ] Test the capture rate vs level on more history (2021-2022 gas crisis) and decide
-      between the arcsinh lift and the shape-factor view (moved to PPA-8d).
+- [x] Test the capture rate vs level on more history (2021-2022 gas crisis) and decide
+      between the arcsinh lift and the shape-factor view (done in PPA-8d, v1.5).
+
+## PPA-8d: Does the capture rate rise with the price level? (v1.5)
+
+**Story:** As a pricing analyst I want to know whether solar's capture rate rises with the
+price level, as the arcsinh price model says, or stays put, as the shape-factor view says,
+because the forward curve falls from 140 (2027) to 88 EUR/MWh (2029+) over the tenor.
+
+**Acceptance criteria**
+- [x] Monthly regression on 2021-2026 history: capture rate on ln(average price), with month
+      effects and the technology's share of load, HC1 standard errors
+      (`src/ppa_lab/analysis/level_effect.py`, tested on synthetic data with a known slope).
+      Result: solar 0.27 (95% 0.10 to 0.45, t = 3.1) on 2023-2026; wind 0.02 (−0.09 to 0.14).
+- [x] The model's own slope measured by rebuilding the scenarios at twelve forwards with the
+      same draws: solar 0.25, wind 0.07, both inside history's interval. The shape-factor
+      view (slope 0) is rejected for solar.
+- [x] Fix: each later year's capture rate moves with its forward along the model's response
+      (it was held at the first year's, which overstated the solar ten-year price by 9.8
+      EUR/MWh); the forward sensitivities and the dashboard's forward knob move it too.
+- [x] History's 95% range as a Step 7 sensitivity (replaces the shape-factor row); report
+      section 5 with the chart; memo lever; METHODOLOGY section 10.
+
+## PPA-8e: Solar capture-rate trend from build-out (open)
+
+**Finding (v1.5):** the PPA-8d regression puts the build-out effect at −2.9 per unit of
+solar's share of load. At the 2022-2025 pace (+1.3 pp of load a year) that is about −3.7 pp
+of capture rate a year at a fixed price level; the base case assumes −1 pp, counting on
+storage, flexible demand and curtailment to slow the fall.
+
+**Acceptance criteria**
+- [ ] Solar and storage build-out scenarios for 2027-2036 (EEG targets, the grid
+      development plan) and the share of load they imply.
+- [ ] The trend from the build-out coefficient, with storage's effect stated as an assumption.
+- [ ] Replace the −1 pp assumption, or justify it against history's pace.
 
 ## PPA-4b: Two Encavis parks instead of illustrative ones (v1.3)
 
