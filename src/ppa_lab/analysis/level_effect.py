@@ -42,18 +42,22 @@ def monthly_panel(prices: pd.Series, power: pd.DataFrame, tz: str,
     return panel.rename_axis("month")
 
 
-def level_regression(panel: pd.DataFrame, tech: str,
-                     start_year: int | None = None) -> dict | None:
-    """OLS of the capture rate on ln(base price) and the share of load, with month effects.
+def level_regression(panel: pd.DataFrame, tech: str, start_year: int | None = None,
+                     log: bool = False) -> dict | None:
+    """OLS of the capture rate (its logarithm with `log`) on ln(base price) and the share of
+    load, with month effects.
 
-    Returns coef, se, t, ci_low, ci_high (95%) of ln(base), share_coef, r2, n; None when the
-    data cannot separate the effects (too few months, or a share or level that never moves).
+    Returns coef, se, t, ci_low, ci_high (95%) of ln(base), share_coef and share_se, r2, n;
+    None when the data cannot separate the effects (too few months, or a share or level that
+    never moves).
     """
     data = panel if start_year is None else panel[panel.index.year >= start_year]
     months = pd.get_dummies(data.index.month, prefix="m").astype(float).to_numpy()
     x = np.column_stack([months, np.log(data["base"].to_numpy()),
                          data[f"share_{tech}"].to_numpy()])
     y = data[f"capture_rate_{tech}"].to_numpy()
+    if log:
+        y = np.log(y)
     if len(y) <= x.shape[1] or np.linalg.matrix_rank(x) < x.shape[1]:
         return None
     beta, *_ = np.linalg.lstsq(x, y, rcond=None)
@@ -66,7 +70,7 @@ def level_regression(panel: pd.DataFrame, tech: str,
     coef, se = float(beta[i]), float(np.sqrt(cov[i, i]))
     return {"coef": coef, "se": se, "t": coef / se,
             "ci_low": coef - Z_95 * se, "ci_high": coef + Z_95 * se,
-            "share_coef": float(beta[i + 1]),
+            "share_coef": float(beta[i + 1]), "share_se": float(np.sqrt(cov[i + 1, i + 1])),
             "r2": float(1 - resid @ resid / ((y - y.mean()) @ (y - y.mean()))), "n": int(n)}
 
 

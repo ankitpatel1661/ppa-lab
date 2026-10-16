@@ -2,9 +2,9 @@
 
 The dashboard reads `reports/results.json`, a committed copy of the Step 7 results written
 by `ppa-lab memo`, so it runs without downloading any data. From those numbers it rebuilds
-the offer for any assumptions the viewer chooses: costs, capture-rate trend, degradation,
-discount rate, tenor, a shift of the forward curve and which historical days represent the
-delivery year.
+the offer for any assumptions the viewer chooses: costs, capture-rate trend, solar and
+storage build-out, degradation, discount rate, tenor, a shift of the forward curve and which
+historical days represent the delivery year.
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ class Assumptions:
     forward_shift: float = 0.0   # relative change of the forward, e.g. -0.1
     pool: str = "recent"         # "recent" (configured analog pool) or "whole" (whole window)
     clause: bool = False         # negative-price clause: the park curtails, unpaid (v1.8)
+    buildout: str | None = None  # build-out scenario after the delivery year (v1.11)
 
 
 def load_results(path: Path = RESULTS) -> dict:
@@ -44,10 +45,22 @@ def load_results(path: Path = RESULTS) -> dict:
 def default_assumptions(results: dict, park: str) -> Assumptions:
     """The assumptions of the Step 7 base case."""
     a = results["parks"][park]["assumptions"]
+    bo = results["parks"][park].get("buildout")
     return Assumptions(balancing=a["balancing_eur_mwh"], credit=a["credit_eur_mwh"],
                        drift=a["capture_rate_drift"], degradation=a["degradation"],
                        discount_rate=results["discount_rate"],
-                       tenor_years=results["tenor_years"])
+                       tenor_years=results["tenor_years"], buildout=bo["base"] if bo else None)
+
+
+def buildout_factors(results: dict, park: str, scenario: str | None,
+                     tenor_years: int) -> dict[int, float] | None:
+    """Capture-rate factor per contract year under a build-out scenario (Step 7, section 8):
+    the scenario's factor per year, compounded from the delivery year."""
+    bo = results["parks"][park].get("buildout")
+    if not scenario or not bo:
+        return None
+    step, start = bo["scenarios"][scenario]["factor_per_year"], results["delivery_year"]
+    return {start + i: step ** i for i in range(tenor_years)}
 
 
 def offer(results: dict, park: str, a: Assumptions) -> dict:
@@ -59,7 +72,8 @@ def offer(results: dict, park: str, a: Assumptions) -> dict:
     shift moves the whole curve, and the capture rate with it along the model's response to
     the price level (Step 7, PPA-8d). The premium and costs per MWh are applied to every year,
     as in Step 7. With the negative-price clause all of it is per delivered MWh: the park
-    stops producing at negative prices and is not paid (Step 7, v1.8).
+    stops producing at negative prices and is not paid (Step 7, v1.8). A build-out scenario
+    scales each later year's capture rate (Step 7, section 8).
     """
     r = results["parks"][park]
     volumes = None
@@ -82,7 +96,9 @@ def offer(results: dict, park: str, a: Assumptions) -> dict:
     years = tenor_price(fair1, forward, r["energy_mwh_expected"], results["delivery_year"],
                         a.tenor_years, a.discount_rate, capture_rate_drift=a.drift,
                         degradation=a.degradation, forward_curve=curve, level_response=response,
-                        volume_response=volumes)
+                        volume_response=volumes,
+                        capture_rate_factors=buildout_factors(results, park, a.buildout,
+                                                              a.tenor_years))
     tenor_fair = years.attrs["price"]
     stack = {"forward": forward, "shape": fair1 - forward, "fair_price": fair1,
              "trend": tenor_fair - fair1, "tenor_fair_price": tenor_fair,

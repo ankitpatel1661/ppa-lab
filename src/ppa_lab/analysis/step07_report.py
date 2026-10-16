@@ -8,9 +8,10 @@ Output:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -39,6 +40,7 @@ from ppa_lab.pricing.risk import (
     structure_table,
     tenor_price,
 )
+from ppa_lab.scenarios.buildout import calibrate, capture_rate_factors, share_growth
 from ppa_lab.scenarios.generator import Scenarios, build_scenarios
 from ppa_lab.scenarios.link import fit_link, restrict_pool
 from ppa_lab.scenarios.weather import monthly_climatology
@@ -84,7 +86,9 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
                curve: dict[int, float] | None = None,
                response: dict | None = None,
                history: dict[str, dict] | None = None,
-               capture_error: float | None = None) -> list[dict]:
+               capture_error: float | None = None,
+               factors: dict[int, float] | None = None,
+               buildout: dict[str, dict[int, float]] | None = None) -> list[dict]:
     """The tenor price under the base assumptions and the sensitivities.
 
     `curve` gives the forwards of later contract years (see `tenor_price`); the forward
@@ -92,17 +96,19 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
     `level_shift`): the capture rate moves with each year's forward and with the forward
     sensitivities. `history` maps a case name to another response, used for the first year too.
     `capture_error`: the model's out-of-sample capture-rate error (Step 6), taken off every year.
+    `factors`: the base build-out scenario's capture-rate factor per year (all rows);
+    `buildout`: other scenarios, case name -> factors.
     """
     stack = priced["stack"]
     deductions = stack["risk_premium"] + stack["balancing"] + stack["credit"]
     curve = curve or {}
 
     def row(label: str, fair: float, forward: float, drift: float, scale: float = 1.0,
-            levels: dict | None = response) -> dict:
+            levels: dict | None = response, path: dict[int, float] | None = factors) -> dict:
         t = tenor_price(fair, forward, priced["energy_mwh"], start, years, rate,
                         capture_rate_drift=drift, degradation=cost.degradation,
                         forward_curve={y: scale * f_y for y, f_y in curve.items()},
-                        level_response=levels)
+                        level_response=levels, capture_rate_factors=path)
         return {"case": label, "fair_price": t.attrs["price"],
                 "indicative": t.attrs["price"] - deductions}
 
@@ -119,6 +125,8 @@ def tenor_rows(priced: dict, cost: PpaParkSettings, start: int, years: int, rate
         rows.append(row(label, f * capture_rate_at(levels, f), f, d, levels=levels))
     if capture_error is not None:
         rows.append(row(OUT_OF_SAMPLE, f * (k / f - capture_error), f, d))
+    for label, path in (buildout or {}).items():
+        rows.append(row(label, k, f, d, path=path))
     return rows
 
 
@@ -130,7 +138,8 @@ TECH_COLUMNS = {"solar": "solar_mw", "wind": "wind_onshore_mw"}
 
 def price_clause(base: Scenarios, whole: Scenarios | None, park: str, cost: PpaParkSettings,
                  quantile: float, below: float, grid: list[dict], ppa, plain: dict,
-                 prices: pd.Series, generation: pd.Series, tz: str) -> dict:
+                 prices: pd.Series, generation: pd.Series, tz: str,
+                 factors: dict[int, float] | None = None) -> dict:
     """The negative-price clause for one park (v1.8): the park curtails below `below` and is
     paid only for what it delivers, at that output's own fair price. Stack, premium, tenor
     price (along the curtailed output's capture rate and delivered share by price level), the
@@ -145,7 +154,7 @@ def price_clause(base: Scenarios, whole: Scenarios | None, park: str, cost: PpaP
                         ppa.tenor_years, ppa.discount_rate,
                         capture_rate_drift=cost.capture_rate_drift, degradation=cost.degradation,
                         forward_curve=ppa.forward_curve, level_response=response,
-                        volume_response=volumes)
+                        volume_response=volumes, capture_rate_factors=factors)
     weights = years["discount_factor"]
     full = plain["energy_mwh"] * (1.0 - cost.degradation) ** np.arange(len(years))
     delivered = float((weights * years["energy_mwh"]).sum() / (weights * full).sum())
@@ -172,6 +181,48 @@ def price_clause(base: Scenarios, whole: Scenarios | None, park: str, cost: PpaP
                              "delivered_share": delivered,
                              "indicative_per_potential_mwh": indicative * delivered}},
     }
+
+
+def buildout_paths(settings: Settings, start: int, years: int) -> dict | None:
+    """The build-out scenarios (PPA-8f): calibration on history and, per scenario, the share
+    growth and the capture-rate factor of each contract year. None without [buildout] or data."""
+    bo = settings.buildout
+    path = settings.processed_dir / "power_15min.parquet"
+    if bo is None or not path.exists():
+        return None
+    power = to_hourly(pd.read_parquet(path))
+    panel = monthly_panel(hourly_prices(settings), power, settings.timezone, {"solar": "solar_mw"})
+    reg = None
+    if (panel["capture_rate_solar"] > 0).all():        # the log form needs positive rates
+        reg = level_regression(panel, "solar", bo.regression_start_year, log=True)
+    cal = None
+    if reg is not None:
+        with contextlib.suppress(KeyError):            # history years outside the data
+            cal = calibrate(power, settings.timezone, bo.history_first_year,
+                            bo.history_last_year, list(bo.history_pv_additions_gw),
+                            bo.storage_cycles_per_year, bo.storage_solar_fraction,
+                            reg["share_coef"], reg["share_se"])
+    if cal is None:
+        log.warning("no build-out scenarios: the data cannot calibrate [buildout]; solar's "
+                    "capture rate follows capture_rate_drift alone")
+        return None
+    scenarios = {}
+    for name, sc in bo.scenarios.items():
+        growth = share_growth(cal, sc.pv_additions_gw, sc.storage_additions_gwh,
+                              bo.history_storage_additions_gwh)
+        scenarios[name] = {"label": sc.label, "pv_additions_gw": sc.pv_additions_gw,
+                           "storage_additions_gwh": sc.storage_additions_gwh,
+                           "share_growth": growth,
+                           "factor_per_year": float(np.exp(cal.gamma * cal.amplification
+                                                           * growth)),
+                           "factors": capture_rate_factors(cal, growth, start, years)}
+    return {"base": bo.base_scenario, "calibration": asdict(cal), "scenarios": scenarios,
+            "regression": {k: reg[k] for k in ("share_coef", "share_se", "coef", "r2", "n")},
+            "history_years": [bo.history_first_year, bo.history_last_year],
+            "history_pv_additions_gw": list(bo.history_pv_additions_gw),
+            "history_storage_additions_gwh": bo.history_storage_additions_gwh,
+            "storage_cycles_per_year": bo.storage_cycles_per_year,
+            "storage_solar_fraction": bo.storage_solar_fraction}
 
 
 def eeg_comparison(grid: list[dict], park: str, spec: dict, ppa, cost: PpaParkSettings,
@@ -705,6 +756,59 @@ def _eeg_md(e: dict, label: str, start: int, years: int) -> str:
         + "\n".join(award_lines) + "\n\n" + verdict)
 
 
+def _buildout_md(bo: dict | None, tenors: dict[str, list], priced: dict[str, dict],
+                 names: dict[str, str], results: dict[str, dict], start: int, years: int) -> str:
+    """Section text: the build-out scenarios and what they do to the solar price."""
+    parks = [p for p, r in results.items() if r.get("buildout")]
+    if bo is None or not parks:
+        return "No build-out scenarios (`[buildout]`; `buildout = true` for a park)."
+    cal, reg = bo["calibration"], bo["regression"]
+    first, last = bo["history_years"]
+    end = start + years - 1
+    mid = min(start + 3, end)
+    lines = ["| Scenario | Solar (GW/yr) | Storage (GWh/yr) | Solar share of load (pp/yr) | "
+             f"Capture-rate factor {mid} / {end} | "
+             + " | ".join(f"{names[p]}: {years}-year fair; indicative" for p in parks) + " |",
+             "|---|---|---|---|---|" + "---|" * len(parks)]
+    for name, sc in bo["scenarios"].items():
+        mark = " (base case)" if name == bo["base"] else ""
+        cells = []
+        for p in parks:
+            case = "Base case" if name == bo["base"] else f"Build-out: {sc['label']}"
+            r = next(x for x in tenors[p] if x["case"] == case)
+            cells.append(f"{r['fair_price']:.2f}; {r['indicative']:.2f}")
+        f = sc["factors"]
+        lines.append(f"| {sc['label'].split(':')[0]}{mark} | {sc['pv_additions_gw']:g} | "
+                     f"{sc['storage_additions_gwh']:g} | {sc['share_growth'] * 100:+.2f} | "
+                     f"{f[mid]:.2f} / {f[end]:.2f} | " + " | ".join(cells)
+                     + " |")
+    fixed = "; ".join(f"{results[p]['buildout']['tenor_with_fixed_trend']:.2f} EUR/MWh "
+                      f"({names[p].lower()})" for p in parks)
+    base = bo["scenarios"][bo["base"]]["factors"]
+    fall = 1.0 - base[start + 1] / base[start]
+    return (
+        f"Until v1.10 solar's capture rate fell 1 percentage point a year after {start}, an "
+        "assumption. Now it follows build-out scenarios (`[buildout]`). History calibrates the "
+        f"link: solar's share of load grew from {cal['share_start']:.1%} ({first}) to "
+        f"{cal['share_end']:.1%} ({last}) while {sum(bo['history_pv_additions_gw']):g} GW of "
+        f"solar were added, {cal['kappa'] * 100:.3f} share points per GW. A GWh of storage "
+        f"takes {cal['lam'] * 100:.3f} points out of the cheap hours "
+        f"({bo['storage_cycles_per_year']:g} cycles a year, "
+        f"{bo['storage_solar_fraction']:.0%} of them charged from solar, "
+        f"{cal['load_twh']:.0f} TWh of load); only storage beyond history's "
+        f"{bo['history_storage_additions_gwh']:g} GWh a year counts. "
+        f"On monthly history ({reg['n']} months) each point of solar share lowered the capture "
+        f"rate by {abs(reg['share_coef']):.1f}% (log form, se {reg['share_se']:.1f}); new solar "
+        f"adds most share in sunny months, which weigh {cal['amplification']:.2f} times as much. "
+        "The level effect of section 7 and the forward curve stay as they were.\n\n"
+        + "\n".join(lines) + "\n\n"
+        f"With the fixed −1 pp a year of v1.10 the {years}-year fair price was {fixed}. Storage is "
+        f"what decides: in the base case solar's capture rate falls by {fall:.0%} a year, and "
+        "only a storage build-out several times history's slows it much. The scenarios "
+        f"extrapolate a link measured on {reg['n']} months up to {last}, in which storage was "
+        "small; flexible demand, exports and curtailment rules are not in it.")
+
+
 def _premia_md(priced: dict[str, dict], names: dict[str, str]) -> str:
     rows = []
     for park, result in priced.items():
@@ -781,8 +885,10 @@ def _level_md(effects: dict[str, dict], regs: dict, names: dict[str, str], low: 
     return "\n".join(lines)
 
 
-def _build_out(effects: dict[str, dict], names: dict[str, str], drifts: dict[str, float]) -> str:
-    """What history's build-out coefficient means at the recent pace, against the assumed trend."""
+def _build_out(effects: dict[str, dict], names: dict[str, str], drifts: dict[str, float],
+               scenarios: set[str] = frozenset()) -> str:
+    """What history's build-out coefficient means at the recent pace, against the assumed trend
+    (or the build-out scenarios of section 8 for the parks in `scenarios`)."""
     def pp(x: float, digits: int) -> str:
         return f"{round(x * 100, digits) + 0.0:+.{digits}f}".replace("-", "−")
 
@@ -794,12 +900,17 @@ def _build_out(effects: dict[str, dict], names: dict[str, str], drifts: dict[str
         parts.append(f"{names[park].lower()} {_n(reg['share_coef'])} per unit of its share of "
                      f"load, which grew {pace['per_year'] * 100:.1f} pp a year in "
                      f"{pace['from']}-{pace['to']}: {pp(reg['share_coef'] * pace['per_year'], 1)} "
-                     f"pp of capture rate a year (base-case trend {pp(drifts[park], 0)} pp)")
+                     "pp of capture rate a year ("
+                     + ("base case: build-out scenarios, section 8" if park in scenarios
+                        else f"base-case trend {pp(drifts[park], 0)} pp") + ")")
     if not parts:
         return ""
+    close = (" Section 8 turns this into build-out scenarios, in which storage slows solar's "
+             "fall." if scenarios else
+             " The trend assumes that storage, flexible demand and curtailment slow solar's "
+             "fall; the −2 pp row of section 4 is closer to history's pace.")
     return ("\n\nBuild-out, from the same regression at a fixed price level: " + "; ".join(parts)
-            + ". The trend assumes that storage, flexible demand and curtailment slow solar's "
-            "fall; the −2 pp row of section 4 is closer to history's pace.")
+            + "." + close)
 
 
 def _level_verdict(effects: dict[str, dict], names: dict[str, str]) -> str:
@@ -882,6 +993,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
 
     priced, tenors, results, effects, negative = {}, {}, {}, {}, {}
     eeg_results = {}
+    bo = buildout_paths(settings, ppa.start_year, ppa.tenor_years)
     end_year = ppa.start_year + ppa.tenor_years - 1
     below = ppa.curtail_below_eur_mwh
     for park in names:
@@ -907,17 +1019,31 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         error = check["bias"][park]["capture_rate"] if check and park in check["bias"] else None
         e["out_of_sample_error"] = error
         e["trend_implied_drift"] = None if implied is None else implied[park]
+        factors = bo["scenarios"][bo["base"]]["factors"] if bo and cost.buildout else None
+        others = None if factors is None else {
+            f"Build-out: {sc['label']}": sc["factors"] for name, sc in bo["scenarios"].items()
+            if name != bo["base"]}
         tenors[park] = tenor_rows(priced[park], cost, ppa.start_year, ppa.tenor_years,
                                   ppa.discount_rate, alt, ppa.forward_curve, response, history,
-                                  error)
+                                  error, factors, others)
         stack = priced[park]["stack"]
         e["tenor_fair_without_level_effect"] = tenor_price(
             stack["fair_price"], stack["forward"], priced[park]["energy_mwh"], ppa.start_year,
             ppa.tenor_years, ppa.discount_rate, capture_rate_drift=cost.capture_rate_drift,
-            degradation=cost.degradation, forward_curve=ppa.forward_curve).attrs["price"]
+            degradation=cost.degradation, forward_curve=ppa.forward_curve,
+            capture_rate_factors=factors).attrs["price"]
         if below is not None:
             negative[park] = price_clause(base, whole, park, cost, q, below, grid, ppa,
-                                          priced[park], all_prices, inputs["gen"][park], tz)
+                                          priced[park], all_prices, inputs["gen"][park], tz,
+                                          factors)
+        fixed_trend = None
+        if factors is not None:          # the v1.10 view: -1 pp a year, no build-out scenario
+            s0 = priced[park]["stack"]
+            fixed_trend = tenor_price(
+                s0["fair_price"], s0["forward"], priced[park]["energy_mwh"], ppa.start_year,
+                ppa.tenor_years, ppa.discount_rate, capture_rate_drift=-0.01,
+                degradation=cost.degradation, forward_curve=ppa.forward_curve,
+                level_response=response).attrs["price"]
         if park in eeg:
             eeg_results[park] = eeg_comparison(grid, park, eeg[park], ppa, cost, tenors[park],
                                                low)
@@ -935,6 +1061,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             "level_effect": e,
             "negative_prices": negative.get(park),
             "eeg": eeg_results.get(park),
+            "buildout": None if factors is None else {
+                "base": bo["base"], "scenarios": bo["scenarios"],
+                "tenor_with_fixed_trend": fixed_trend},
             "assumptions": {"balancing_eur_mwh": cost.balancing_eur_mwh,
                             "credit_eur_mwh": cost.credit_eur_mwh,
                             "capture_rate_drift": cost.capture_rate_drift,
@@ -964,6 +1093,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             k: regs[k] for k in ("start_year", "first_year", "last_year")},
         "level_grid": grid,
         "curtail_below_eur_mwh": below,
+        "buildout": None if bo is None else {k: v for k, v in bo.items() if k != "scenarios"},
         "forward_curve": {str(y): f_y for y, f_y in sorted(ppa.forward_curve.items())},
         "parks": results}), indent=1, allow_nan=False))
 
@@ -1000,13 +1130,31 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         f"GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR "
         f"{merchant_cfar / 1e6:.2f} m (merchant) to EUR {pap_cfar / 1e6:.2f} m per year: only "
         f"volume risk is left.")
+    if lead_r.get("buildout"):
+        span_bo = [r["indicative"] for r in tenors[lead]
+                   if r["case"] == "Base case" or r["case"].startswith("Build-out:")]
+        answer += (
+            f" After {ppa.start_year} the capture rate follows the "
+            f"{bo['scenarios'][bo['base']]['label'].split(':')[0].lower()} build-out scenario "
+            f"(section 8); across the scenarios the indicative price ranges from "
+            f"{min(span_bo):.1f} to {max(span_bo):.1f} EUR/MWh, and storage decides where.")
 
-    trends = ", ".join(f"{names[p].lower()} {ppa.parks[p].capture_rate_drift * 100:+.0f} pp"
-                       for p in names)
+    scenario_parks = {p for p in names if results[p].get("buildout")}
+
+    def trend(p: str) -> str:
+        drift = ppa.parks[p].capture_rate_drift
+        text = f"{drift * 100:+.0f} pp a year"
+        if p not in scenario_parks:
+            return f"{names[p].lower()} {text}"
+        label = bo["scenarios"][bo["base"]]["label"].split(":")[0].lower()
+        return (f"{names[p].lower()} the {label} build-out scenario (section 8)"
+                + (f" and {text}" if drift else ""))
+
+    trends = "; ".join(trend(p) for p in names)
     lead_e = effects[lead]
     level_note = (
         "\nEach year's capture rate moves with that year's forward along the model's own "
-        "response to the price level (section 5), on top of the trend.")
+        "response to the price level (section 7), on top of the trend.")
     if lead_e["history"] is not None:
         level_note += (
             " The two rows on the capture rate vs price level use history's 95% interval for "
@@ -1029,10 +1177,13 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         level_note += (
             f" The {ppa.start_year} scenarios carry history's build-out trend up to "
             f"{ppa.start_year} (Step 6, section 4); continued for one more year at the same "
-            f"forward it would move the capture rate by {pace}. The base case assumes {trends} "
-            "a year after that: storage, flexible demand and curtailment are expected to slow "
-            "the fall, and a straight line would take solar's capture rate towards zero within "
-            "a decade (the −2 pp row is the steeper view).")
+            f"forward it would move the capture rate by {pace}. After that the base case "
+            f"follows: {trends}"
+            + ("; the build-out rows show the other scenarios, and the trend rows move "
+               "the capture rate by whole points a year on top." if scenario_parks else
+               ": storage, flexible demand and curtailment are expected to slow the fall, and "
+               "a straight line would take solar's capture rate towards zero within a decade "
+               "(the −2 pp row is the steeper view)."))
     level_note += "\n"
     without = ", ".join(f"{names[p].lower()} {effects[p]['tenor_fair_without_level_effect']:.1f}"
                         for p in names)
@@ -1048,12 +1199,15 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         "rebuilding the scenarios at each forward with the same random draws.\n\n"
         + (_level_md(effects, regs, names, low, f0, ppa.start_year) + "\n\n"
            + _level_verdict(effects, names)
-           + _build_out(effects, names, {p: ppa.parks[p].capture_rate_drift for p in names})
+           + _build_out(effects, names, {p: ppa.parks[p].capture_rate_drift for p in names},
+                        scenario_parks)
            if regs else
            "No power data for the history check: run `ppa-lab data` first.")
         + "\n\nSo the base case moves each year's capture rate along the model's response "
         f"(chart below); holding the first year's capture rate over the tenor instead (as "
         f"before v1.5) would give fair prices of {without} EUR/MWh.")
+    buildout_text = _buildout_md(bo, tenors, priced, names, results, ppa.start_year,
+                                 ppa.tenor_years)
     eeg_text = "\n\n".join(f"### {names[p]}\n\n" + _eeg_md(e, names[p], ppa.start_year,
                                                              ppa.tenor_years)
                            for p, e in eeg_results.items()) or "No park under the EEG (`[eeg]`)."
@@ -1091,7 +1245,10 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             + _negative_md(negative, priced, tenors, names, ppa.start_year, ppa.tenor_years)
             + "\n\nThe clause's tenor price follows the curtailed output's capture rate and its "
             "delivered share at each year's forward (more negative hours at lower forwards), "
-            "plus the capture-rate trend; the first year's premium and costs apply to every "
+            "plus the capture-rate trend"
+            + (" and the solar build-out scenario of section 8 (it leaves the delivered share "
+               "unchanged)" if scenario_parks else "")
+            + "; the first year's premium and costs apply to every "
             "year. In history the parks' output at negative prices grew with the build-out:\n\n"
             + _curtailment_history_md(negative, names) + "\n\n2026: January to September."
             + gap)
@@ -1126,8 +1283,8 @@ Balancing and credit costs are stated assumptions (`[ppa.parks.*]` in `config/pr
 
 ## 4. {ppa.tenor_years}-year price ({span})
 
-Discounted at {ppa.discount_rate:.0%} (mid-year), energy-weighted; forwards as above. Capture-rate
-trend per year after {ppa.start_year} (base case): {trends}; solar output degrades
+Discounted at {ppa.discount_rate:.0%} (mid-year), energy-weighted; forwards as above. Capture rate
+after {ppa.start_year} (base case): {trends}. Solar output degrades
 {ppa.parks[lead].degradation:.1%} per year. The risk premium and costs per MWh of the first year
 are applied to every year (a simplification).
 
@@ -1147,11 +1304,15 @@ are applied to every year (a simplification).
 
 ![Capture rate vs price level](figures/{figs["level"].name})
 
-## 8. The answer
+## 8. Solar and storage build-out after {ppa.start_year}
+
+{buildout_text}
+
+## 9. The answer
 
 {answer}
 
-## 9. Charts
+## 10. Charts
 
 ![Price stack](figures/{figs["stack"].name})
 

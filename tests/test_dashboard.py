@@ -143,3 +143,22 @@ def test_hedging_table_when_step8_results_are_published():
     assert list(t.index) == ["No hedge (merchant)", "Cal base, minimum-variance"]
     assert t.loc["Cal base, minimum-variance", "CFaR95 (EUR m)"] == pytest.approx(0.27)
     assert t.loc["Cal base, minimum-variance", "Hedge ratio (%)"] == pytest.approx(89.0)
+
+
+def test_a_build_out_scenario_scales_later_capture_rates_for_any_tenor():
+    r = results_fixture()
+    r["parks"]["solar_park"]["buildout"] = {"base": "central", "scenarios": {
+        "central": {"label": "Central", "factor_per_year": 0.9},
+        "storage_boom": {"label": "Storage boom", "factor_per_year": 1.0}}}
+    a = default_assumptions(r, "solar_park")
+    assert a.buildout == "central"
+    s = offer(r, "solar_park", Assumptions(**{**a.__dict__, "tenor_years": 15}))["stack"]
+    expected = tenor_price(40.0, 80.0, 55_000.0, 2027, 15, 0.06, degradation=0.005,
+                           capture_rate_factors={2027 + i: 0.9 ** i for i in range(15)})
+    assert s["tenor_fair_price"] == pytest.approx(expected.attrs["price"])
+    boom = offer(r, "solar_park", Assumptions(**{**a.__dict__, "buildout": "storage_boom"}))
+    b = boom["stack"]
+    assert b["indicative"] == pytest.approx(b["tenor_fair_price"] - 5.0 - 1.5 - 1.0)
+    assert b["tenor_fair_price"] > offer(r, "solar_park", a)["stack"]["tenor_fair_price"]
+    # results from before v1.11 have no build-out
+    assert default_assumptions(results_fixture(), "solar_park").buildout is None

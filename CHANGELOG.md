@@ -6,6 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.11.0] (ticket PPA-8f: solar and storage build-out scenarios)
+
+### Added
+- `scenarios/buildout.py`: solar's share of load grows by kappa per GW of solar added
+  (calibrated 2022-2025), storage beyond history's pace takes lambda = cycles x solar fraction /
+  load of it out of the cheap hours, and the capture rate falls by the monthly-history share
+  effect in log form, amplified by the share's seasonality: a capture-rate factor per contract
+  year.
+- `[buildout]` in `config/project.toml`: history's solar additions (Bundesnetzagentur), storage
+  assumptions and five scenarios (central, recent pace, EEG solar target pace, storage boom,
+  slowdown); `buildout = true` for the solar park.
+- Step 7 section 8 (scenario table and calibration) and a tenor row per other scenario; the
+  negative-price clause's tenor follows the same factors.
+- `level_regression(..., log=True)` and the share's standard error.
+- Memo lever for the build-out range; dashboard selector for the build-out scenario
+  (`Assumptions.buildout`, any tenor).
+
+### Changed
+- Solar's capture-rate trend after the delivery year: from an assumed −1 pp a year to the
+  central build-out scenario (17 GW of solar and 12 GWh of storage a year: −8% a year); the
+  ±1 and −2 pp trend rows stay as sensitivities on top.
+- Step 7 sections renumbered: the answer is section 9, the charts section 10.
+
+### Findings
+- On 2023-2026 monthly history each point of solar's share of load lowers its capture rate by
+  5.3% (log form, se 0.8); the log form fits better than the linear one.
+- Borrentin: 10-year fair price 35.1 EUR/MWh (41.1 with −1 pp), indicative 21.4 (27.4); 17.9 to
+  30.1 across the scenarios. Storage decides: only a storage boom (35 GWh a year) keeps the
+  capture rate near flat. With the clause 39.3 per delivered MWh (27.3 per MWh of output).
+  Everswinkel unchanged (PPA 78.6, EEG 93.8).
+
 ## [1.10.0] (tickets PPA-2b and PPA-6c: the TSOs' own data)
 
 ### Added

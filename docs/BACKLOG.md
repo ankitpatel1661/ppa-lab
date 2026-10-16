@@ -22,7 +22,7 @@ that step is written.
 | PPA-8d | 8d | Capture rate vs price level: test on history, move later years' capture rates | **Done** (v1.5) |
 | PPA-6b | 6b | Out-of-sample test of the joint model; negative prices with their own scale | **Done** (v1.6) |
 | PPA-8e | 8e | Capture rates that follow the build-out (out-of-sample solar error +0.12 → +0.03) | **Done** (v1.7) |
-| PPA-8f | later | Build-out and storage scenario for 2028-2036 instead of the −1 pp a year view | To do |
+| PPA-8f | 7a | Build-out and storage scenarios for 2028-2036 instead of the −1 pp a year view | **Done** (v1.11) |
 | PPA-7b | 7b | Curtailment at negative prices; the negative-price clause at its own fair strike | **Done** (v1.8) |
 | PPA-7c | 7c | Everswinkel's EEG market premium as a strip of puts, against a PPA | **Done** (v1.9) |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
@@ -268,12 +268,25 @@ analyst I want to know what the EEG is worth, and what a PPA would have to pay t
 any negative hour); Everswinkel II (N163, 2025) may have a different award; guarantees of
 origin are not valued.
 
-## PPA-8f: Build-out and storage after the delivery year (open)
+## PPA-8f: Build-out and storage after the delivery year (v1.11)
 
-- [ ] Solar and storage build-out scenarios for 2028-2036 (EEG targets, the grid development
-      plan, battery pipeline) and the share of load they imply.
-- [ ] Capture rates per contract year from scenarios at that build-out, instead of −1 pp a
-      year.
+**Story:** As a pricing analyst I want solar's capture rate after 2027 to follow stated solar
+and storage build-out scenarios, not an assumed −1 pp a year, so that the cannibalisation view
+can be argued with Risk and moved with the market's expectations.
+
+**Acceptance criteria**
+- [x] Solar and storage build-out scenarios for 2028-2036 in `[buildout]` (central, recent
+      pace, EEG solar target pace, storage boom, slowdown) and the share of load they imply:
+      kappa per GW calibrated on 2022-2025 shares and additions, lambda per GWh of storage
+      beyond history's pace from cycles, solar fraction and load. Tested by hand.
+- [x] Capture rates per contract year from the share effect of monthly history (log form,
+      PPA-8d data), amplified by the share's seasonality; the base scenario prices the solar
+      park, the others are Step 7 rows; the clause's tenor and the dashboard follow.
+- [x] Step 7 section 8, memo lever, METHODOLOGY section 10, limitations.
+
+**Result:** central 21.4 EUR/MWh indicative (27.4 with −1 pp); 17.9 (EEG target pace) to 30.1
+(storage boom). **Open:** storage as a dispatch model instead of fixed cycles; flexible demand
+and exports; a check against published PPA price indices (paid data).
 
 ## PPA-4b: Two Encavis parks instead of illustrative ones (v1.3)
 

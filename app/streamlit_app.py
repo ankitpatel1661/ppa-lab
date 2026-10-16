@@ -96,7 +96,17 @@ with st.sidebar:
     forward_shift = st.slider("Shift of the forward curve (%)", -30, 30, 0, 5,
                               help=f"Base case: {forward_text}. The capture rate moves with "
                                    "the level, along the price model's response.") / 100
-    drift = st.slider("Capture-rate trend (pp per year)", -3.0, 2.0, d.drift * 100, 0.5) / 100
+    bo = results["parks"][park].get("buildout")
+    buildout = None
+    if bo:
+        names = list(bo["scenarios"])
+        buildout = st.selectbox(
+            f"Solar and storage build-out after {results['delivery_year']}", names,
+            index=names.index(bo["base"]), format_func=lambda n: bo["scenarios"][n]["label"],
+            help="Solar's capture rate falls as solar's share of load grows; storage takes "
+                 "midday output out of the cheap hours (Step 7, section 8).")
+    drift = st.slider("Capture-rate trend (pp per year)", -3.0, 2.0, d.drift * 100, 0.5,
+                      help="On top of the build-out scenario, if any.") / 100
     tenor = st.slider("Tenor (years)", 1, 15, d.tenor_years)
     rate = st.slider("Discount rate (%)", 0.0, 12.0, d.discount_rate * 100, 0.5) / 100
     degradation = st.slider("Output degradation (% per year)", 0.0, 1.5,
@@ -107,7 +117,8 @@ with st.sidebar:
 
 mine = Assumptions(balancing=balancing, credit=credit, drift=drift, degradation=degradation,
                    discount_rate=rate, tenor_years=tenor, forward_shift=forward_shift,
-                   pool="recent" if pool.startswith("Last") else "whole", clause=clause)
+                   pool="recent" if pool.startswith("Last") else "whole", clause=clause,
+                   buildout=buildout)
 result, base = offer(results, park, mine), offer(results, park, d)
 s, b = result["stack"], base["stack"]
 r = results["parks"][park]

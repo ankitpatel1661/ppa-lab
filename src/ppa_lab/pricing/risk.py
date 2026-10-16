@@ -177,13 +177,15 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
                 degradation: float = 0.0,
                 forward_curve: dict[int, float] | None = None,
                 level_response: dict | None = None,
-                volume_response: dict | None = None) -> pd.DataFrame:
+                volume_response: dict | None = None,
+                capture_rate_factors: dict[int, float] | None = None) -> pd.DataFrame:
     """One price for a multi-year pay-as-produced PPA from the first year's fair price.
 
     Year y: forward F_y = `forward` in the first year, then `forward_curve` where it gives the
     year; a year after the last quoted one keeps that quote (flat). Capture rate
-    c_y = c_0 + drift * (y - start) + g(F_y) - g(F_0) with c_0 = fair_price / forward and g
-    the capture rate at a price level (`level_response`, see `level_shift`; none: g constant),
+    c_y = (c_0 + g(F_y) - g(F_0)) m_y + drift * (y - start) with c_0 = fair_price / forward, g
+    the capture rate at a price level (`level_response`, see `level_shift`; none: g constant)
+    and m_y the build-out factor of year y (`capture_rate_factors`; none: 1),
     fair price F_y c_y, energy E_y = energy * (1 - degradation)^(y - start) * v(F_y) / v(F_0)
     with v the share of the output delivered at a price level (`volume_response`
     {"level", "share"}, for a contract under which the park curtails; none: v constant),
@@ -197,7 +199,9 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
     for i in range(years):
         y = start_year + i
         f_y = forward_curve.get(y, f_y)
-        rate = c0 + capture_rate_drift * i + level_shift(level_response, forward, f_y)
+        factor = (capture_rate_factors or {}).get(y, 1.0)
+        rate = ((c0 + level_shift(level_response, forward, f_y)) * factor
+                + capture_rate_drift * i)
         delivered = 1.0
         if volume_response:
             delivered = (np.interp(np.log(f_y), np.log(volume_response["level"]),

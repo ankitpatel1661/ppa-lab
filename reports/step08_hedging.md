@@ -1,6 +1,6 @@
 # Step 8 report: hedging with power futures
 
-Generated 2026-10-16 07:39 UTC by `ppa-lab hedging`.
+Generated 2026-10-16 08:23 UTC by `ppa-lab hedging`.
 
 Inputs: the Step 7 scenarios for 2027 (496 scenarios,
 analog days from 2025-10-01). Selling a product at its forward pays, per MW,
@@ -28,7 +28,7 @@ so every hedge is fair in expectation and only changes the spread.
 | cal_base  |                   126.47 | 2026-09-29   |                    141.06 |           -14.59 | [link](https://www.tacto.ai/en/energy/electricity-price) (www.tacto.ai)          |
 | cal_base  |                   140.21 | 2026-10-09   |                    141.06 |            -0.85 | [link](https://www.tacto.ai/en/energy/electricity-price) (www.tacto.ai)          |
 
-The model's forward is the market: EEX German Power Cal-27 base 140.21 EUR/MWh (quote of 2026-10-09, via tacto.ai); its quarters follow the market's seasonal shape (Q1-Q4 185.3 / 117.7 / 124.3 / 134.3, quotes of 2026-09-14); later years follow the forward curve (2028: 104.75, 2029: 87.58), held flat after 2029. The quotes show how fast the level moves: between 104.24 and 140.21 EUR/MWh from 2026-07-31 to 2026-10-09. A 10% move of the whole curve changes the solar park's ten-year indicative price by 6.8 EUR/MWh (Step 7), so an offer must be refreshed with the curve on the day of signing.
+The model's forward is the market: EEX German Power Cal-27 base 140.21 EUR/MWh (quote of 2026-10-09, via tacto.ai); its quarters follow the market's seasonal shape (Q1-Q4 185.3 / 117.7 / 124.3 / 134.3, quotes of 2026-09-14); later years follow the forward curve (2028: 104.75, 2029: 87.58), held flat after 2029. The quotes show how fast the level moves: between 104.24 and 140.21 EUR/MWh from 2026-07-31 to 2026-10-09. A 10% move of the whole curve changes the solar park's ten-year indicative price by 5.5 EUR/MWh (Step 7), so an offer must be refreshed with the curve on the day of signing.
 
 ## 2. Hedging merchant output
 

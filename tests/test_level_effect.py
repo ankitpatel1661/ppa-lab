@@ -66,3 +66,11 @@ def test_share_pace_uses_complete_years():
     assert pace["from"] == 2022 and pace["to"] == 2024
     assert pace["per_year"] == pytest.approx(0.02)
     assert share_pace(power, TZ, "solar_mw", first_year=2022) is None     # no 2021
+
+
+def test_the_log_form_recovers_a_proportional_share_effect():
+    panel = synthetic_panel(slope=0.0)
+    share = panel["share_solar"].to_numpy()
+    rate = 0.8 * np.exp(-5.0 * share + 0.003 * np.sin(np.arange(len(share))))
+    r = level_regression(panel.assign(capture_rate_solar=rate), "solar", log=True)
+    assert r["share_coef"] == pytest.approx(-5.0, abs=0.2) and r["share_se"] > 0

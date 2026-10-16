@@ -47,6 +47,11 @@ def _signed(x: float) -> str:
     return f"{'+' if x >= 0 else '−'}{abs(x):.1f}"
 
 
+def _lower(name: str) -> str:
+    """'Storage boom' -> 'storage boom', 'EEG target' stays."""
+    return name if name[:2].isupper() else name[:1].lower() + name[1:]
+
+
 def _case(rows: list[dict], name: str) -> dict | None:
     return next((r for r in rows if r["case"] == name), None)
 
@@ -105,15 +110,23 @@ def memo_text(results: dict, settings: Settings) -> str:
     sens = solar["tenor"]["sensitivity"]
     base_ind = solar["tenor"]["indicative"]
     levers = []
-    for name, label, sign in (("Analog days from the whole window",
-                               f"Older days represent {start} (whole 2024-2026 window instead "
-                               "of the last 12 months)", None),
-                              (trend_case(0.01), "Capture-rate trend ±1 pp per year", "±")):
-        row = _case(sens, name)
-        if row is not None and (sign or abs(row["indicative"] - base_ind) >= 0.5):
-            delta = row["indicative"] - base_ind
-            mark = sign or ("+" if delta >= 0 else "−")
-            levers.append(f"- {label}: **{mark}{abs(delta):.1f} EUR/MWh**")
+    old = _case(sens, "Analog days from the whole window")
+    if old is not None and abs(old["indicative"] - base_ind) >= 0.5:
+        levers.append(f"- Older days represent {start} (whole 2024-2026 window instead of the "
+                      f"last 12 months): **{_signed(old['indicative'] - base_ind)} EUR/MWh**")
+    steeper = _case(sens, trend_case(0.01))
+    trend = None if steeper is None else f"±{abs(steeper['indicative'] - base_ind):.1f}"
+    bo = solar.get("buildout")
+    rows = [(r["indicative"] - base_ind, r["case"].split(": ")[1])
+            for r in sens if r["case"].startswith("Build-out:")] if bo else []
+    if rows:
+        lo, hi = min(rows)[0], max(rows)[0]
+        levers.append(f"- Build-out scenarios for solar and storage after {start}: "
+                      f"**{_signed(lo)} / {_signed(hi)}**"
+                      + (f"; ±1 pp a year of trend on top: **{trend}**" if trend else "")
+                      + " EUR/MWh")
+    elif trend:
+        levers.append(f"- Capture-rate trend ±1 pp per year: **{trend} EUR/MWh**")
     down, up = _case(sens, "Forward −10%"), _case(sens, "Forward +10%")
     if down is not None and up is not None:
         levers.append(f"- Forward curve −10% / +10%: **{_signed(down['indicative'] - base_ind)} "
@@ -131,6 +144,8 @@ def memo_text(results: dict, settings: Settings) -> str:
         h = e.get("history")
         if h and "slope_recent" in e and h["ci_low"] <= e["slope_recent"] <= h["ci_high"]:
             later_rate += f" (and {e['history_years']} history)"
+    if solar.get("buildout"):
+        later_rate += ", solar's with the build-out"
     clause_line = ("Keep a negative-price clause out, or price it separately: a large share "
                    "of the solar output falls in hours with negative prices.")
     keep_line = "the premium and the credit cost"

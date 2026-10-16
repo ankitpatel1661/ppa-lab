@@ -156,3 +156,21 @@ def test_quarter_quotes_are_complete_and_average_to_their_cal(tmp_path):
     path.write_text(bad)
     with pytest.raises(ValueError, match="quarter_quotes"):
         load_settings(path)
+
+
+def test_build_out_scenarios_are_complete_and_named(tmp_path):
+    s = load_settings()
+    bo = s.buildout
+    assert bo is not None and bo.base_scenario in bo.scenarios
+    assert len(bo.history_pv_additions_gw) == bo.history_last_year - bo.history_first_year
+    assert s.ppa.parks["solar_park"].buildout and not s.ppa.parks["wind_park"].buildout
+    text = DEFAULT_CONFIG.read_text()
+    start, end = text.index("\n[buildout]\n"), text.index("\n[eeg]\n")
+    for bad, match in ((text.replace('base_scenario = "central"', 'base_scenario = "x"'),
+                        "base_scenario"),
+                       (text.replace("[15.5, 17.5, 16.5]", "[15.5, 17.5]"), "one value per year"),
+                       (text[:start] + text[end:], "needs a \\[buildout\\] section")):
+        path = tmp_path / "bad.toml"
+        path.write_text(bad)
+        with pytest.raises(ValueError, match=match):
+            load_settings(path)

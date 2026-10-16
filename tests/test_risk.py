@@ -173,3 +173,10 @@ def test_tenor_price_moves_the_capture_rate_with_the_forward_curve():
                     forward_curve={2028: 100.0, 2029: 50.0}, level_response=RESPONSE)
     assert t["capture_rate"].tolist() == pytest.approx([0.50, 0.39, 0.28])
     assert t["fair_price_eur_mwh"].tolist() == pytest.approx([100.0, 39.0, 14.0])
+
+
+def test_build_out_factors_scale_each_years_capture_rate():
+    t = tenor_price(fair_price=50.0, forward=100.0, energy_mwh=100.0, start_year=2027, years=3,
+                    discount_rate=0.0, capture_rate_drift=-0.01,
+                    capture_rate_factors={2027: 1.0, 2028: 0.9, 2029: 0.8})
+    assert t["capture_rate"].tolist() == pytest.approx([0.5, 0.45 - 0.01, 0.40 - 0.02])

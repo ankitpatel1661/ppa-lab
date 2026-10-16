@@ -134,7 +134,8 @@ an energy- and discount-weighted average of the yearly fair prices. γ(F) is the
 at price level F: since v1.5 the scenarios are rebuilt at each year's forward, so a year at 88
 EUR/MWh gets the capture rate of an 88 year, not 2027's (Step 8 page, section 4.8). With a flat
 forward and a flat capture rate it equals the 2027 price; the sensitivities show what a trend
-does. The
+does. Since v1.11 solar's capture rate is also multiplied by a build-out factor per year
+(section 4.8), and its drift is 0. The
 risk premium and the costs per MWh of the first year are applied to every year (a
 simplification: a ten-year contract averages weather years but adds uncertainty about the
 level and the capture-rate trend).
@@ -340,6 +341,48 @@ indicative price pays 78.1. Three lessons:
 The assumption that matters most is the award value: at AW 60 the premium is worth 2.3, at 95
 it is 16.3 EUR/MWh. In real work the first question would be to the asset manager: what is the
 park's AW, and was it a 2022 or 2023 tender?
+
+### 4.8 Update (v1.11): storage decides solar's later years
+
+Until v1.10 solar's capture rate fell by an assumed 1 percentage point a year after 2027. That
+number was a view, not a measurement, and it was the biggest lever after the forward. v1.11
+replaces it with scenarios you can argue about: how much solar and how much storage Germany
+adds each year.
+
+The chain has three links, each from data or a stated assumption:
+
+    share growth per year   Δs = κ · PV_GW − λ · (storage_GWh − 6.5)
+    κ  = (share 2025 − share 2022) / GW added 2023-2025  = 0.077 points per GW
+    λ  = cycles · solar fraction / load = 250 · 0.8 / 466 TWh = 0.043 points per GWh
+    capture-rate factor     φ_y = exp(γ · A · Δs · (y − 2027)),  γ = −5.3, A = 1.38
+
+γ comes from the same monthly regression as section 7, with ln(capture rate) on the left: each
+point of solar's share of load lowers the capture rate by 5.3% (se 0.8). The log form fits
+the data better and has a sensible tail: a proportional fall never reaches zero, which a
+straight line does within a decade. A is the seasonality: new solar adds most share in sunny
+months, which carry most of solar's output.
+
+| Scenario (per year) | Solar GW | Storage GWh | Capture rate 2036 vs 2027 | Solar 10-year indicative |
+|---|---|---|---|---|
+| **Central (base case)** | 17 | 12 | ×0.50 | **21.4** |
+| Recent pace | 16.5 | 6.5 | ×0.43 | 20.0 |
+| EEG solar target pace | 24 | 12 | ×0.35 | 17.9 |
+| Storage boom | 17 | 35 | ×0.95 | 30.1 |
+| Slowdown | 12 | 8 | ×0.57 | 22.9 |
+
+Three lessons:
+
+1. **Storage is the swing factor, not solar.** Between "slowdown" and "EEG target pace" solar
+   doubles and the price moves 5 EUR/MWh; nearly tripling storage from the central case
+   moves it 9. Ask Risk for its
+   storage view before it argues about solar.
+2. **A view becomes a scenario when its inputs can be checked.** "−1 pp a year" cannot be
+   checked; "17 GW of solar and 12 GWh of storage a year" can, against the
+   Bundesnetzagentur's monthly register and the battery pipeline.
+3. **The model now prices solar lower than −1 pp did** (21.4 instead of 27.4). The link was
+   measured at solar shares up to 15% with little storage; at 25-30% flexible demand,
+   exports and curtailment rules will matter, and they are not in it. Treat the central case
+   as the cautious end of a negotiation, not as a market quote.
 
 ---
 

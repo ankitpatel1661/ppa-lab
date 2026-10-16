@@ -20,6 +20,9 @@ def test_dashboard_runs_and_reacts_to_assumptions():
     at.sidebar.slider[0].set_value(-20).run()          # forward 20% lower
     assert not at.exception
     assert at.metric[0].value != base                  # the indicative price moved
+    lower = at.metric[0].value
+    at.sidebar.selectbox[0].set_value("storage_boom").run()   # solar build-out (v1.11)
+    assert not at.exception and float(at.metric[0].value) > float(lower)
     at.sidebar.radio[0].set_value("Wind park · Everswinkel · 28.5 MW").run()
     assert not at.exception and "EUR/MWh" in at.metric[0].label
     assert float(at.metric[0].value) > 0

@@ -129,3 +129,22 @@ def test_memo_anchored_to_the_market_says_how_far_the_forward_moved(settings):
     text = write_step09_memo(settings, pdf=False)["memo"].read_text()
     assert "moved between 104 and 140 EUR/MWh since 2026-07-31" in text
     assert "differs from the model" not in text
+
+
+def test_memo_gives_the_build_out_range_with_the_trend_on_top(settings):
+    pricing = pricing_fixture()
+    solar = pricing["parks"]["solar_park"]
+    solar["buildout"] = {"base": "central", "scenarios": {"central": {"label": "Central: x"}}}
+    solar["tenor"]["sensitivity"] += [
+        {"case": "Build-out: EEG target: solar +24 GW", "fair_price": 36.0, "indicative": 28.5},
+        {"case": "Build-out: Storage boom: storage +35 GWh", "fair_price": 49.0,
+         "indicative": 41.5}]
+    settings.processed_dir.mkdir(parents=True, exist_ok=True)
+    (settings.processed_dir / "ppa_pricing.json").write_text(json.dumps(pricing))
+
+    text = write_step09_memo(settings, pdf=False)["memo"].read_text()
+
+    assert ("Build-out scenarios for solar and storage after 2027: **−4.0 / +9.0**; ±1 pp a "
+            "year of trend on top: **±3.0** EUR/MWh") in text
+    assert "Capture-rate trend ±1 pp per year" not in text      # folded into the line above
+    assert "solar's with the build-out" in text

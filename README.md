@@ -16,21 +16,23 @@ with their market, shape and volume risks.
 ## The answer
 
 > *For a 10-year pay-as-produced PPA (2027-2036) from Encavis's 114 MWp solar park in Borrentin
-> (Mecklenburg-Western Pomerania), the fair price before risk premia is **41.1 EUR/MWh** (first
+> (Mecklenburg-Western Pomerania), the fair price before risk premia is **35.1 EUR/MWh** (first
 > year: forward 141.1 × expected capture rate 0.55 = 77.5; later years follow the falling
-> forward curve, and the capture rate falls with it, to 0.44 at 88 EUR/MWh, and by another
-> percentage point a year). After a profile and volume risk premium of 10.5 EUR/MWh and
-> balancing and credit costs of 3.2 EUR/MWh, the indicative price is **27.4 EUR/MWh**. Expected
+> forward curve, and the capture rate falls with it, to 0.44 at 88 EUR/MWh, and with solar's
+> build-out: by 8% a year with 17 GW of solar and 12 GWh of storage added a year). After a
+> profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 3.2
+> EUR/MWh, the indicative price is **21.4 EUR/MWh** (17.9 to 30.1 across the build-out
+> scenarios: storage decides). Expected
 > annual energy is 120.9 GWh (P50, matching the published ~121 GWh; one-year P90 113.4 GWh).
 > Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant,
 > stopping at negative prices) to EUR 0.70 m per year. With a negative-price clause (the park
-> stops producing at negative prices and is not paid) the indicative price is 52.2 EUR per
-> delivered MWh: 36.3 per MWh of output, at a cash flow at risk of EUR 1.29 m.*
+> stops producing at negative prices and is not paid) the indicative price is 39.3 EUR per
+> delivered MWh: 27.3 per MWh of output, at a cash flow at risk of EUR 1.29 m.*
 >
 > *How far to trust it: tested on years it had not seen, the model first overstated solar's
 > capture rate by 0.09 to 0.14, because solar's midday dips deepen every year. It now moves
 > each historical day's pattern forward by that measured trend; the error left in 2025-2026 is
-> +0.03 on average, and taking it off gives 25.3 EUR/MWh
+> +0.03 on average, and taking it off gives 19.2 EUR/MWh
 > ([Step 6, section 4](reports/step06_joint_scenarios.md)).*
 
 **The parks** are two Encavis parks, modelled from public data only: the **Borrentin** solar
@@ -56,10 +58,11 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 | Fair pay-as-produced price 2027 | 77.5 | 129.9 |
 | Buyer's risk premium after a baseload hedge (without hedge) | 10.5 (25.4) | 5.5 (34.8) |
 | of which profile / volume | 10.1 / 0.4 | 2.0 / 3.6 |
-| Fair price, 10 years along the forward curve | 41.1 | 86.6 |
-| **Indicative price, 10 years** (after premium, balancing and credit costs) | **27.4** | **78.6** |
-| Indicative, less the model's remaining out-of-sample error (Step 6) | 25.3 | 73.9 |
-| With a negative-price clause: indicative per delivered MWh (per MWh of output) | 52.2 (36.3) | 88.5 (80.4) |
+| Fair price, 10 years along the forward curve (solar: central build-out scenario) | 35.1 | 86.6 |
+| **Indicative price, 10 years** (after premium, balancing and credit costs) | **21.4** | **78.6** |
+| Indicative across the solar and storage build-out scenarios | 17.9 to 30.1 | – |
+| Indicative, less the model's remaining out-of-sample error (Step 6) | 19.2 | 73.9 |
+| With a negative-price clause: indicative per delivered MWh (per MWh of output) | 39.3 (27.3) | 88.5 (80.4) |
 | Producer's CFaR95 in 2027: merchant → pay-as-produced (with the clause) | EUR 3.02 m → 0.70 m (1.29 m) | EUR 2.10 m → 0.96 m (0.98 m) |
 
 - **The curve matters as much as the level:** 2027 trades at 141, but the discount- and
@@ -69,7 +72,7 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   gives 0.55 at 141 EUR/MWh but 0.44 at 88, a slope of 0.22 per unit of ln(price); 2023-2026
   history gives 0.27 (95% 0.10 to 0.45), so the usual shape-factor view (a fixed capture rate)
   is rejected. Holding the 2027 capture rate over the falling curve would overstate the
-  ten-year price by 8.5 EUR/MWh ([Step 7, section 5](reports/step07_ppa_pricing.md)).
+  ten-year price by 6.0 EUR/MWh ([Step 7, section 7](reports/step07_ppa_pricing.md)).
 - **Tested on years it never saw, then fixed:** fitted on the years before, the model
   overstated solar's capture rate in 2024-2026 by 0.09 to 0.14, even with the price level given:
   analog days from the past have last year's shallower midday dips. Each historical day's
@@ -77,14 +80,18 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   to +0.05 (2025) and +0.01 (2026); wind's grows a little (+0.03 and +0.06). Negative prices
   bunch just below zero as in history (1% quantile −19.9 vs −20.1 EUR/MWh; it was −45)
   ([Step 6, sections 3-4](reports/step06_joint_scenarios.md)).
-- **After 2027 the trend is a view, not a measurement:** history's trend continued would cut
-  solar's capture rate by 5.6 pp a year at the same price level; the base case assumes 1 pp,
-  because storage and curtailment are expected to slow it (2 pp: −7.0 EUR/MWh).
+- **After 2027 storage decides:** solar's capture rate now follows explicit build-out
+  scenarios instead of an assumed −1 pp a year. On 2023-2026 history each point of solar's
+  share of load lowered the capture rate by 5.3% (log form, se 0.8); a GWh of storage cycling
+  250 times a year takes some of that share out of the cheap hours. With 17 GW of solar and
+  12 GWh of storage a year the capture rate falls 8% a year and the indicative price is 21.4
+  EUR/MWh; at the recent pace 20.0, at the EEG target pace 17.9, and only a storage boom
+  (35 GWh a year) holds it at 30.1 ([Step 7, section 8](reports/step07_ppa_pricing.md)).
 - **Negative prices: curtail, and decide who keeps the value:** in 2027 17.5% of the solar
   output falls in hours with negative prices (an average of −17.7 EUR/MWh), and over ten years
   about 30%, because later forwards are lower. A park selling at spot stops producing then; under
   a plain PPA it is paid for every MWh and keeps producing, so the buyer sells that output at a
-  loss. A negative-price clause keeps that value with the producer (36.3 instead of 27.4 EUR per
+  loss. A negative-price clause keeps that value with the producer (27.3 instead of 21.4 EUR per
   MWh of output) but gives back volume risk (cash flow at risk 1.29 instead of 0.70 m); letting
   the buyer curtail and pay the output as if produced keeps the value without that risk
   ([Step 7, section 5](reports/step07_ppa_pricing.md)).
@@ -105,10 +112,11 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   residual risk is profile, wind's is volume.
 - **Prices must see the weather:** simulated independently of it, the wind park would earn
   almost the baseload price (fair price 150 instead of 131 EUR/MWh in Step 6).
-- **The biggest levers are the forward and cannibalisation:** the forward curve (−6.9 / +6.8
-  EUR/MWh for −10% / +10%), the capture-rate trend after 2027 (±3.5 per pp per year), the
-  model's remaining out-of-sample error (−2.8); history's range for how fast the capture rate
-  moves with the level matters less (−0.7 to +1.5), and which historical days represent 2027
+- **The biggest levers are cannibalisation and the forward:** the solar and storage build-out
+  after 2027 (−3.4 to +8.7 EUR/MWh across the scenarios, ±3.5 per pp a year of trend on top),
+  the forward curve (−5.6 / +5.5 for −10% / +10%), the model's remaining out-of-sample error
+  (−2.1); history's range for how fast the capture rate moves with the level matters less
+  (−0.1 to +0.8), and which historical days represent 2027
   no longer matters (0.0: the build-out trend moves them all to 2027).
 - **Hedging the unsold output:** Cal base futures for 87% (solar) and 92% (wind) of the average
   output sold cut the merchant cash flow at risk by 72% and 50% (Step 8).
@@ -130,7 +138,7 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 | 4 | How much do the parks produce? | Borrentin P50 121 GWh, Everswinkel 64 GWh (calibrated to the published yields); P90 −6 to −9% | [report](reports/step04_generation.md) | [page](docs/learning_track/step04_weather_to_power.md) |
 | 5 | Which price years are plausible? | Prices forget in about a day; negative prices bunch just below zero, as in history; midday dips deepen with the build-out | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
 | 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 150 → 131 EUR/MWh; tested on years it never saw (solar error 0.12, 0.03 with the build-out trend) | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
-| 7 | What price, and how much risk is left? | 27.4 EUR/MWh indicative over ten years (52.2 per delivered MWh with a negative-price clause); CFaR −77% with the PPA; capture rate rises with the price level, as history confirms | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
+| 7 | What price, and how much risk is left? | 21.4 EUR/MWh indicative over ten years (39.3 per delivered MWh with a negative-price clause; 17.9 to 30.1 across solar and storage build-out scenarios); CFaR −77% with the PPA; capture rate rises with the price level, as history confirms | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
 | 8 | How much to sell forward, and is our forward right? | Cal base at 87% of the output sold cuts merchant CFaR by 72% (solar); the forward is now the market's curve and seasonal shape | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
 | 9 | How do we tell management? | One-page memo and a dashboard with live assumptions | [memo](reports/step09_memo.md) | [page](docs/learning_track/step09_memo_dashboard.md) |
 

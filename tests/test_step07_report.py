@@ -15,18 +15,39 @@ from ppa_lab.data.weather_pipeline import build_generation, fetch_weather
 from test_step06_report import small_settings as step06_settings
 
 
-def small_settings(settings):
+def small_settings(settings, solar_buildout: bool = False):
     s = step06_settings(settings)
     park = PpaParkSettings(balancing_eur_mwh=1.5, credit_eur_mwh=1.0, capture_rate_drift=0.0,
                            degradation=0.005)
+    solar = dataclasses.replace(park, buildout=solar_buildout)
     ppa = PpaSettings(start_year=2026, tenor_years=3, discount_rate=0.06, risk_quantile=0.05,
                       analog_pool_start=date(2025, 1, 1),
-                      parks={"solar_park": park, "wind_park": park}, curtail_below_eur_mwh=0.0)
+                      parks={"solar_park": solar, "wind_park": park}, curtail_below_eur_mwh=0.0)
     return dataclasses.replace(s, ppa=ppa)
 
 
-def test_step07_report_end_to_end(settings):
-    s = small_settings(settings)
+def fake_buildout(settings, start, years):
+    """Two build-out scenarios: the capture rate 10% (base) and 2% lower each year."""
+    def scenario(label, step):
+        return {"label": label, "pv_additions_gw": 17.0, "storage_additions_gwh": 12.0,
+                "share_growth": 0.01, "factor_per_year": step,
+                "factors": {start + i: step ** i for i in range(years)}}
+    return {"base": "central",
+            "calibration": {"kappa": 0.0008, "lam": 0.0004, "amplification": 1.4, "gamma": -5.3,
+                            "gamma_se": 0.8, "load_twh": 466.0, "share_start": 0.11,
+                            "share_end": 0.15},
+            "regression": {"share_coef": -5.3, "share_se": 0.8, "coef": 0.5, "r2": 0.9, "n": 45},
+            "history_years": [2022, 2025], "history_pv_additions_gw": [15.5, 17.5, 16.5],
+            "history_storage_additions_gwh": 6.5, "storage_cycles_per_year": 250,
+            "storage_solar_fraction": 0.8,
+            "scenarios": {"central": scenario("Central: solar +17 GW", 0.9),
+                          "storage_boom": scenario("Storage boom: storage +35 GWh", 0.98)}}
+
+
+def test_step07_report_end_to_end(settings, monkeypatch):
+    import ppa_lab.analysis.step07_report as step07
+    monkeypatch.setattr(step07, "buildout_paths", fake_buildout)
+    s = small_settings(settings, solar_buildout=True)
     store = RawStore(s.raw_dir, source="open_meteo")
     fetch_weather(s, FakeWeatherClient(), store, today=date(2026, 6, 1))
     build_generation(s, store)
@@ -81,6 +102,15 @@ def test_step07_report_end_to_end(settings):
     assert results["discount_rate"] == 0.06
     assert solar["assumptions"] == {"balancing_eur_mwh": 1.5, "credit_eur_mwh": 1.0,
                                     "capture_rate_drift": 0.0, "degradation": 0.005}
+    # build-out scenarios (v1.11): the base one prices the solar park, the others are rows
+    assert "Solar and storage build-out after 2026" in text and "Storage boom" in text
+    assert solar["buildout"]["base"] == "central"
+    assert results["parks"]["wind_park"]["buildout"] is None
+    assert results["buildout"]["calibration"]["kappa"] == 0.0008
+    cases = {r["case"]: r for r in solar["tenor"]["sensitivity"]}
+    boom = cases["Build-out: Storage boom: storage +35 GWh"]
+    assert boom["fair_price"] > cases["Base case"]["fair_price"]      # slower fall
+    assert solar["buildout"]["tenor_with_fixed_trend"] > 0
 
 
 def test_step07_report_explains_missing_weather(settings):
@@ -128,3 +158,19 @@ def test_tenor_rows_follow_the_curve_and_move_the_capture_rate_with_the_level():
     low = next(r for r in moved if r["case"] == LEVEL_LOW)
     assert low["fair_price"] == pytest.approx((50.0 + 35.0 + 35.0) / 3)       # 0.5 throughout
     assert low["indicative"] == pytest.approx(low["fair_price"] - 7.5)
+
+
+def test_tenor_rows_scale_the_capture_rate_by_the_build_out_factors():
+    from ppa_lab.analysis.step07_report import tenor_rows, trend_case
+    priced = {"stack": {"forward": 100.0, "fair_price": 60.0, "risk_premium": 5.0,
+                        "balancing": 1.5, "credit": 1.0}, "energy_mwh": 1000.0}
+    cost = PpaParkSettings(balancing_eur_mwh=1.5, credit_eur_mwh=1.0, capture_rate_drift=0.0,
+                           degradation=0.0, buildout=True)
+    base = {2027: 1.0, 2028: 0.5}
+    rows = tenor_rows(priced, cost, 2027, 2, 0.0, factors=base,
+                      buildout={"Build-out: storage": {2027: 1.0, 2028: 1.0}})
+    cases = {r["case"]: r for r in rows}
+    assert cases["Base case"]["fair_price"] == pytest.approx((60.0 + 30.0) / 2)
+    assert cases["Build-out: storage"]["fair_price"] == pytest.approx(60.0)
+    # the trend rows move the capture rate by whole points on top of the base path
+    assert cases[trend_case(0.01)]["fair_price"] == pytest.approx((60.0 + 100 * 0.31) / 2)

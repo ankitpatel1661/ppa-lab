@@ -24,7 +24,9 @@ error. Since version 1.8 parks stop producing at negative prices when they sell 
 a negative-price clause, and the clause is priced at its own fair strike (section 10). Since
 version 1.9 the EEG market premium of the wind park is valued as a strip of puts (section 10).
 Since version 1.10 the official market values are reproduced from the TSOs' data and the
-balancing costs are measured (section 2).
+balancing costs are measured (section 2). Since version 1.11 solar's capture rate after the
+delivery year follows solar and storage build-out scenarios instead of an assumed trend
+(section 10).
 
 ---
 
@@ -533,10 +535,12 @@ assumptions).
 **Tenor.** For years $i = 0, \dots, N-1$: $F_0$ the first year's forward, $F_i$ from
 `[ppa.forward_curve]` where it gives the year, and a year after the last quoted one keeps that
 quote (long-dated years trade too little for a quote);
-$c_i = c + \delta\, i + \gamma(F_i) - \gamma(F_0)$ with the capture-rate trend $\delta$ from
-`[ppa.parks.*]` (base case: solar $-1$ percentage point a year, wind 0; history fell faster,
-but storage and curtailment at negative prices slow it) and $\gamma(F)$ the capture rate at
-price level $F$ (below), $K_i = F_i c_i$, $E_i = E[\sum_t q_t]\,(1 - g)^i$,
+$c_i = \big(c + \gamma(F_i) - \gamma(F_0)\big)\,\phi_i + \delta\, i$ with $\gamma(F)$ the
+capture rate at price level $F$ (below), $\phi_i$ the build-out factor of year $i$ (below;
+$\phi_0 = 1$, and $\phi_i = 1$ for parks without `buildout = true`) and the capture-rate trend
+$\delta$ from `[ppa.parks.*]` (base case 0 for both parks: solar's fall comes from the
+build-out scenario; until v1.10 solar had $\delta = -1$ percentage point a year and no
+$\phi$), $K_i = F_i c_i$, $E_i = E[\sum_t q_t]\,(1 - g)^i$,
 $D_i = (1 + r)^{-(i + 1/2)}$, and
 
 $$
@@ -567,7 +571,7 @@ with month effects $a$, the technology's share of load (its build-out) and HC1 s
 | History 2023-2026, 45 months (95% interval) | 0.27 (0.10 to 0.45), t = 3.1 | 0.02 (−0.09 to 0.14) |
 | History 2021-2026, 69 months | 0.10 (0.06 to 0.13) | −0.00 (−0.04 to 0.04) |
 | Model, recent level (105) to Cal-27 (141) | 0.22 (v1.5: 0.25, v1.6: 0.19) | 0.06 |
-| Model, over the tenor's forwards (88 to 141) | 0.25 (v1.5: 0.28, v1.6: 0.20) | 0.07 |
+| Model, over the tenor's forwards (88 to 141) | 0.24 (v1.5: 0.28, v1.6: 0.20) | 0.07 |
 
 The model lies inside history's 95% interval for both technologies, and history rejects the
 shape-factor view for solar. The 2021-2026 slope is smaller, which fits the mechanism: the
@@ -575,6 +579,47 @@ lift acts on hours near zero, and at a 9-11% solar share of load in 2021-2022 th
 whatever the level. The two history sensitivities of Step 7 replace $\gamma$ with
 $c_{ref} + b \ln(F / F_{ref})$ from the analog pool's level $F_{ref}$, at both ends of the
 interval, for the first year too.
+
+**Solar and storage build-out after the delivery year (PPA-8f, v1.11).** The delivery year's
+scenarios carry solar's build-out up to that year (the intraday trend of section 8). For the
+later years the capture rate follows scenarios of solar and storage additions per year
+(`[buildout]`; code `src/ppa_lab/scenarios/buildout.py`):
+
+1. Solar's share of load grows by $\kappa$ per GW added, calibrated on history:
+   $\kappa = (s_{2025} - s_{2022}) / \sum_{y=2023}^{2025} PV_y$, with annual shares from
+   the processed power data (11.3% and 15.1%) and additions of 15.5, 17.5 and 16.5 GW
+   (Bundesnetzagentur, stated in `config/project.toml`): $\kappa = 0.077$ share points per GW.
+2. Storage takes midday solar out of the cheap hours: a GWh cycling $n$ times a year, a
+   fraction $f$ of it charged from solar, absorbs $\lambda = n f / L$ of the share
+   ($n = 250$, $f = 0.8$, load $L = 466$ TWh: $\lambda = 0.043$ points per GWh). History's
+   storage growth (6.5 GWh a year) is already inside $\kappa$, so only storage beyond it
+   counts: $\Delta s = \kappa\, PV - \lambda\, (S - S_{hist})$ per year.
+3. The capture rate falls by the same proportion per share point as on monthly history, in
+   log form, $\ln c_m = a_{month(m)} + b \ln \bar P_m + \gamma_s\, \text{share}_m +
+   \varepsilon_m$: $\gamma_s = -5.31$ (HC1 se 0.79; 45 months 2023-2026; the log form fits
+   better than the linear one and cannot go below zero). New solar adds most share in sunny
+   months, which weigh most in the capture rate: the amplification
+   $A = \sum_m w_m s_m / s = 1.38$, with $w_m$ the month's share of solar output and $s_m$
+   its share of load.
+
+So $\phi_i = \exp(\gamma_s A\, \Delta s\, i)$. The base case is the central scenario; the
+others are Step 7 sensitivities, as are the $\pm 1$ and $-2$ pp trend rows on top:
+
+| Scenario (per year) | Solar GW | Storage GWh | $\Delta s$ (pp) | $\phi$ 2030 / 2036 | Solar 10-year indicative (EUR/MWh) |
+|---|---|---|---|---|---|
+| Central (base case) | 17 | 12 | +1.07 | 0.79 / 0.50 | 21.4 |
+| Recent pace | 16.5 | 6.5 | +1.26 | 0.76 / 0.43 | 20.0 |
+| EEG solar target pace | 24 | 12 | +1.60 | 0.70 / 0.35 | 17.9 |
+| Storage boom | 17 | 35 | +0.08 | 0.98 / 0.95 | 30.1 |
+| Slowdown | 12 | 8 | +0.85 | 0.83 / 0.57 | 22.9 |
+
+With the $-1$ pp trend of v1.10 the solar ten-year fair price was 41.1 EUR/MWh; the central
+scenario gives 35.1 (indicative 27.4 → 21.4). The fall is proportional, so unlike a straight
+line it never reaches zero. The link is measured on solar shares up to about 15% of annual
+load with little storage; at the central pace the effective share reaches about 27% in 2036,
+so the scenarios extrapolate. Storage is a heuristic (fixed cycles, all of it moving solar output),
+and flexible demand, exports and curtailment rules are not in it. Wind has no build-out
+scenario: history cannot separate its share effect from zero (section 10 table).
 
 ## 11. Hedging with futures (PPA-8)
 
@@ -643,10 +688,10 @@ sources and stand in for EEX settlement prices.
 | One delivery year of scenarios; later years by the forward curve, the level response, drift and degradation | Later years' capture rates come from the first year's scenarios rebuilt at each year's forward (first year's calendar, quarter shape and analog days) | v1.5 (PPA-8d); v2: scenarios per contract year |
 | Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
 | Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (solar premium 5.4 instead of 8.4 EUR/MWh in v1.2); transaction costs v2 |
-| One calibration window (2024-2026); patterns from historical days moved forward by a linear build-out trend | Out of sample the solar capture-rate error fell from +0.13 / +0.09 to +0.05 / +0.01 (2025 / 2026); wind's grew from +0.02 / +0.05 to +0.03 / +0.06; the trend is extrapolated one to two years for 2027 | v1.6-1.7 (PPA-6b, PPA-8e): Step 6 section 4; Step 7 sensitivity for the remaining error (solar −2.8 EUR/MWh) |
+| One calibration window (2024-2026); patterns from historical days moved forward by a linear build-out trend | Out of sample the solar capture-rate error fell from +0.13 / +0.09 to +0.05 / +0.01 (2025 / 2026); wind's grew from +0.02 / +0.05 to +0.03 / +0.06; the trend is extrapolated one to two years for 2027 | v1.6-1.7 (PPA-6b, PPA-8e): Step 6 section 4; Step 7 sensitivity for the remaining error (solar −2.1 EUR/MWh) |
 | Cal base forwards from published quotes (Cal-27 140.21, Cal-28 104.75, Cal-29 87.58), held flat after 2029; quarter shape from Q1-Q4/27 quotes of 14 Sep 2026; months and hours from history | Quotes are a month older than the Cal level and come from secondary sources; later years keep the first year's seasonal shape; 2030-2036 rest on the Cal-29 quote | v1.1-1.2 (PPA-8b, 8c); v2: monthly curve (HPFC) from EEX settlements |
-| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.44 at 88 EUR/MWh, 0.55 at 141. History 2023-2026 confirms it for solar (slope 0.27, 95% 0.10 to 0.45; model 0.22); for wind history cannot tell it from zero (model 0.06 inside). Holding the first year's capture rate instead would overstate the solar ten-year price by 8.5 EUR/MWh | v1.5 (PPA-8d): tested on monthly history; history's 95% range as a Step 7 sensitivity (solar −0.7 to +1.5 EUR/MWh) |
-| Solar capture-rate trend −1 pp a year after the delivery year, at a fixed level | History's build-out trend continued would cut it by 5.6 pp a year (the model's intraday trend, one more year at the 2027 forward) and the regression of PPA-8d by about 3.7 pp; the base case assumes storage, flexible demand and curtailment slow it, and a straight line would reach zero within a decade | −2 pp sensitivity (−7.0 EUR/MWh); a build-out and storage scenario for 2028-2036 (v2) |
+| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.44 at 88 EUR/MWh, 0.55 at 141. History 2023-2026 confirms it for solar (slope 0.27, 95% 0.10 to 0.45; model 0.22); for wind history cannot tell it from zero (model 0.06 inside). Holding the first year's capture rate instead would overstate the solar ten-year price by 6.0 EUR/MWh | v1.5 (PPA-8d): tested on monthly history; history's 95% range as a Step 7 sensitivity (solar −0.1 to +0.8 EUR/MWh) |
+| Solar capture rate after the delivery year from build-out scenarios (v1.11): share growth per GW from 2022-2025, storage as fixed cycles from solar, the log-form share effect of 2023-2026 | The scenarios extrapolate from shares up to about 15% of load to an effective 27% in 2036; storage, which decides the result (indicative 17.9 to 30.1 EUR/MWh across the scenarios, central 21.4), is a heuristic; flexible demand, exports and curtailment rules are left out | v1.11 (PPA-8f): Step 7 section 8; five scenarios and ±1 / −2 pp trend rows as sensitivities; v2: a dispatch model of storage and flexible demand |
 | The forward moves fast | Cal-27 base moved between 104 and 140 EUR/MWh from July to October 2026 | Refresh the quotes on the pricing day; forward ±10% sensitivity |
 | Hedges at the model forward, no limits, no costs | Real hedges trade at market prices with bid-ask spreads, margining and position limits; unconstrained monthly hedges can be negative | v2: constraints (no negative sales), costs |
 | Hedge back-test with last year's average as forward | Not a market price; two years only, so it illustrates, not measures | v2: EEX settlement history |
@@ -692,3 +737,5 @@ sources and stand in for EEX settlement prices.
   limitations updated.
 - **v1.10, PPA-2b and PPA-6c:** official market values from the TSOs' online extrapolation;
   balancing cost measured from forecast errors and reBAP (section 2); limitations updated.
+- **v1.11, PPA-8f:** solar's capture rate after the delivery year from solar and storage
+  build-out scenarios, replacing the −1 pp trend (section 10); limitations updated.

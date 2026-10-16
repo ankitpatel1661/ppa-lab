@@ -108,6 +108,7 @@ class PpaParkSettings:
     credit_eur_mwh: float            # credit and liquidity
     capture_rate_drift: float        # change of the capture rate per year after the first
     degradation: float               # annual loss of output (share)
+    buildout: bool = False           # capture rate after the first year from [buildout] (v1.11)
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,30 @@ class HedgingSettings:
 
     backtest_years: tuple[int, ...]
     market_quotes: tuple[MarketQuote, ...] = ()
+
+
+@dataclass(frozen=True)
+class BuildoutScenario:
+    """Solar and storage additions per year after the delivery year."""
+
+    label: str
+    pv_additions_gw: float
+    storage_additions_gwh: float
+
+
+@dataclass(frozen=True)
+class BuildoutSettings:
+    """Build-out scenarios for the capture rate after the delivery year (Step 7, v1.11)."""
+
+    history_first_year: int
+    history_last_year: int
+    history_pv_additions_gw: tuple[float, ...]   # one per year after history_first_year
+    history_storage_additions_gwh: float         # per year, the recent pace
+    storage_cycles_per_year: float
+    storage_solar_fraction: float
+    regression_start_year: int
+    base_scenario: str
+    scenarios: dict[str, BuildoutScenario] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -200,6 +225,7 @@ class Settings:
     ppa: PpaSettings | None = None
     hedging: HedgingSettings | None = None
     eeg: EegSettings | None = None
+    buildout: BuildoutSettings | None = None
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -224,6 +250,14 @@ def _ppa(raw: dict) -> PpaSettings:
     curve = {int(year): float(price) for year, price in raw.get("forward_curve", {}).items()}
     return PpaSettings(**{k: v for k, v in raw.items() if k not in ("parks", "forward_curve")},
                        parks=parks, forward_curve=curve)
+
+
+def _buildout(raw: dict) -> BuildoutSettings:
+    scenarios = {name: BuildoutScenario(**values)
+                 for name, values in raw.get("scenarios", {}).items()}
+    values = {k: tuple(v) if k == "history_pv_additions_gw" else v
+              for k, v in raw.items() if k != "scenarios"}
+    return BuildoutSettings(**values, scenarios=scenarios)
 
 
 def _eeg(raw: dict) -> EegSettings:
@@ -289,6 +323,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         ppa=_ppa(raw["ppa"]) if "ppa" in raw else None,
         hedging=_hedging(raw["hedging"]) if "hedging" in raw else None,
         eeg=_eeg(raw["eeg"]) if "eeg" in raw else None,
+        buildout=_buildout(raw["buildout"]) if "buildout" in raw else None,
     )
     _validate(settings)
     return settings
@@ -362,6 +397,16 @@ def _validate(s: Settings) -> None:
         unknown = set(ppa.parks) - {p.name for p in s.parks}
         if unknown:
             raise ValueError(f"[ppa.parks] names unknown parks: {sorted(unknown)}")
+    bo = s.buildout
+    if bo is not None:
+        if bo.base_scenario not in bo.scenarios:
+            raise ValueError(f"buildout.base_scenario {bo.base_scenario!r} is not among "
+                             f"{sorted(bo.scenarios)}")
+        if len(bo.history_pv_additions_gw) != bo.history_last_year - bo.history_first_year:
+            raise ValueError("buildout.history_pv_additions_gw needs one value per year after "
+                             "history_first_year")
+    if s.ppa is not None and bo is None and any(p.buildout for p in s.ppa.parks.values()):
+        raise ValueError("[ppa.parks.*] buildout = true needs a [buildout] section")
     eeg = s.eeg
     if eeg is not None:
         unknown = set(eeg.parks) - {p.name for p in s.parks}

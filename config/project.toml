@@ -143,11 +143,11 @@ curtail_below_eur_mwh = 0.0
 # Until v1.9: 1.5, the preparation guide's illustrative value.
 balancing_eur_mwh = 2.18
 credit_eur_mwh = 1.0              # credit and liquidity
-# Solar cannibalisation: the capture rate falls 1 percentage point a year after 2027. History
-# fell much faster (0.76 -> 0.59 -> 0.51 in 2023-2025, Step 2) while solar capacity grew;
-# batteries, flexible demand and curtailment at negative prices are expected to slow it.
-# An assumption, shown with +-1 and -2 pp per year in the Step 7 sensitivities.
-capture_rate_drift = -0.01
+# Solar cannibalisation after 2027 (v1.11): from the build-out scenarios of [buildout], not a
+# fixed trend (until v1.10: -1 percentage point a year). capture_rate_drift is an extra trend
+# on top, 0 in the base case and +-1 pp in the Step 7 sensitivities.
+buildout = true
+capture_rate_drift = 0.0
 degradation = 0.005               # PV module degradation, about 0.5 % per year
 
 [ppa.parks.wind_park]
@@ -157,6 +157,50 @@ balancing_eur_mwh = 1.55
 credit_eur_mwh = 1.0
 capture_rate_drift = 0.0
 degradation = 0.0
+
+[buildout]
+# Capture rates after the delivery year from solar and storage build-out (Step 7, v1.11;
+# src/ppa_lab/scenarios/buildout.py). History calibrates the link: solar's share of load
+# (Energy-Charts) grew from 2022 to 2025 while these PV capacities were added (BNetzA, via
+# strom-report.com and pv magazine, Jan 2026: 15.5, 17.5, 16.5 GW; about 117 GW at the end of
+# 2025; EEG target 215 GW in 2030). Batteries: about 25.5 GWh at the end of 2025, 6.5 GWh added
+# in 2025 (Marktstammdatenregister via pv magazine, Jan 2026), large-scale 2.4 GW / 3.5 GWh
+# (Modo Energy). A GWh of storage removes cycles x solar fraction / load of solar's share (an
+# assumption: 250 cycles a year, 80% charged from midday solar); history's storage pace is
+# already in the link, so only storage beyond it counts.
+history_first_year = 2022
+history_last_year = 2025
+history_pv_additions_gw = [15.5, 17.5, 16.5]
+history_storage_additions_gwh = 6.5
+storage_cycles_per_year = 250
+storage_solar_fraction = 0.8
+regression_start_year = 2023          # monthly log capture-rate regression (PPA-8d data)
+base_scenario = "central"
+
+[buildout.scenarios.central]
+label = "Central: solar +17 GW, storage +12 GWh a year"
+pv_additions_gw = 17.0
+storage_additions_gwh = 12.0           # large-scale storage doubled in 2025; about twice 2025's total
+
+[buildout.scenarios.recent_pace]
+label = "Recent pace: solar +16.5 GW, storage +6.5 GWh a year"
+pv_additions_gw = 16.5
+storage_additions_gwh = 6.5
+
+[buildout.scenarios.eeg_target]
+label = "EEG solar target pace: solar +24 GW, storage +12 GWh a year"
+pv_additions_gw = 24.0
+storage_additions_gwh = 12.0
+
+[buildout.scenarios.storage_boom]
+label = "Storage boom: solar +17 GW, storage +35 GWh a year"
+pv_additions_gw = 17.0
+storage_additions_gwh = 35.0
+
+[buildout.scenarios.slowdown]
+label = "Slowdown: solar +12 GW, storage +8 GWh a year"
+pv_additions_gw = 12.0
+storage_additions_gwh = 8.0
 
 [eeg]
 # Roadmap item 5 (Step 7, v1.9): Everswinkel is paid under the EEG market premium model. It

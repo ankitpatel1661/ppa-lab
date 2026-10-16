@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-10-16 07:39",
+ "generated_utc": "2026-10-16 08:23",
  "delivery_year": 2027,
  "tenor_years": 10,
  "discount_rate": 0.06,
@@ -518,6 +518,38 @@
   }
  ],
  "curtail_below_eur_mwh": 0.0,
+ "buildout": {
+  "base": "central",
+  "calibration": {
+   "kappa": 0.0007655489894545845,
+   "lam": 0.0004293525379131293,
+   "amplification": 1.3809269855337898,
+   "gamma": -5.3068693981769695,
+   "gamma_se": 0.7910027465072746,
+   "load_twh": 465.81767275,
+   "share_start": 0.11264380805339354,
+   "share_end": 0.15053848303139547
+  },
+  "regression": {
+   "share_coef": -5.3068693981769695,
+   "share_se": 0.7910027465072746,
+   "coef": 0.5051671493231122,
+   "r2": 0.8756850328630391,
+   "n": 45
+  },
+  "history_years": [
+   2022,
+   2025
+  ],
+  "history_pv_additions_gw": [
+   15.5,
+   17.5,
+   16.5
+  ],
+  "history_storage_additions_gwh": 6.5,
+  "storage_cycles_per_year": 250,
+  "storage_solar_fraction": 0.8
+ },
  "forward_curve": {
   "2028": 104.75,
   "2029": 87.58
@@ -639,6 +671,7 @@
      "ci_low": 0.09918173267125724,
      "ci_high": 0.445017150100729,
      "share_coef": -2.8965303031610055,
+     "share_se": 0.32037828909083527,
      "r2": 0.9182534920175591,
      "n": 45
     },
@@ -649,6 +682,7 @@
      "ci_low": 0.05886100852192706,
      "ci_high": 0.13289767448797968,
      "share_coef": -3.066109867874861,
+     "share_se": 0.29985566212232756,
      "r2": 0.8928561802688043,
      "n": 69
     },
@@ -660,7 +694,7 @@
     },
     "out_of_sample_error": 0.02872655123143536,
     "trend_implied_drift": -0.055959444013570836,
-    "tenor_fair_without_level_effect": 49.6262447020271
+    "tenor_fair_without_level_effect": 41.049747206684664
    },
    "negative_prices": {
     "curtail_below_eur_mwh": 0.0,
@@ -788,18 +822,119 @@
       "premium": 14.468339278663008
      },
      "tenor": {
-      "fair_price": 69.97443082855462,
-      "indicative": 52.23533789647688,
+      "fair_price": 57.08358727957721,
+      "indicative": 39.34449434749947,
       "delivered_share": 0.6945581527143542,
-      "indicative_per_potential_mwh": 36.28047979578708
+      "indicative_per_potential_mwh": 27.32703931347958
      }
     }
    },
    "eeg": null,
+   "buildout": {
+    "base": "central",
+    "scenarios": {
+     "central": {
+      "label": "Central: solar +17 GW, storage +12 GWh a year",
+      "pv_additions_gw": 17.0,
+      "storage_additions_gwh": 12.0,
+      "share_growth": 0.010652893862205724,
+      "factor_per_year": 0.924900922110668,
+      "factors": {
+       "2027": 1.0,
+       "2028": 0.924900922110668,
+       "2029": 0.8554417157211639,
+       "2030": 0.7911988316824364,
+       "2031": 0.7317805289959687,
+       "2032": 0.6768244860510038,
+       "2033": 0.6259955912556524,
+       "2034": 0.5789838995895656,
+       "2035": 0.5355027426176197,
+       "2036": 0.4952869804398282
+      }
+     },
+     "recent_pace": {
+      "label": "Recent pace: solar +16.5 GW, storage +6.5 GWh a year",
+      "pv_additions_gw": 16.5,
+      "storage_additions_gwh": 6.5,
+      "share_growth": 0.012631558326000644,
+      "factor_per_year": 0.911586216873273,
+      "factors": {
+       "2027": 1.0,
+       "2028": 0.911586216873273,
+       "2029": 0.830989430793326,
+       "2030": 0.7575185114785626,
+       "2031": 0.6905434340902159,
+       "2032": 0.6294898766689784,
+       "2033": 0.5738342952326971,
+       "2034": 0.5230994343033153,
+       "2035": 0.4768502343651084,
+       "2036": 0.43469010116002277
+      }
+     },
+     "eeg_target": {
+      "label": "EEG solar target pace: solar +24 GW, storage +12 GWh a year",
+      "pv_additions_gw": 24.0,
+      "storage_additions_gwh": 12.0,
+      "share_growth": 0.016011736788387815,
+      "factor_per_year": 0.8892824312837201,
+      "factors": {
+       "2027": 1.0,
+       "2028": 0.8892824312837201,
+       "2029": 0.7908232425898842,
+       "2030": 0.7032652158860074,
+       "2031": 0.625401401020379,
+       "2032": 0.5561584784276474,
+       "2033": 0.49458196387519265,
+       "2034": 0.4398230513040083,
+       "2035": 0.39112691239825287,
+       "2036": 0.34782229159801287
+      }
+     },
+     "storage_boom": {
+      "label": "Storage boom: solar +17 GW, storage +35 GWh a year",
+      "pv_additions_gw": 17.0,
+      "storage_additions_gwh": 35.0,
+      "share_growth": 0.0007777854902037504,
+      "factor_per_year": 0.9943162912045618,
+      "factors": {
+       "2027": 1.0,
+       "2028": 0.9943162912045618,
+       "2029": 0.9886648869547949,
+       "2030": 0.9830456036410691,
+       "2031": 0.9774582586973375,
+       "2032": 0.9719026705952057,
+       "2033": 0.9663786588380339,
+       "2034": 0.9608860439550724,
+       "2035": 0.9554246474956312,
+       "2036": 0.9499942920232818
+      }
+     },
+     "slowdown": {
+      "label": "Slowdown: solar +12 GW, storage +8 GWh a year",
+      "pv_additions_gw": 12.0,
+      "storage_additions_gwh": 8.0,
+      "share_growth": 0.008542559066585319,
+      "factor_per_year": 0.9393160427125311,
+      "factors": {
+       "2027": 1.0,
+       "2028": 0.9393160427125311,
+       "2029": 0.8823146280971295,
+       "2030": 0.8287722848915742,
+       "2031": 0.7784791029541759,
+       "2032": 0.7312379103213176,
+       "2033": 0.6868635002044007,
+       "2034": 0.6451819048956754,
+       "2035": 0.6060297137363384,
+       "2036": 0.5692534324730254
+      }
+     }
+    },
+    "tenor_with_fixed_trend": 41.14546608121552
+   },
    "assumptions": {
     "balancing_eur_mwh": 2.18,
     "credit_eur_mwh": 1.0,
-    "capture_rate_drift": -0.01,
+    "capture_rate_drift": 0.0,
     "degradation": 0.005
    },
    "tenor": {
@@ -815,58 +950,78 @@
      2035,
      2036
     ],
-    "fair_price": 41.14546608121552,
-    "indicative": 27.423868667862706,
+    "fair_price": 35.08697804723643,
+    "indicative": 21.365380633883618,
     "sensitivity": [
      {
       "case": "Base case",
-      "fair_price": 41.14546608121552,
-      "indicative": 27.423868667862706
+      "fair_price": 35.08697804723643,
+      "indicative": 21.365380633883618
      },
      {
       "case": "Capture-rate trend 2 pp/yr steeper",
-      "fair_price": 34.12946704017185,
-      "indicative": 20.407869626819043
+      "fair_price": 28.070979006192776,
+      "indicative": 14.349381592839965
      },
      {
       "case": "Capture-rate trend 1 pp/yr steeper",
-      "fair_price": 37.63746656069369,
-      "indicative": 23.915869147340878
+      "fair_price": 31.5789785267146,
+      "indicative": 17.85738111336179
      },
      {
       "case": "Capture-rate trend 1 pp/yr flatter",
-      "fair_price": 44.65346560173734,
-      "indicative": 30.931868188384527
+      "fair_price": 38.59497756775826,
+      "indicative": 24.873380154405446
      },
      {
       "case": "Forward \u221210%",
-      "fair_price": 34.293306782899606,
-      "indicative": 20.571709369546795
+      "fair_price": 29.521462729377262,
+      "indicative": 15.799865316024452
      },
      {
       "case": "Forward +10%",
-      "fair_price": 47.92176454015549,
-      "indicative": 34.20016712680268
+      "fair_price": 40.58985250312841,
+      "indicative": 26.8682550897756
      },
      {
       "case": "Analog days from the whole window",
-      "fair_price": 41.10772125794016,
-      "indicative": 27.386123844587352
+      "fair_price": 35.05781765403831,
+      "indicative": 21.3362202406855
      },
      {
       "case": "Capture rate vs price level: low end of history",
-      "fair_price": 42.62253924476294,
-      "indicative": 28.90094183141013
+      "fair_price": 35.872044375133456,
+      "indicative": 22.150446961780645
      },
      {
       "case": "Capture rate vs price level: high end of history",
-      "fair_price": 40.48831455576525,
-      "indicative": 26.76671714241244
+      "fair_price": 35.036099799008426,
+      "indicative": 21.314502385655615
      },
      {
       "case": "Capture rate less the model's out-of-sample error",
-      "fair_price": 38.36812837707399,
-      "indicative": 24.646530963721176
+      "fair_price": 32.94129944898472,
+      "indicative": 19.21970203563191
+     },
+     {
+      "case": "Build-out: Recent pace: solar +16.5 GW, storage +6.5 GWh a year",
+      "fair_price": 33.72955903260122,
+      "indicative": 20.007961619248412
+     },
+     {
+      "case": "Build-out: EEG solar target pace: solar +24 GW, storage +12 GWh a year",
+      "fair_price": 31.64368852567637,
+      "indicative": 17.92209111232356
+     },
+     {
+      "case": "Build-out: Storage boom: solar +17 GW, storage +35 GWh a year",
+      "fair_price": 43.798852700873454,
+      "indicative": 30.077255287520643
+     },
+     {
+      "case": "Build-out: Slowdown: solar +12 GW, storage +8 GWh a year",
+      "fair_price": 36.65970652197881,
+      "indicative": 22.938109108626
      }
     ]
    }
@@ -987,6 +1142,7 @@
      "ci_low": -0.09261943621590597,
      "ci_high": 0.13818869441046688,
      "share_coef": -0.36457571860927945,
+     "share_se": 0.25893328682551187,
      "r2": 0.49823473986231515,
      "n": 45
     },
@@ -997,6 +1153,7 @@
      "ci_low": -0.042578160685639486,
      "ci_high": 0.03590559130739512,
      "share_coef": -0.2918036294490655,
+     "share_se": 0.13378004068065386,
      "r2": 0.39892934266194213,
      "n": 69
     },
@@ -1329,6 +1486,7 @@
      "indicative": 78.59545595651436
     }
    },
+   "buildout": null,
    "assumptions": {
     "balancing_eur_mwh": 1.55,
     "credit_eur_mwh": 1.0,
@@ -1406,7 +1564,7 @@
   }
  },
  "hedging": {
-  "generated_utc": "2026-10-16 07:39",
+  "generated_utc": "2026-10-16 08:23",
   "delivery_year": 2027,
   "model_forwards": {
    "cal_base": 141.062958818692,
@@ -1554,8 +1712,8 @@
      "quote": 140.21,
      "date": "2026-10-09",
      "model_forward": 141.062958818692,
-     "indicative_model": 27.423868667862706,
-     "indicative_market": 27.0028494235671
+     "indicative_model": 21.365380633883618,
+     "indicative_market": 21.024268896596098
     }
    },
    "wind_park": {
@@ -1664,5 +1822,5 @@
    }
   }
  },
- "ppa_lab_version": "1.10.0"
+ "ppa_lab_version": "1.11.0"
 }
