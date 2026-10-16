@@ -189,7 +189,7 @@ rebuilds the scenarios at twelve forwards (v1.5). `ppa-lab all` now ends with th
 
 | Test file | Protects against |
 |---|---|
-| `test_risk.py` (12) | wrong CFaR or premium arithmetic; a buyer that does not break even at the fair price; a hedge that does not remove the level risk of flat volumes; a profile/volume split that does not add up or misses the volume–price link; structures with different expected revenue at fair strikes; a free floor; a clause that ignores negative prices; tenor prices without drift, degradation or discounting; a forward curve that is ignored; a capture rate that does not move with the level, or is read off the wrong scale (it is linear in ln level, flat beyond the measured range) |
+| `test_risk.py` (14) | (v1.8) a merchant that does not curtail, a clause struck at the plain strike, a deemed strike that misses the value of curtailing, a tenor that ignores the delivered volume; wrong CFaR or premium arithmetic; a buyer that does not break even at the fair price; a hedge that does not remove the level risk of flat volumes; a profile/volume split that does not add up or misses the volume–price link; structures with different expected revenue at fair strikes; a free floor; a clause that ignores negative prices; tenor prices without drift, degradation or discounting; a forward curve that is ignored; a capture rate that does not move with the level, or is read off the wrong scale (it is linear in ln level, flat beyond the measured range) |
 | `test_level_effect.py` (6) | a regression that misses a known slope or invents one, a sample that does not start where configured, capture rates and shares computed wrongly, an answer where the data cannot separate level from build-out, a build-out pace from incomplete years |
 | `test_step07_report.py` (2), `test_config.py` (+1), `test_cli.py` (+1) | the report end to end and its internal consistency (indicative = fair − premium − costs), the missing-weather message, `[ppa]` validation, `ppa-lab pricing` and `all` |
 
@@ -233,6 +233,7 @@ solar park's expected revenue from EUR 2.26 m to 1.69 m (−25%), the wind park'
 matches history: 24% of solar energy was produced at negative prices in 2025 (Step 2). The
 same fact makes a floor at 0 EUR/MWh worth 9.34 EUR/MWh for solar (wind 3.05). A buyer that
 asks for the clause must pay a much higher strike for it (that strike is Step 3, Exercise 3).
+Since v1.8 the clause is priced at that strike: section 4.6.
 
 ### 4.4 The indicative price, and what moves it
 
@@ -261,6 +262,45 @@ its price depends on the forward and on wind's own cannibalisation.
   dip depth.
 - **The analog pool** is now a configuration value with a comment that explains it, not a
   hidden choice in code.
+
+### 4.6 Update (v1.8): who curtails at negative prices, and who keeps the value
+
+Until v1.7 every park produced in every hour. A real park that sells at spot stops when the
+price is negative: its marginal cost is about zero and no subsidy is paid then (§51 EEG), so
+each MWh produced at −17 EUR/MWh costs it 17 EUR. Curtailing is a free floor at 0 on every
+hour, which is why the "merchant + floor at 0" row has gone: a park that can curtail would pay
+a premium for something it already owns.
+
+Who curtails depends on the contract:
+
+| Contract | Who curtails | Strike (2027, solar) | Producer keeps |
+|---|---|---|---|
+| Plain pay-as-produced | nobody: the park is paid for every MWh | 77.5 | volume risk only |
+| Negative-price clause | the park, unpaid | 97.8 per delivered MWh | the value of curtailing, plus volume risk from negative hours |
+| Deemed output | the buyer, who pays the output as if produced | 80.6 = 77.5 + 3.1 | the value of curtailing, volume risk only |
+
+In 2027 17.5% of the solar output falls in negative hours at an average of −17.7 EUR/MWh:
+curtailing saves 3.1 EUR per MWh of output. Over the tenor it is about 30% of the output,
+because the forward falls to 88 EUR/MWh and more hours go negative. That is why the clause's
+ten-year price per MWh of output, 36.8, beats the plain PPA's 28.1 by more than 3.1.
+
+Three lessons:
+
+1. **A contract decides who owns an option.** The physical option to stop producing is worth
+   3.1 EUR/MWh in 2027. A plain pay-as-produced PPA destroys it: the park has no reason to stop,
+   the buyer no right to make it. Both the clause and deemed output keep it; they differ in who
+   carries the volume risk.
+2. **Per MWh is not per MWh.** The clause's 97.8 is per delivered MWh, the plain 77.5 per MWh
+   of output. Compare structures per MWh of output, or in EUR per year, never by the strike.
+3. **The clause moves risk back to the producer.** Sunny, cheap years have the most negative
+   hours, so delivered volume falls exactly when output is high: the producer's cash flow at
+   risk rises from EUR 0.70 m to 1.29 m, and the buyer's premium per delivered MWh from 10.5 to
+   14.6 EUR/MWh. The deemed-output design keeps the value without that risk, which is why
+   buyers who can curtail (aggregators, battery owners) may prefer it.
+
+History backs the numbers: the solar park's output at negative prices was 1.6% in 2022, 18.1%
+in 2024 and 23.6% in 2025; curtailing it would have saved 4.9 EUR/MWh in 2026 (January to
+September).
 
 ---
 

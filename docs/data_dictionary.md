@@ -250,11 +250,13 @@ revenues in EUR, energies in MWh, for the first delivery year unless stated.
 | `forward` | The delivery year's Cal base forward: `price_eur_mwh`, `date` (trading day of the quote) and `source` (URL); `date` and `source` are null for an assumed forward. Since v1.2 also `quarters` (quarter `"1"`..`"4"` → forward, EUR/MWh: the market's seasonal shape at the Cal level) and `quarters_date`. Results before v1.1 have `forward_assumption` (85.0) instead |
 | `forward_curve` | Cal base forwards of later contract years, `{"2028": ..., "2029": ...}` (EUR/MWh); years after the last one keep it |
 | `recent_level_eur_mwh` | Average day-ahead price of the analog pool (the recent regime) |
-| `level_grid` | Since v1.5: per forward at which the scenarios were rebuilt, `forward` (configured), `average` (the scenarios' average price) and `capture_rate` per park |
+| `level_grid` | Since v1.5: per forward at which the scenarios were rebuilt, `forward` (configured), `average` (the scenarios' average price) and `capture_rate` per park; since v1.8 `clause_capture_rate` and `delivered_share` per park |
 | `level_effect` | Since v1.5: `start_year` of the history regression, `first_year` and `last_year` of the data |
 | `parks.<park>.premia_eur_mwh` | `fair_price`, `unhedged`, `joint` (after the baseload hedge), `profile`, `volume` |
 | `parks.<park>.stack_eur_mwh` | `forward` (scenario average), `shape`, `fair_price`, `risk_premium`, `balancing`, `credit`, `indicative` |
-| `parks.<park>.structures.<structure>` | `fair_price_eur_mwh`, `expected_revenue_eur`, `p05_revenue_eur`, `cfar_eur`, `cfar_share`, `floor_value_eur_mwh` for `merchant`, `pay_as_produced`, `pay_as_produced_clause`, `merchant_floor`, `baseload` |
+| `parks.<park>.structures.<structure>` | `fair_price_eur_mwh`, `energy_share` (output sold or paid, share of the potential output), `expected_revenue_eur`, `p05_revenue_eur`, `cfar_eur`, `cfar_share` for `merchant` (curtailing at negative prices since v1.8), `merchant_no_curtailment`, `pay_as_produced`, `pay_as_produced_clause` (own fair strike since v1.8), `pay_as_produced_deemed`, `baseload`; until v1.7 also `merchant_floor` and `floor_value_eur_mwh` |
+| `parks.<park>.negative_prices` | Since v1.8: `curtail_below_eur_mwh`; `curtailment` (`share` of output below it, its output-weighted `mean_price`, `value` saved per MWh of output); `history` (the same per year 2021-2026); `deemed_strike`; `cfar_plain_eur`, `cfar_clause_eur`; `clause` with `stack_eur_mwh`, `premia_eur_mwh`, `energy_mwh_expected` (delivered), `delivered_share`, `level_response` (capture rate of the delivered output by level), `volume_response` (`level`, `share` delivered), `whole_window`, `tenor` (`fair_price`, `indicative` per delivered MWh, `delivered_share` over the tenor, `indicative_per_potential_mwh`) |
+| `curtail_below_eur_mwh` | Since v1.8: the price below which a park curtails (null: never) |
 | `parks.<park>.energy_mwh_expected`, `p50_mwh`, `p90_1y_mwh` | Expected energy over the scenarios; P50 and one-year P90 over the weather years (Step 4) |
 | `parks.<park>.tenor` | `years`, `fair_price` and `indicative` for the tenor (along the forward curve), and `sensitivity` (one row per case; the forward cases shift the whole curve and move the capture rate with it) |
 | `parks.<park>.level_response` | Since v1.5: `level` (scenario average prices, increasing) and `capture_rate`: the model's capture rate by price level, read linearly in ln(level) by `level_shift` |
@@ -402,9 +404,10 @@ not a forecast of a particular hour.
 | `premium(values, energy, quantile)` | (expected value − quantile) / expected energy (EUR/MWh) |
 | `buyer_value(prices, volumes, strike, forward, band_mw)` | per scenario: Σ q (P − K), plus a baseload hedge B Σ (F − P) if given |
 | `risk_premia(prices, volumes, quantile)` | `fair_price`, `unhedged`, `joint`, `profile`, `volume` (EUR/MWh) |
-| `structure_revenues(prices, volumes, floor)` | structure → (strike, annual revenue per scenario) |
-| `structure_table(prices, volumes, floor, quantile)` | per structure: fair price, expected and P5 revenue, CFaR, CFaR share, floor value |
-| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ..., forward_curve, level_response)` | per year: forward (first year, then the curve, flat after its last year), capture rate (moved along `level_response` when given), fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+| `structure_revenues(prices, volumes, curtail_below)` | structure → (strike, annual revenue per scenario); since v1.8 each at its own fair strike, curtailing below `curtail_below` where the park sells at spot or is unpaid |
+| `structure_table(prices, volumes, curtail_below, quantile)` | per structure: fair price, share of the output sold or paid, expected and P5 revenue, CFaR, CFaR share |
+| `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ..., forward_curve, level_response, volume_response)` | per year: forward (first year, then the curve, flat after its last year), capture rate (moved along `level_response` when given), energy (scaled by the delivered share of `volume_response`, v1.8), fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+| `curtail(prices, volumes, below)`, `curtailment_value(prices, volumes, below)` | v1.8: the output sold when the park stops below a price; the share of output it removes, their mean price and the loss avoided per MWh of output |
 | `level_shift(response, level_from, level_to)`, `capture_rate_at(response, level)` | change of the capture rate between two price levels, and the capture rate at one level, from a level response (linear in ln level, flat beyond its ends) |
 
 ### Hedging (`ppa_lab.hedging`)
