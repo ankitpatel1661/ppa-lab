@@ -18,6 +18,12 @@ import streamlit as st
 # Import ppa_lab from src/ when the package is not installed (Streamlit Community Cloud
 # installs only app/requirements.txt).
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+# Streamlit keeps imported modules between reruns and reloads only those next to this script.
+# After a redeploy the new script would meet the old ppa_lab still in memory (v1.11 on Cloud:
+# "Assumptions() got an unexpected keyword argument 'buildout'"), so import it fresh each run
+# (about 1 ms).
+for _name in [m for m in sys.modules if m == "ppa_lab" or m.startswith("ppa_lab.")]:
+    del sys.modules[_name]
 from ppa_lab.dashboard import (  # noqa: E402
     Assumptions,
     default_assumptions,

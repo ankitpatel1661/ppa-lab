@@ -1,6 +1,7 @@
 """Smoke test of the Streamlit dashboard, headless. Skipped where Streamlit is not installed
 (CI installs only the dev extra); the logic itself is tested in test_dashboard.py."""
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -26,3 +27,14 @@ def test_dashboard_runs_and_reacts_to_assumptions():
     at.sidebar.radio[0].set_value("Wind park · Everswinkel · 28.5 MW").run()
     assert not at.exception and "EUR/MWh" in at.metric[0].label
     assert float(at.metric[0].value) > 0
+
+
+def test_a_redeploy_does_not_run_against_an_old_ppa_lab_in_memory(monkeypatch):
+    """Streamlit keeps imported modules between reruns; on Cloud the v1.11 script met the v1.10
+    dashboard module and failed with a TypeError. The app must import ppa_lab afresh."""
+    import types
+
+    stale = types.ModuleType("ppa_lab.dashboard")     # an old module without what the app needs
+    monkeypatch.setitem(sys.modules, "ppa_lab.dashboard", stale)
+    at = AppTest.from_file(str(APP), default_timeout=60).run()
+    assert not at.exception
