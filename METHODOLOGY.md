@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.9** (ticket PPA-7c): cash flows and fair prices of the standard structures,
+**Version 1.10** (tickets PPA-2b, PPA-6c): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
@@ -23,6 +23,8 @@ build-out trend of the intraday shape (section 8), which removed most of the out
 error. Since version 1.8 parks stop producing at negative prices when they sell at spot or have
 a negative-price clause, and the clause is priced at its own fair strike (section 10). Since
 version 1.9 the EEG market premium of the wind park is valued as a strip of puts (section 10).
+Since version 1.10 the official market values are reproduced from the TSOs' data and the
+balancing costs are measured (section 2).
 
 ---
 
@@ -78,6 +80,26 @@ so $\bar P^{cap} = \bar P + \text{Cov}(q, P)/\bar q$. Solar output and prices mo
 opposite directions (cannibalisation), the covariance is negative and $c < 1$. The same
 identity inside each hour explains why hourly data overstates solar capture prices
 since 15-minute prices started.
+
+**Which output (v1.10).** The official values weight with the TSOs' online extrapolation of the
+output, not with the measured feed-in. The extrapolation counts 7-9% more onshore energy, mostly
+output curtailed in congested or negative hours, which are cheap. With it our day-ahead prices
+reproduce the official annual values of 2021-2025 to 0.00 EUR/MWh except 2024 (June 2024, the
+day-ahead decoupling); with the measured feed-in wind was 0.16-1.10 ct/kWh above them (backlog
+PPA-2b, Step 2b report).
+
+**Balancing (v1.10).** A direct marketer sells its day-ahead forecast $f_t$ at the day-ahead
+price and settles the difference to the actual output $a_t$ at the imbalance price reBAP (long:
+"überdeckt", short: "unterdeckt"). Per MWh produced the imbalance costs
+
+$$
+c_{bal} = \frac{\sum_t (a_t - f_t)\,(P_t - \text{reBAP}_t)\,\Delta t}{\sum_t a_t\,\Delta t},
+$$
+
+over quarter-hours, with $f$ the ENTSO-E day-ahead forecast for DE-LU scaled per month to the
+month's actual energy (so only timing and shape errors count) and $a$ the measured output. For
+the national portfolio over the analog-pool window (Oct 2025 - Sep 2026): solar 1.68, onshore
+wind 1.05 EUR/MWh. The cost assumptions of section 10 are these plus a 0.5 EUR/MWh marketing fee.
 
 ---
 
@@ -629,8 +651,9 @@ sources and stand in for EEX settlement prices.
 | Hedges at the model forward, no limits, no costs | Real hedges trade at market prices with bid-ask spreads, margining and position limits; unconstrained monthly hedges can be negative | v2: constraints (no negative sales), costs |
 | Hedge back-test with last year's average as forward | Not a market price; two years only, so it illustrates, not measures | v2: EEX settlement history |
 | Market quotes from secondary web sources | Not official EEX settlements; dates differ | Replace with EEX data |
-| Measured generation is after curtailment | Slightly higher capture prices than official market values (Step 2) | Backlog PPA-2b |
-| Balancing, route-to-market and credit costs as fixed EUR/MWh | Not modelled from imbalance prices or counterparty data | Stated assumptions in PPA-7; models in v2 |
+| Measured generation is after curtailment | Higher capture prices than the official values, which use the TSOs' online extrapolation (wind +0.16 to +1.10 ct/kWh) | Solved in v1.10 (PPA-2b): with the extrapolation the official values are reproduced (section 2) |
+| Balancing measured on the national portfolio at day-ahead forecast quality; marketing fee and credit costs assumed | A single park's errors are larger, a marketer's pool and intraday trading make them smaller; the cost moves with the reBAP spread (1.0-5.5 EUR/MWh in 2021-2026) | v1.10 (PPA-6c): Step 2b report; credit from counterparty data in v2 |
+| EEX monthly settlements not available (paid data) | The forward has only published Cal and quarter quotes; months come from history | Published quotes; EEX data in v2 |
 | Curtailment is instant and free, the threshold the same in every hour | Real parks need a ramp, the direct marketer's systems and sometimes the grid operator; some parks earn guarantees of origin or have variable costs | Threshold in `[ppa]`; notebook 7.2b |
 | EEG: award value assumed (77 EUR/MWh), market value from the park's capture price, no premium in any negative hour, one award for both Everswinkel phases | The premium's value moves 2.3-16.3 EUR/MWh over AW 60-95; the official value is national (basis sd 0.042 a month); the n-hour rule of §51 pays some negative hours | v1.9 (PPA-7c): award range and annual value as sensitivities; ask the owner for the award |
 | Option premiums not included in cash flows (history) | Floors and caps shown as payoffs only in the back-test | PPA-7 prices the floor on scenarios |
@@ -667,3 +690,5 @@ sources and stand in for EEX settlement prices.
   at their own fair strikes, the clause over the tenor (section 10); limitations updated.
 - **v1.9, PPA-7c:** the EEG market premium as a strip of puts against a PPA (section 10);
   limitations updated.
+- **v1.10, PPA-2b and PPA-6c:** official market values from the TSOs' online extrapolation;
+  balancing cost measured from forecast errors and reBAP (section 2); limitations updated.

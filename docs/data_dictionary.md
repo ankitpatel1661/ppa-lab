@@ -218,6 +218,25 @@ the capture prices (`ppa_lab.scenarios.generator.fair_price`). Hourly prices are
 
 ---
 
+## TSO data and `balancing.json` (Step 2b, v1.10)
+
+Raw caches, one Parquet file per UTC month with a manifest, as for Energy-Charts:
+
+| Raw dataset | Source | Content |
+|---|---|---|
+| `raw/netztransparenz/rebap` | netztransparenz.de `NrvSaldo/reBAP/Qualitaetsgesichert` | `reBAP unterdeckt`, `reBAP ueberdeckt` (EUR/MWh) per quarter-hour |
+| `raw/netztransparenz/wind_onshore_online`, `wind_offshore_online`, `solar_online` | `onlinehochrechnung/{Windonshore,Windoffshore,Solar}/qualitaetsgesichert` | MW per TSO (`50Hertz (MW)`, `Amprion (MW)`, `TenneT TSO (MW)`, `TransnetBW (MW)`); hourly until 2025, then quarter-hours |
+| `raw/entsoe/wind_solar_forecast` | ENTSO-E A69, process A01, DE-LU | day-ahead forecasts `solar_mw`, `wind_onshore_mw`, `wind_offshore_mw` per quarter-hour |
+
+`data/processed/balancing.json`, written by `ppa-lab balancing`:
+
+| Key | Meaning |
+|---|---|
+| `window`, `previous_window` | The analog-pool window (local days) and the 12 months before it |
+| `imbalance_cost_eur_mwh`, `previous_imbalance_cost_eur_mwh` | Per technology: imbalance cost per MWh produced over that window |
+| `by_year` | Per technology and year: `cost_eur_mwh`, `relative_error` (mean absolute forecast error over mean output), `spread_eur_mwh` (mean distance of the reBAP that applies from the day-ahead price), `energy_twh` |
+| `market_value_gap_eur_mwh` | Per "technology year": `measured_gap` and `online_gap`, the mean monthly capture price minus the official value with the measured feed-in and with the online extrapolation |
+
 ## `out_of_sample.json` (Step 6, v1.6)
 
 The out-of-sample test written by `ppa-lab scenarios` when `[scenarios] out_of_sample_years`
@@ -408,6 +427,8 @@ not a forecast of a particular hour.
 | `structure_revenues(prices, volumes, curtail_below)` | structure → (strike, annual revenue per scenario); since v1.8 each at its own fair strike, curtailing below `curtail_below` where the park sells at spot or is unpaid |
 | `structure_table(prices, volumes, curtail_below, quantile)` | per structure: fair price, share of the output sold or paid, expected and P5 revenue, CFaR, CFaR share |
 | `tenor_price(fair_price, forward, energy_mwh, start_year, years, discount_rate, ..., forward_curve, level_response, volume_response)` | per year: forward (first year, then the curve, flat after its last year), capture rate (moved along `level_response` when given), energy (scaled by the delivered share of `volume_response`, v1.8), fair price, energy, discount factor; tenor price in `.attrs["price"]` |
+| `imbalance_frame(actual, forecast, price, rebap_short, rebap_long, tz, correct_bias)`, `imbalance_cost(frame, tz)`, `window_cost(frame, start, end, tz)` (`ppa_lab.analysis.balancing`, v1.10) | quarter-hours with the forecast error and the reBAP that applies; per year the imbalance cost per MWh produced, the relative forecast error and the reBAP spread; the cost over a window |
+| `market_value_check(prices, measured, online, official, tz)` | per technology and month: the official market value and the capture prices with the measured feed-in and with the online extrapolation |
 | `market_premium(prices, volumes, months, award, basis, reference, curtail_below)`, `eeg_revenue(...)` (`ppa_lab.pricing.eeg`, v1.9) | the EEG market premium per scenario: per month (or year) max(AW − basis × the park's capture price, 0) × the output delivered; spot plus premium |
 | `basis_ratio(official, prices, generation, tz, start)` | ratio of the official monthly market value to the park's capture price: `mean`, `sd`, `months`, `table` |
 | `curtail(prices, volumes, below)`, `curtailment_value(prices, volumes, below)` | v1.8: the output sold when the park stops below a price; the share of output it removes, their mean price and the loss avoided per MWh of output |

@@ -133,3 +133,27 @@ def test_unauthorized_token_gives_actionable_message():
     client = EntsoeClient(api_key="WRONG", session=FakeSession(FakeResponse(401, "")))
     with pytest.raises(EntsoeError, match="401"):
         client.day_ahead_prices("DE-LU", date(2025, 6, 1), date(2025, 6, 1))
+
+
+A69 = """<?xml version="1.0" encoding="UTF-8"?>
+<GL_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-6:generationloaddocument:3:0">
+  <TimeSeries><curveType>A03</curveType><MktPSRType><psrType>B19</psrType></MktPSRType>
+    <Period><timeInterval><start>2025-01-01T00:00Z</start><end>2025-01-01T01:00Z</end>
+      </timeInterval><resolution>PT15M</resolution>
+      <Point><position>1</position><quantity>100</quantity></Point>
+      <Point><position>3</position><quantity>120.5</quantity></Point></Period></TimeSeries>
+  <TimeSeries><curveType>A03</curveType><MktPSRType><psrType>B16</psrType></MktPSRType>
+    <Period><timeInterval><start>2025-01-01T00:00Z</start><end>2025-01-01T01:00Z</end>
+      </timeInterval><resolution>PT15M</resolution>
+      <Point><position>1</position><quantity>0</quantity></Point></Period></TimeSeries>
+  <TimeSeries><MktPSRType><psrType>B01</psrType></MktPSRType></TimeSeries>
+</GL_MarketDocument>"""
+
+
+def test_wind_and_solar_forecast_per_production_type():
+    from ppa_lab.data.entsoe import parse_generation_xml
+    f = parse_generation_xml(A69)
+    assert sorted(f.columns) == ["solar_mw", "wind_onshore_mw"]          # B01 ignored
+    assert f["wind_onshore_mw"].tolist() == [100.0, 100.0, 120.5, 120.5]  # A03 forward-filled
+    assert f["solar_mw"].tolist() == [0.0] * 4
+    assert str(f.index.tz) == "UTC" and len(f) == 4

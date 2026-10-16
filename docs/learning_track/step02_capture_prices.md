@@ -449,6 +449,43 @@ May 2026 solar market value from 3.163 to 3.296 ct/kWh after an error in their s
 extrapolation for 1 May 2026. The reference file stores the corrected value and says
 so in its header. Reference data needs provenance, just like your own data.
 
+### 4.5 Update (v1.10): the wind gap solved, and what balancing costs
+
+Section 4.2 left a hypothesis: the official market values weight prices with the TSOs' online
+extrapolation of the output, our measured feed-in lacks the output curtailed in cheap hours,
+so our capture prices are higher. The TSOs' WebAPI (netztransparenz.de, a free client) gives
+the extrapolation. Recomputed with it:
+
+| Official annual value minus ours (EUR/MWh) | 2021 | 2022 | 2023 | 2024 | 2025 |
+|---|---|---|---|---|---|
+| Onshore wind, measured feed-in | −2.20 | −5.59 | −2.23 | −1.61 | −2.86 |
+| Onshore wind, the TSOs' extrapolation | 0.00 | 0.00 | 0.00 | +0.44 | 0.00 |
+
+The extrapolation counts 7-9% more onshore energy than the measured feed-in. The 2024 rest is
+June 2024 only, the day-ahead decoupling of section 4.1. The hypothesis held; the references
+now carry the explanation and Step 2 has no difference left unexplained. The same data fixed
+two references nobody had connected to it: the share of onshore energy sold at non-negative
+prices (90.4% with the extrapolation, published 90%; measured 92.4%).
+
+The same platform publishes reBAP, the imbalance price. With ENTSO-E's day-ahead forecasts the
+cost of balancing is measurable: a marketer sells its forecast day-ahead and settles the error
+at reBAP. For the national portfolio (Step 2b report):
+
+| EUR per MWh produced | 2022 | 2024 | 2025 | Oct 2025 - Sep 2026 |
+|---|---|---|---|---|
+| Solar | 5.50 | 5.41 | 2.38 | 1.68 |
+| Onshore wind | 3.45 | 1.90 | 1.84 | 1.05 |
+
+Three lessons:
+
+1. **Keep a known gap open until it is tested.** Section 4.2 refused to widen the tolerance;
+   the references stayed "outside" for a year and now carry a tested explanation, not a guess.
+2. **Read what an endpoint really contains.** The API also offers wind and solar "forecasts":
+   every value is "N.A.", and the "extrapolation" endpoint covers only the 40-180 MW the TSOs
+   market themselves. A sum that looks 100 times too small is a question, not a unit problem.
+3. **Costs follow prices more than skill.** The forecast error barely moved (onshore about 9%,
+   solar about 7%); the cost halved because reBAP came closer to the day-ahead price.
+
 ---
 
 ## 5. Hands-on: run it yourself

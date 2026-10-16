@@ -137,7 +137,11 @@ curtail_below_eur_mwh = 0.0
 2029 = 87.58
 
 [ppa.parks.solar_park]
-balancing_eur_mwh = 1.5           # balancing and route to market
+# Balancing and route to market (v1.10): the measured imbalance cost of the national solar
+# portfolio over the analog-pool window, Oct 2025 - Sep 2026 (Step 2b report: day-ahead
+# forecast errors at reBAP, 1.68 EUR/MWh), plus a marketing fee of 0.5 EUR/MWh (assumption).
+# Until v1.9: 1.5, the preparation guide's illustrative value.
+balancing_eur_mwh = 2.18
 credit_eur_mwh = 1.0              # credit and liquidity
 # Solar cannibalisation: the capture rate falls 1 percentage point a year after 2027. History
 # fell much faster (0.76 -> 0.59 -> 0.51 in 2023-2025, Step 2) while solar capacity grew;
@@ -147,7 +151,9 @@ capture_rate_drift = -0.01
 degradation = 0.005               # PV module degradation, about 0.5 % per year
 
 [ppa.parks.wind_park]
-balancing_eur_mwh = 2.0           # wind forecast errors are larger than solar ones
+# Measured onshore imbalance cost Oct 2025 - Sep 2026: 1.05 EUR/MWh (Step 2b report; 2.24 the
+# year before), plus the 0.5 marketing fee. Until v1.9: 2.0 (illustrative).
+balancing_eur_mwh = 1.55
 credit_eur_mwh = 1.0
 capture_rate_drift = 0.0
 degradation = 0.0
@@ -432,6 +438,7 @@ year = 2025
 value = 7.441
 tolerance = 0.10
 source = "netztransparenz.de JW Wind an Land 2025"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.00 EUR/MWh on average in 2025."
 
 [[reconciliation]]
 metric = "capture_price_wind_onshore_ct_kwh"
@@ -439,6 +446,7 @@ year = 2024
 value = 6.293
 tolerance = 0.10
 source = "netztransparenz.de JW Wind an Land 2024"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.71 EUR/MWh on average in 2024. The only month off is June 2024 (the 26 June 2024 day-ahead decoupling, as for the spot price)."
 
 [[reconciliation]]
 metric = "capture_price_wind_onshore_ct_kwh"
@@ -446,6 +454,7 @@ year = 2023
 value = 7.621
 tolerance = 0.10
 source = "netztransparenz.de JW Wind an Land 2023"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.00 EUR/MWh on average in 2023."
 
 [[reconciliation]]
 metric = "capture_price_wind_onshore_ct_kwh"
@@ -453,6 +462,7 @@ year = 2022
 value = 16.272
 tolerance = 0.10
 source = "netztransparenz.de JW Wind an Land 2022 (retrieved 15 Oct 2026)"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.00 EUR/MWh on average in 2022."
 
 [[reconciliation]]
 metric = "capture_price_wind_onshore_ct_kwh"
@@ -460,6 +470,7 @@ year = 2021
 value = 7.854
 tolerance = 0.10
 source = "netztransparenz.de JW Wind an Land 2021 (retrieved 15 Oct 2026)"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.00 EUR/MWh on average in 2021."
 
 [[reconciliation]]
 metric = "capture_price_wind_offshore_ct_kwh"
@@ -467,6 +478,7 @@ year = 2025
 value = 8.059
 tolerance = 0.10
 source = "netztransparenz.de JW Wind auf See 2025"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to +0.00 EUR/MWh on average in 2025."
 
 [[reconciliation]]
 metric = "capture_price_wind_offshore_ct_kwh"
@@ -474,6 +486,7 @@ year = 2024
 value = 6.777
 tolerance = 0.10
 source = "netztransparenz.de JW Wind auf See 2024"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.40 EUR/MWh on average in 2024. The only month off is June 2024 (the 26 June 2024 day-ahead decoupling, as for the spot price)."
 
 [[reconciliation]]
 metric = "capture_price_wind_offshore_ct_kwh"
@@ -481,6 +494,7 @@ year = 2023
 value = 8.187
 tolerance = 0.10
 source = "netztransparenz.de JW Wind auf See 2023"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to +0.00 EUR/MWh on average in 2023."
 
 [[reconciliation]]
 metric = "capture_price_wind_offshore_ct_kwh"
@@ -488,6 +502,7 @@ year = 2022
 value = 18.349
 tolerance = 0.10
 source = "netztransparenz.de JW Wind auf See 2022 (retrieved 15 Oct 2026)"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to +0.00 EUR/MWh on average in 2022."
 
 [[reconciliation]]
 metric = "capture_price_wind_offshore_ct_kwh"
@@ -495,6 +510,7 @@ year = 2021
 value = 9.017
 tolerance = 0.10
 source = "netztransparenz.de JW Wind auf See 2021 (retrieved 15 Oct 2026)"
+note = "Explained (PPA-2b, Step 2b report): the official value uses the TSOs' online extrapolation, which counts more energy than the measured feed-in, mostly in cheap curtailed hours. With it our prices reproduce the monthly values to -0.00 EUR/MWh on average in 2021."
 
 # Share of energy produced at non-negative prices ("Vermarktungsmenge"). Secondary
 # source (Roedl & Partner, Feb 2026, based on netztransparenz.de data), published as
@@ -519,6 +535,7 @@ year = 2025
 value = 90
 tolerance = 1.0
 source = "Roedl & Partner, Feb 2026: Wind-an-Land-Vermarktungsmenge 2025 = 90 %"
+note = "Explained (PPA-2b, Step 2b report): the published share uses the TSOs' online extrapolation, which keeps the output curtailed at negative prices; with it our share is 90.38 %. The measured feed-in lacks that output, so its share is higher."
 
 [[reconciliation]]
 metric = "nonnegative_share_wind_onshore_pct"
@@ -526,3 +543,4 @@ year = 2024
 value = 92
 tolerance = 1.0
 source = "Roedl & Partner, Feb 2026: Wind-an-Land-Vermarktungsmenge 2024 = 92 %"
+note = "Explained (PPA-2b, Step 2b report): the published share uses the TSOs' online extrapolation, which keeps the output curtailed at negative prices; with it our share is 92.33 %. The measured feed-in lacks that output, so its share is higher."

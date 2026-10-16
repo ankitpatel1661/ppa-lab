@@ -20,6 +20,10 @@ SDAC auction: on 1 Oct 2025 it matched SMARD/Energy-Charts on all 96
 quarter-hours to the cent. Sequence 2 is a second day-ahead auction with
 different prices (unconfirmed which; EXAA is a candidate). The client returns
 sequence 1 unless asked otherwise.
+
+Day-ahead wind and solar forecasts (documentType A69, processType A01, v1.10) come as one
+TimeSeries per production type (psrType B16 solar, B18 wind offshore, B19 wind onshore), in MW
+per quarter-hour, also with curve type A03.
 """
 
 from __future__ import annotations
@@ -108,28 +112,62 @@ def _sequence_of(series: ET.Element) -> int:
     return int(next((c.text for c in series if _name(c.tag) == SEQUENCE_TAG), "1"))
 
 
-def _parse_period(period: ET.Element, sequence: int) -> pd.DataFrame:
-    """One <Period>: start, end, resolution and its price points."""
+def _period_values(period: ET.Element, tag: str) -> pd.Series:
+    """One <Period>: its points (`tag`: "price.amount" or "quantity") on the full grid of
+    its interval. Curve type A03 omits repeated values: forward-fill the gaps."""
     interval = _child(period, "timeInterval")
     start = pd.Timestamp(_child(interval, "start").text)
     end = pd.Timestamp(_child(interval, "end").text)
     step = pd.Timedelta(_child(period, "resolution").text)  # e.g. "PT15M"
     n_points = int((end - start) / step)
-
     points: dict[int, float] = {}
     for point in (c for c in period if _name(c.tag) == "Point"):
-        points[int(_child(point, "position").text)] = float(_child(point, "price.amount").text)
-
-    # Curve type A03 omits repeated values: forward-fill the gaps.
+        points[int(_child(point, "position").text)] = float(_child(point, tag).text)
     values = pd.Series([points.get(i) for i in range(1, n_points + 1)], dtype="float64").ffill()
+    values.index = pd.date_range(start, periods=n_points, freq=step)
+    return values
+
+
+def _parse_period(period: ET.Element, sequence: int) -> pd.DataFrame:
+    """One <Period> of prices: price, resolution and auction sequence per interval."""
+    values = _period_values(period, "price.amount")
+    step = values.index[1] - values.index[0] if len(values) > 1 else pd.Timedelta(hours=1)
     return pd.DataFrame(
         {
             "price_eur_mwh": values.to_numpy(),
             "resolution_min": step / pd.Timedelta(minutes=1),
             "sequence": sequence,
         },
-        index=pd.date_range(start, periods=n_points, freq=step),
+        index=values.index,
     )
+
+
+PSR_COLUMNS = {"B16": "solar_mw", "B18": "wind_offshore_mw", "B19": "wind_onshore_mw"}
+
+
+def parse_generation_xml(xml: str | bytes) -> pd.DataFrame:
+    """Parse an A69 GL_MarketDocument (wind and solar forecast) into one MW column per
+    production type (`PSR_COLUMNS`), indexed by UTC interval start."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as exc:
+        raise EntsoeError(f"Response is not valid XML: {exc}") from None
+    if _name(root.tag) == "Acknowledgement_MarketDocument":
+        reasons = [e.text.strip() for e in root.iter() if _name(e.tag) == "text" and e.text]
+        raise EntsoeError("ENTSO-E returned no data: " + ("; ".join(reasons) or "no reason given"))
+    columns: dict[str, list[pd.Series]] = {}
+    for series in (e for e in root.iter() if _name(e.tag) == "TimeSeries"):
+        psr = next((e.text for e in series.iter() if _name(e.tag) == "psrType"), None)
+        if psr not in PSR_COLUMNS:
+            continue
+        for period in (c for c in series if _name(c.tag) == "Period"):
+            columns.setdefault(PSR_COLUMNS[psr], []).append(_period_values(period, "quantity"))
+    if not columns:
+        raise EntsoeError("No wind or solar forecast found in the ENTSO-E response")
+    out = pd.DataFrame({name: pd.concat(parts).sort_index() for name, parts in columns.items()})
+    out = out[~out.index.duplicated(keep="last")]
+    out.index = normalise_index(out.index)
+    return out
 
 
 @dataclass
@@ -153,6 +191,30 @@ class EntsoeClient:
         """
         prices = self._fetch(zone, start, end, tz)
         return prices if sequence is None else prices[prices["sequence"] == sequence]
+
+    def wind_solar_forecast(self, zone: str, start: pd.Timestamp,
+                            end: pd.Timestamp) -> pd.DataFrame:
+        """Day-ahead wind and solar forecasts (MW) between two UTC times."""
+        eic = EIC[zone]
+        params = {"documentType": "A69", "processType": "A01", "in_Domain": eic,
+                  "periodStart": pd.Timestamp(start).strftime("%Y%m%d%H%M"),
+                  "periodEnd": pd.Timestamp(end).strftime("%Y%m%d%H%M")}
+        return parse_generation_xml(self._get(params))
+
+    def _get(self, params: dict) -> bytes:
+        """GET with the token; errors never carry the URL (it contains the token)."""
+        try:
+            resp = self.session.get(self.base_url, params={"securityToken": self.api_key,
+                                                           **params}, timeout=self.timeout_s)
+        except requests.RequestException as exc:
+            raise EntsoeError(f"Request to ENTSO-E failed ({type(exc).__name__})") from None
+        if resp.status_code == 401:
+            raise EntsoeError(
+                "HTTP 401 Unauthorized: the token is wrong, or API access is not activated yet"
+            )
+        if resp.status_code != 200:
+            raise EntsoeError(f"HTTP {resp.status_code} from ENTSO-E")
+        return resp.content
 
     def _fetch(self, zone: str, start: date, end: date, tz: str) -> pd.DataFrame:
         eic = EIC[zone]
@@ -183,3 +245,29 @@ class EntsoeClient:
                 raise EntsoeError(f"HTTP {resp.status_code}: {exc}") from None
             raise EntsoeError(f"HTTP {resp.status_code} from ENTSO-E")
         return parse_day_ahead_xml(resp.content)
+
+
+def fetch_forecasts(client: EntsoeClient, store, start: pd.Timestamp, end: pd.Timestamp,
+                    zone: str = "DE-LU", refresh: bool = False,
+                    sleep=None) -> list[tuple[str, str]]:
+    """Day-ahead wind and solar forecasts month by month (UTC months) into the raw store
+    (dataset "wind_solar_forecast"); cached months are skipped unless `refresh`."""
+    import time
+    sleep = sleep or time.sleep
+    first = pd.Timestamp(start).tz_localize(None).to_period("M").to_timestamp()
+    last = pd.Timestamp(end).tz_localize(None).to_period("M").to_timestamp()
+    done = []
+    for month_start in pd.date_range(first, last, freq="MS").tz_localize("UTC"):
+        month = month_start.strftime("%Y-%m")
+        if store.exists("wind_solar_forecast", month) and not refresh:
+            done.append((month, "cached"))
+            continue
+        month_end = month_start + pd.offsets.MonthBegin(1)
+        frame = client.wind_solar_forecast(zone, month_start, month_end)
+        frame = frame[(frame.index >= month_start) & (frame.index < month_end)]
+        store.save(frame, "wind_solar_forecast", month,
+                   {"source": "ENTSO-E A69 day-ahead", "zone": zone}, overwrite=True)
+        done.append((month, "downloaded"))
+        sleep(0.5)
+    return done
+

@@ -20,12 +20,12 @@ with their market, shape and volume risks.
 > year: forward 141.1 × expected capture rate 0.55 = 77.5; later years follow the falling
 > forward curve, and the capture rate falls with it, to 0.44 at 88 EUR/MWh, and by another
 > percentage point a year). After a profile and volume risk premium of 10.5 EUR/MWh and
-> balancing and credit costs of 2.5 EUR/MWh, the indicative price is **28.1 EUR/MWh**. Expected
+> balancing and credit costs of 3.2 EUR/MWh, the indicative price is **27.4 EUR/MWh**. Expected
 > annual energy is 120.9 GWh (P50, matching the published ~121 GWh; one-year P90 113.4 GWh).
 > Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant,
 > stopping at negative prices) to EUR 0.70 m per year. With a negative-price clause (the park
-> stops producing at negative prices and is not paid) the indicative price is 52.9 EUR per
-> delivered MWh: 36.8 per MWh of output, at a cash flow at risk of EUR 1.29 m.*
+> stops producing at negative prices and is not paid) the indicative price is 52.2 EUR per
+> delivered MWh: 36.3 per MWh of output, at a cash flow at risk of EUR 1.29 m.*
 >
 > *How far to trust it: tested on years it had not seen, the model first overstated solar's
 > capture rate by 0.09 to 0.14, because solar's midday dips deepen every year. It now moves
@@ -57,9 +57,9 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 | Buyer's risk premium after a baseload hedge (without hedge) | 10.5 (25.4) | 5.5 (34.8) |
 | of which profile / volume | 10.1 / 0.4 | 2.0 / 3.6 |
 | Fair price, 10 years along the forward curve | 41.1 | 86.6 |
-| **Indicative price, 10 years** (after premium, balancing and credit costs) | **28.1** | **78.1** |
+| **Indicative price, 10 years** (after premium, balancing and credit costs) | **27.4** | **78.6** |
 | Indicative, less the model's remaining out-of-sample error (Step 6) | 25.3 | 73.9 |
-| With a negative-price clause: indicative per delivered MWh (per MWh of output) | 52.9 (36.8) | 88.1 (80.0) |
+| With a negative-price clause: indicative per delivered MWh (per MWh of output) | 52.2 (36.3) | 88.5 (80.4) |
 | Producer's CFaR95 in 2027: merchant → pay-as-produced (with the clause) | EUR 3.02 m → 0.70 m (1.29 m) | EUR 2.10 m → 0.96 m (0.98 m) |
 
 - **The curve matters as much as the level:** 2027 trades at 141, but the discount- and
@@ -84,16 +84,21 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   output falls in hours with negative prices (an average of −17.7 EUR/MWh), and over ten years
   about 30%, because later forwards are lower. A park selling at spot stops producing then; under
   a plain PPA it is paid for every MWh and keeps producing, so the buyer sells that output at a
-  loss. A negative-price clause keeps that value with the producer (36.8 instead of 28.1 EUR per
+  loss. A negative-price clause keeps that value with the producer (36.3 instead of 27.4 EUR per
   MWh of output) but gives back volume risk (cash flow at risk 1.29 instead of 0.70 m); letting
   the buyer curtail and pay the output as if produced keeps the value without that risk
   ([Step 7, section 5](reports/step07_ppa_pricing.md)).
 - **Everswinkel should stay in the EEG:** its market premium is a strip of monthly puts on the
   onshore market value at its award value (assumed 77 EUR/MWh; not published). Worth 0.5
-  EUR/MWh at the 2027 forward but 8.9 at the Cal-29 level, it lifts the park to 93.4 EUR/MWh
-  over ten years after the marketing fee, against 78.1 for a PPA at the indicative price, and
+  EUR/MWh at the 2027 forward but 8.9 at the Cal-29 level, it lifts the park to 93.8 EUR/MWh
+  over ten years after the marketing fee, against 78.6 for a PPA at the indicative price, and
   the EEG pays more at every award from 60 to 95 EUR/MWh
   ([Step 7, section 6](reports/step07_ppa_pricing.md)).
+- **Balancing costs are measured, not assumed:** day-ahead forecast errors of the national
+  portfolio (ENTSO-E) settled at the imbalance price reBAP (netztransparenz.de) cost solar 1.68
+  and onshore wind 1.05 EUR/MWh over the last 12 months (2.56 and 2.24 the year before: the
+  imbalance prices came closer to the day-ahead price); plus a 0.5 marketing fee
+  ([Step 2b](reports/step02b_tso_data.md)).
 - **The market's winter premium hurts solar and helps wind:** solar produces in the cheaper
   Q2 and Q3 (capture rate 0.55), wind in the expensive winter (0.92).
 - **Most of the buyer's risk is hedgeable:** a baseload forward removes 59-84% of it. Solar's
@@ -120,11 +125,12 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 |---|---|---|---|---|
 | 1 | Can we trust the market data? | Mean prices 2021-2025 match the published values, incl. 235.45 EUR/MWh in 2022 | [report](reports/step01_market_data.md) | [page](docs/learning_track/step01_market_data_foundation.md) |
 | 2 | What do solar and wind really earn? | Solar capture rate 0.94 in the 2022 gas crisis → 0.51 in 2025, matches official market values | [report](reports/step02_capture_prices.md) | [page](docs/learning_track/step02_capture_prices.md) |
+| 2b | What do the TSOs' own data say? | The official market values reproduced from the TSOs' extrapolation (the wind gap solved); balancing measured: solar 1.68, onshore 1.05 EUR/MWh | [report](reports/step02b_tso_data.md) | [page](docs/learning_track/step02_capture_prices.md) |
 | 3 | How does each PPA structure move risk? | Pay-as-produced removes price surprise; baseload leaves shape risk | [report](reports/step03_ppa_structures.md) | [page](docs/learning_track/step03_ppa_structures.md) |
 | 4 | How much do the parks produce? | Borrentin P50 121 GWh, Everswinkel 64 GWh (calibrated to the published yields); P90 −6 to −9% | [report](reports/step04_generation.md) | [page](docs/learning_track/step04_weather_to_power.md) |
 | 5 | Which price years are plausible? | Prices forget in about a day; negative prices bunch just below zero, as in history; midday dips deepen with the build-out | [report](reports/step05_price_model.md) | [page](docs/learning_track/step05_price_model.md) |
 | 6 | How do weather and prices move together? | Windy days are cheap days: wind fair price 150 → 131 EUR/MWh; tested on years it never saw (solar error 0.12, 0.03 with the build-out trend) | [report](reports/step06_joint_scenarios.md) | [page](docs/learning_track/step06_joint_scenarios.md) |
-| 7 | What price, and how much risk is left? | 28.1 EUR/MWh indicative over ten years (52.9 per delivered MWh with a negative-price clause); CFaR −77% with the PPA; capture rate rises with the price level, as history confirms | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
+| 7 | What price, and how much risk is left? | 27.4 EUR/MWh indicative over ten years (52.2 per delivered MWh with a negative-price clause); CFaR −77% with the PPA; capture rate rises with the price level, as history confirms | [report](reports/step07_ppa_pricing.md) | [page](docs/learning_track/step07_ppa_pricing.md) |
 | 8 | How much to sell forward, and is our forward right? | Cal base at 87% of the output sold cuts merchant CFaR by 72% (solar); the forward is now the market's curve and seasonal shape | [report](reports/step08_hedging.md) | [page](docs/learning_track/step08_hedging.md) |
 | 9 | How do we tell management? | One-page memo and a dashboard with live assumptions | [memo](reports/step09_memo.md) | [page](docs/learning_track/step09_memo_dashboard.md) |
 
@@ -134,9 +140,17 @@ Every step has tests, a report, a learning-track page, a notebook section and ex
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 263 offline tests, about 30 seconds
+make test      # 279 offline tests, about 30 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 make app       # the dashboard (reads the committed results; no download needed)
+```
+
+The TSO data of Step 2b need two free credentials in the git-ignored `.env`: an ENTSO-E token
+(`ENTSOE_API_KEY`) and a netztransparenz.de API client (`NETZTRANSPARENZ_CLIENT_ID`,
+`NETZTRANSPARENZ_CLIENT_SECRET`; register at https://api-portal.netztransparenz.de). Then:
+
+```bash
+make tso forecasts balancing   # reBAP, online extrapolations, ENTSO-E forecasts -> Step 2b report
 ```
 
 Explore the data interactively in the playground notebook (one section per step):
@@ -381,10 +395,12 @@ baseload price.
   feed-in, which shows when monthly prices range from 12 to 40 ct/kWh. The spot price matches
   in 67 of 68 months; the exception is June 2024, caused by the SDAC partial decoupling on
   26 June 2024.
-- **Open investigation:** wind capture prices are 0.16 to 1.10 ct/kWh above the official
-  values in every year (largest in 2022). The evidence points to curtailment in the measured
-  generation data versus the TSOs' online extrapolation. These references are deliberately
-  left outside tolerance until that is tested (backlog PPA-2b).
+- **Solved (v1.10, PPA-2b):** wind capture prices were 0.16 to 1.10 ct/kWh above the official
+  values in every year. The official values use the TSOs' online extrapolation, which counts
+  7-9% more onshore energy than the measured feed-in, mostly curtailed output in cheap hours.
+  With the extrapolation (netztransparenz.de API) our prices reproduce every official annual
+  value from 2021 to 2025 to 0.00 EUR/MWh except 2024, whose gap comes from June 2024 only
+  ([Step 2b report](reports/step02b_tso_data.md)).
 
 ![Capture rate by month](reports/figures/step02_capture_rate_monthly.png)
 

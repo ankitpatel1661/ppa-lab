@@ -1,6 +1,6 @@
 # Step 7 report: pricing the PPAs and their risk
 
-Generated 2026-10-16 06:49 UTC by `ppa-lab pricing`.
+Generated 2026-10-16 07:37 UTC by `ppa-lab pricing`.
 
 Inputs: the Step 6 joint scenarios for 2027
 (496 scenarios: 31 weather years x
@@ -49,9 +49,9 @@ per expected MWh.
 | Shape: capture rate below 1            |       -63.54 |      -11.12 |
 | = Fair pay-as-produced price           |        77.53 |      129.94 |
 | − Profile and volume risk premium      |        10.54 |        5.49 |
-| − Balancing and route to market        |         1.5  |        2    |
+| − Balancing and route to market        |         2.18 |        1.55 |
 | − Credit and liquidity                 |         1    |        1    |
-| = Indicative pay-as-produced price     |        64.48 |      121.45 |
+| = Indicative pay-as-produced price     |        63.8  |      121.9  |
 
 Balancing and credit costs are stated assumptions (`[ppa.parks.*]` in `config/project.toml`).
 
@@ -64,16 +64,16 @@ are applied to every year (a simplification).
 
 | Case                                              |   Solar park: fair |   Solar park: indicative |   Wind park: fair |   Wind park: indicative |
 |:--------------------------------------------------|-------------------:|-------------------------:|------------------:|------------------------:|
-| Base case                                         |              41.15 |                    28.1  |             86.64 |                   78.15 |
-| Capture-rate trend 2 pp/yr steeper                |              34.13 |                    21.09 |             79.55 |                   71.06 |
-| Capture-rate trend 1 pp/yr steeper                |              37.64 |                    24.6  |             83.09 |                   74.6  |
-| Capture-rate trend 1 pp/yr flatter                |              44.65 |                    31.61 |             90.18 |                   81.69 |
-| Forward −10%                                      |              34.29 |                    21.25 |             77.22 |                   68.73 |
-| Forward +10%                                      |              47.92 |                    34.88 |             96.02 |                   87.53 |
-| Analog days from the whole window                 |              41.11 |                    28.07 |             87.06 |                   78.57 |
-| Capture rate vs price level: low end of history   |              42.62 |                    29.58 |             87.83 |                   79.33 |
-| Capture rate vs price level: high end of history  |              40.49 |                    27.45 |             86.36 |                   77.87 |
-| Capture rate less the model's out-of-sample error |              38.37 |                    25.33 |             82.35 |                   73.86 |
+| Base case                                         |              41.15 |                    27.42 |             86.64 |                   78.6  |
+| Capture-rate trend 2 pp/yr steeper                |              34.13 |                    20.41 |             79.55 |                   71.51 |
+| Capture-rate trend 1 pp/yr steeper                |              37.64 |                    23.92 |             83.09 |                   75.05 |
+| Capture-rate trend 1 pp/yr flatter                |              44.65 |                    30.93 |             90.18 |                   82.14 |
+| Forward −10%                                      |              34.29 |                    20.57 |             77.22 |                   69.18 |
+| Forward +10%                                      |              47.92 |                    34.2  |             96.02 |                   87.98 |
+| Analog days from the whole window                 |              41.11 |                    27.39 |             87.06 |                   79.02 |
+| Capture rate vs price level: low end of history   |              42.62 |                    28.9  |             87.83 |                   79.78 |
+| Capture rate vs price level: high end of history  |              40.49 |                    26.77 |             86.36 |                   78.32 |
+| Capture rate less the model's out-of-sample error |              38.37 |                    24.65 |             82.35 |                   74.31 |
 
 Each year's capture rate moves with that year's forward along the model's own response to the price level (section 5), on top of the trend. The two rows on the capture rate vs price level use history's 95% interval for that slope instead, from the recent level (105 EUR/MWh): a flatter slope gives a lower capture rate at the high 2027 forward but a higher one once the curve falls below the recent level. The last row takes the model's mean out-of-sample capture-rate error off every year (solar park +0.029, wind park +0.044; test years 2025, 2026, fitted like 2027; Step 6, section 4): fitted on the years before, the model overstated capture rates even with the price level given. The 2027 scenarios carry history's build-out trend up to 2027 (Step 6, section 4); continued for one more year at the same forward it would move the capture rate by solar park −5.6 pp, wind park +0.3 pp. The base case assumes solar park -1 pp, wind park +0 pp a year after that: storage, flexible demand and curtailment are expected to slow the fall, and a straight line would take solar's capture rate towards zero within a decade (the −2 pp row is the steeper view).
 
@@ -90,11 +90,11 @@ In hours with negative prices output is worth less than nothing. A park that sel
 | Output at negative prices, 2027 | 17.5% | 4.4% |
 | Their output-weighted mean price | −17.70 | −15.63 |
 | Saved by curtailing, per MWh of output | 3.10 | 0.69 |
-| Plain PPA: fair price 2027; 10-year indicative | 77.53; 28.10 | 129.94; 78.15 |
+| Plain PPA: fair price 2027; 10-year indicative | 77.53; 27.42 | 129.94; 78.60 |
 | Clause: fair price 2027 per delivered MWh | 97.76 | 136.66 |
 | Clause: buyer's premium after a baseload hedge | 14.56 (plain 10.54) | 5.93 (plain 5.49) |
-| Clause: 10-year fair; indicative, per delivered MWh | 69.97; 52.92 | 97.00; 88.07 |
-| Clause: 10-year indicative per MWh of output (delivered share) | 36.75 (69.5%) | 80.03 (90.9%) |
+| Clause: 10-year fair; indicative, per delivered MWh | 69.97; 52.24 | 97.00; 88.52 |
+| Clause: 10-year indicative per MWh of output (delivered share) | 36.28 (69.5%) | 80.44 (90.9%) |
 | Deemed output: fair price 2027 | 80.63 | 130.63 |
 | Producer's CFaR95 2027: plain; clause (EUR m) | 0.70; 1.29 | 0.96; 0.98 |
 
@@ -125,7 +125,7 @@ Per MWh of output (EUR/MWh):
 | 2028 | 104.8 | 95.9 | 4.11 | 100.0 |
 | 2029-2036 | 87.6 | 79.6 | 8.88 | 88.5 |
 
-Over 10 years (discounted, energy-weighted) the EEG pays 95.4 EUR/MWh, of which 7.23 premium; after the direct marketer's fee (2.0) **93.4**. A PPA pays 86.6 at its fair price and **78.1** at the indicative price: 15.2 EUR/MWh less than staying in the EEG. The put is worth little at the 2027 forward but much at the lower forwards of later years.
+Over 10 years (discounted, energy-weighted) the EEG pays 95.4 EUR/MWh, of which 7.23 premium; after the direct marketer's fee (1.6) **93.8**. A PPA pays 86.6 at its fair price and **78.6** at the indicative price: 15.2 EUR/MWh less than staying in the EEG. The put is worth little at the 2027 forward but much at the lower forwards of later years.
 
 Risk in one delivery year, at two price levels:
 
@@ -138,14 +138,14 @@ The put cuts the merchant's risk most where prices are low, and a PPA removes mo
 
 | Award value AW (EUR/MWh) | Market premium, ten years | Under the EEG, after the fee |
 |---|---|---|
-| 60 | 2.30 | 88.4 |
-| 70 | 4.76 | 90.9 |
-| 77 (assumed) | 7.23 | 93.4 |
-| 85 | 10.77 | 96.9 |
-| 95 | 16.26 | 102.4 |
-| 77, yearly market value | 5.14 | 91.3 |
+| 60 | 2.30 | 88.9 |
+| 70 | 4.76 | 91.4 |
+| 77 (assumed) | 7.23 | 93.8 |
+| 85 | 10.77 | 97.4 |
+| 95 | 16.26 | 102.9 |
+| 77, yearly market value | 5.14 | 91.7 |
 
-For every award value in the range the EEG pays more than a PPA at the indicative price (by 10.3 EUR/MWh even at AW 60). Leaving the EEG for a PPA pays only at a price of at least about 93 EUR/MWh, less what the producer would pay to be rid of the remaining risk, plus the guarantees of origin it could then sell. The PPA price of section 4 is a what-if for this park.
+For every award value in the range the EEG pays more than a PPA at the indicative price (by 10.3 EUR/MWh even at AW 60). Leaving the EEG for a PPA pays only at a price of at least about 94 EUR/MWh, less what the producer would pay to be rid of the remaining risk, plus the guarantees of origin it could then sell. The PPA price of section 4 is a what-if for this park.
 
 ## 7. Does the capture rate rise with the price level?
 
@@ -171,7 +171,7 @@ So the base case moves each year's capture rate along the model's response (char
 
 ## 8. The answer
 
-For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **41.1 EUR/MWh** (first year: forward 141.1 × expected capture rate 0.55 = 77.5). After a profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 2.5 EUR/MWh, the indicative price is **28.1 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant) to EUR 0.70 m per year: only volume risk is left.
+For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **41.1 EUR/MWh** (first year: forward 141.1 × expected capture rate 0.55 = 77.5). After a profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 3.2 EUR/MWh, the indicative price is **27.4 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant) to EUR 0.70 m per year: only volume risk is left.
 
 ## 9. Charts
 

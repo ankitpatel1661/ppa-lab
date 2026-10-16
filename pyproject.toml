@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ppa-lab"
-version = "1.9.0"
+version = "1.10.0"
 description = "Renewable PPA pricing and risk engine for German wind and solar, built on public market and weather data."
 readme = "README.md"
 requires-python = ">=3.11"

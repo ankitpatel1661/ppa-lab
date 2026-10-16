@@ -1,10 +1,10 @@
 # Indicative price for a 10-year solar PPA (Borrentin, 114 MWp)
 
-<p class="meta">Memo · 16 Oct 2026 · ppa-lab 1.9.0 · illustrative, from
+<p class="meta">Memo · 16 Oct 2026 · ppa-lab 1.10.0 · illustrative, from
 public data: not an offer, no view on actual contracts · details: Step 7 report</p>
 
 **Bottom line.** For a 10-year pay-as-produced PPA (2027-2036) the negotiation range is
-**28.1 to 41.1 EUR/MWh**: from the
+**27.4 to 41.1 EUR/MWh**: from the
 indicative price a buyer can accept after its risk premium and costs, up to the fair value
 before risk. At the indicative price the PPA cuts our 95% cash flow at risk from
 EUR 3.02 m to 0.70 m per year (**−77%**) for about
@@ -20,9 +20,9 @@ EUR 3.02 m to 0.70 m per year (**−77%**) for about
 | Later years: lower forwards and capture rates; degradation | −36.4 | −43.3 |
 | **= Fair price, 10 years** | **41.1** | **86.6** |
 | Buyer's risk premium after a baseload hedge | −10.5 | −5.5 |
-| Balancing and route to market (assumed) | −1.5 | −2.0 |
+| Balancing and route to market (assumed) | −2.2 | −1.6 |
 | Credit and liquidity (assumed) | −1.0 | −1.0 |
-| **= Indicative price, 10 years** | **28.1** | **78.1** |
+| **= Indicative price, 10 years** | **27.4** | **78.6** |
 
 ## What we keep and what we give away
 
@@ -39,12 +39,12 @@ EUR 3.02 m to 0.70 m per year (**−77%**) for about
 - Capture rate as far off as the model was out of sample in earlier years (+0.03, Step 6): **−2.8 EUR/MWh**
 
 For comparison, the risk premium and the costs together take
-13.0 EUR/MWh off the fair price.
+13.7 EUR/MWh off the fair price.
 
 ## Recommendations
 
-1. Quote within the range above; do not go below 28.1 EUR/MWh.
-2. Offer a negative-price clause as the alternative: we stop producing at negative prices (18% of the solar output in 2027, more later) and are paid 52.9 EUR/MWh per delivered MWh: 36.8 per MWh of output against 28.1 without the clause, at a higher cash flow at risk (EUR 1.29 m instead of 0.70 m).
+1. Quote within the range above; do not go below 27.4 EUR/MWh.
+2. Offer a negative-price clause as the alternative: we stop producing at negative prices (18% of the solar output in 2027, more later) and are paid 52.2 EUR/MWh per delivered MWh: 36.3 per MWh of output against 27.4 without the clause, at a higher cash flow at risk (EUR 1.29 m instead of 0.70 m).
 3. Agree the cannibalisation view with Risk before signing, and for any unsold volume sell about 87% of the average output as Cal base futures: it cuts the merchant cash flow at risk by 72% (solar park).
 
 ## Method and limits

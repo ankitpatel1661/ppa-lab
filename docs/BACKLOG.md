@@ -8,7 +8,8 @@ that step is written.
 |---|---|---|---|
 | PPA-1 | 1 | Market-data foundation: repo, API client, raw cache, DQ checks, reconciliation | **Done** |
 | PPA-2 | 2 | Capture prices and capture rates for German solar and wind | **Done** |
-| PPA-2b | later | Test the wind curtailment hypothesis with the TSOs' online extrapolation | To do |
+| PPA-2b | 2b | Test the wind curtailment hypothesis with the TSOs' online extrapolation | **Done** (v1.10) |
+| PPA-6c | 2b | Balancing costs from forecast errors and reBAP | **Done** (v1.10) |
 | PPA-3 | 3 | PPA pricing maths written up (pay-as-produced, baseload, CfD, floors) | **Done** |
 | PPA-4 | 4 | Weather-to-power: ERA5/Open-Meteo, pvlib solar park, windpowerlib wind park | **Done** |
 | PPA-5 | 5 | Stochastic spot-price model (seasonality + mean reversion), calibrated | **Done** |
@@ -304,11 +305,14 @@ in exactly the months and hours that matter most.
 extrapolation, which keeps more energy in cheap hours.
 
 **Acceptance criteria**
-- [ ] Download the TSOs' online extrapolation (netztransparenz.de API, free registration)
-      for wind onshore and offshore, at least 3 months including April 2026.
-- [ ] Recompute the monthly capture prices with it and compare with the official values.
-- [ ] If the gap vanishes: add a `note` to the wind references; otherwise record the
-      next hypothesis.
+- [x] Download the TSOs' online extrapolation (netztransparenz.de API, free registration)
+      for wind onshore and offshore, at least 3 months including April 2026. (v1.10: all of
+      2021-2026, solar too.)
+- [x] Recompute the monthly capture prices with it and compare with the official values.
+      Result: the official annual values of 2021-2025 are reproduced to 0.00 EUR/MWh except
+      June 2024 (Step 2b report).
+- [x] If the gap vanishes: add a `note` to the wind references. Done; also for the onshore
+      shares at non-negative prices.
 
 ## Open questions
 

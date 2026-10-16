@@ -1,6 +1,6 @@
 # Step 2 report: capture prices of German solar and wind
 
-Generated 2026-10-15 16:26 UTC by `ppa-lab capture`.
+Generated 2026-10-16 07:37 UTC by `ppa-lab capture`.
 Data: CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE). Bidding zone DE-LU,
 delivery days 2021-01-01 to 2026-09-30 (local time, Europe/Berlin).
 Official market values: netztransparenz.de (file `netztransparenz_market_values_monthly.csv`).
@@ -41,22 +41,22 @@ Solar, Wind onshore, Wind offshore.
 | capture_price_solar_ct_kwh         |   2023 |  7.225 |       7.2   |        0.025 |         0.1 | within tolerance     |
 | capture_price_solar_ct_kwh         |   2022 | 22.099 |      22.306 |       -0.207 |         0.1 | explained difference |
 | capture_price_solar_ct_kwh         |   2021 |  7.599 |       7.552 |        0.047 |         0.1 | within tolerance     |
-| capture_price_wind_onshore_ct_kwh  |   2025 |  7.727 |       7.441 |        0.286 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_onshore_ct_kwh  |   2024 |  6.454 |       6.293 |        0.161 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_onshore_ct_kwh  |   2023 |  7.844 |       7.621 |        0.223 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_onshore_ct_kwh  |   2022 | 16.831 |      16.272 |        0.559 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_onshore_ct_kwh  |   2021 |  8.074 |       7.854 |        0.22  |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_offshore_ct_kwh |   2025 |  8.553 |       8.059 |        0.494 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_offshore_ct_kwh |   2024 |  7.14  |       6.777 |        0.363 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_offshore_ct_kwh |   2023 |  8.656 |       8.187 |        0.469 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_offshore_ct_kwh |   2022 | 19.447 |      18.349 |        1.098 |         0.1 | OUTSIDE tolerance    |
-| capture_price_wind_offshore_ct_kwh |   2021 |  9.236 |       9.017 |        0.219 |         0.1 | OUTSIDE tolerance    |
+| capture_price_wind_onshore_ct_kwh  |   2025 |  7.727 |       7.441 |        0.286 |         0.1 | explained difference |
+| capture_price_wind_onshore_ct_kwh  |   2024 |  6.454 |       6.293 |        0.161 |         0.1 | explained difference |
+| capture_price_wind_onshore_ct_kwh  |   2023 |  7.844 |       7.621 |        0.223 |         0.1 | explained difference |
+| capture_price_wind_onshore_ct_kwh  |   2022 | 16.831 |      16.272 |        0.559 |         0.1 | explained difference |
+| capture_price_wind_onshore_ct_kwh  |   2021 |  8.074 |       7.854 |        0.22  |         0.1 | explained difference |
+| capture_price_wind_offshore_ct_kwh |   2025 |  8.553 |       8.059 |        0.494 |         0.1 | explained difference |
+| capture_price_wind_offshore_ct_kwh |   2024 |  7.14  |       6.777 |        0.363 |         0.1 | explained difference |
+| capture_price_wind_offshore_ct_kwh |   2023 |  8.656 |       8.187 |        0.469 |         0.1 | explained difference |
+| capture_price_wind_offshore_ct_kwh |   2022 | 19.447 |      18.349 |        1.098 |         0.1 | explained difference |
+| capture_price_wind_offshore_ct_kwh |   2021 |  9.236 |       9.017 |        0.219 |         0.1 | explained difference |
 | nonnegative_share_solar_pct        |   2025 | 75.773 |      75     |        0.773 |         1   | within tolerance     |
 | nonnegative_share_solar_pct        |   2024 | 81.718 |      81     |        0.718 |         1   | within tolerance     |
-| nonnegative_share_wind_onshore_pct |   2025 | 92.39  |      90     |        2.39  |         1   | OUTSIDE tolerance    |
-| nonnegative_share_wind_onshore_pct |   2024 | 93.708 |      92     |        1.708 |         1   | OUTSIDE tolerance    |
+| nonnegative_share_wind_onshore_pct |   2025 | 92.39  |      90     |        2.39  |         1   | explained difference |
+| nonnegative_share_wind_onshore_pct |   2024 | 93.708 |      92     |        1.708 |         1   | explained difference |
 
-**12 differences are outside tolerance without a proven cause.** They are open investigations (see `docs/BACKLOG.md`), not accepted errors.
+Every reference is within tolerance or has a documented cause.
 
 Sources: 2025 capture_price_solar_ct_kwh: netztransparenz.de JW Solar 2025; 2024 capture_price_solar_ct_kwh: netztransparenz.de JW Solar 2024; 2023 capture_price_solar_ct_kwh: netztransparenz.de JW Solar 2023; 2022 capture_price_solar_ct_kwh: netztransparenz.de JW Solar 2022 (retrieved 15 Oct 2026); 2021 capture_price_solar_ct_kwh: netztransparenz.de JW Solar 2021 (retrieved 15 Oct 2026); 2025 capture_price_wind_onshore_ct_kwh: netztransparenz.de JW Wind an Land 2025; 2024 capture_price_wind_onshore_ct_kwh: netztransparenz.de JW Wind an Land 2024; 2023 capture_price_wind_onshore_ct_kwh: netztransparenz.de JW Wind an Land 2023; 2022 capture_price_wind_onshore_ct_kwh: netztransparenz.de JW Wind an Land 2022 (retrieved 15 Oct 2026); 2021 capture_price_wind_onshore_ct_kwh: netztransparenz.de JW Wind an Land 2021 (retrieved 15 Oct 2026); 2025 capture_price_wind_offshore_ct_kwh: netztransparenz.de JW Wind auf See 2025; 2024 capture_price_wind_offshore_ct_kwh: netztransparenz.de JW Wind auf See 2024; 2023 capture_price_wind_offshore_ct_kwh: netztransparenz.de JW Wind auf See 2023; 2022 capture_price_wind_offshore_ct_kwh: netztransparenz.de JW Wind auf See 2022 (retrieved 15 Oct 2026); 2021 capture_price_wind_offshore_ct_kwh: netztransparenz.de JW Wind auf See 2021 (retrieved 15 Oct 2026); 2025 nonnegative_share_solar_pct: Roedl & Partner, Wind + Sonne = Strom, Feb 2026: PV-Vermarktungsmenge 2025 = 75 %; 2024 nonnegative_share_solar_pct: Roedl & Partner, Feb 2026: PV-Vermarktungsmenge 2024 = 81 %; 2025 nonnegative_share_wind_onshore_pct: Roedl & Partner, Feb 2026: Wind-an-Land-Vermarktungsmenge 2025 = 90 %; 2024 nonnegative_share_wind_onshore_pct: Roedl & Partner, Feb 2026: Wind-an-Land-Vermarktungsmenge 2024 = 92 %.
 

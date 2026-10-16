@@ -221,6 +221,8 @@ with tab_built:
          "step01_market_data.md"),
         (2, "Capture prices", "What solar and wind earn vs the official market values",
          "step02_capture_prices.md"),
+        ("2b", "TSO data", "Official market values reproduced; balancing cost from reBAP",
+         "step02b_tso_data.md"),
         (3, "PPA structures", "Cash flows and fair prices; back-test 2024-2025",
          "step03_ppa_structures.md"),
         (4, "Weather to power", "31 ERA5 weather years at two real sites; P50/P90",
@@ -234,6 +236,7 @@ with tab_built:
         (8, "Hedging", "Futures hedges, hedge ratio, buyer's hedge, market check",
          "step08_hedging.md"),
     ], columns=["Step", "What", "Result", "Report"])
+    steps["Step"] = steps["Step"].astype(str)                 # "2b" among the numbers
     steps["Report"] = steps["Report"].map(lambda f: f"{REPO}/reports/{f}")
     st.dataframe(steps, hide_index=True, width="stretch",
                  column_config={"Report": st.column_config.LinkColumn("Report")})

@@ -3,7 +3,7 @@ PYTHON_BOOTSTRAP ?= python3.11
 VENV := .venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup test test-network lint format data build check report capture ppa weather prices scenarios pricing hedging memo app all docs notebook notebook-run clean
+.PHONY: help setup test test-network lint format data build check report capture ppa weather tso forecasts balancing prices scenarios pricing hedging memo app all docs notebook notebook-run clean
 
 help:  ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -45,6 +45,15 @@ ppa:  ## write reports/step03_ppa_structures.md and figures (PPA back-test)
 
 weather:  ## ERA5 weather per site -> park generation -> reports/step04_generation.md
 	$(PY) -m ppa_lab weather
+
+tso:  ## reBAP and wind/solar forecasts from netztransparenz.de (needs a free API client in .env)
+	$(PY) -m ppa_lab tso
+
+forecasts:  ## day-ahead wind and solar forecasts from ENTSO-E (needs ENTSOE_API_KEY in .env)
+	$(PY) -m ppa_lab forecasts
+
+balancing:  ## official market values and balancing costs from the TSO data -> reports/step02b_tso_data.md
+	$(PY) -m ppa_lab balancing
 
 prices:  ## calibrate + validate the price model -> reports/step05_price_model.md
 	$(PY) -m ppa_lab prices

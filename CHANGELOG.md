@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.10.0] (tickets PPA-2b and PPA-6c: the TSOs' own data)
+
+### Added
+- `data/netztransparenz.py` and `ppa-lab tso`: the TSOs' WebAPI (OAuth 2.0 client credentials,
+  endpoints from its public OpenAPI description): reBAP and the online extrapolation of onshore
+  wind, offshore wind and solar, 2021-2026. The forecast endpoints (`prognose`) are "N.A."
+  throughout and `hochrechnung` covers only the TSO-marketed EEG volumes: not used.
+- ENTSO-E day-ahead wind and solar forecasts for DE-LU (A69) and `ppa-lab forecasts`.
+- `analysis/balancing.py`, `ppa-lab balancing`: Step 2b report and `balancing.json`.
+
+### Changed
+- `[ppa.parks.*] balancing_eur_mwh`: measured imbalance cost of the national portfolio over
+  Oct 2025 - Sep 2026 plus a 0.5 EUR/MWh marketing fee: solar 2.18 (was 1.5), wind 1.55
+  (was 2.0, the preparation guide's illustrative values).
+- The wind reconciliation references and the onshore shares at non-negative prices carry their
+  explanation: Step 2 has no reference outside tolerance any more.
+
+### Findings
+- PPA-2b: with the TSOs' online extrapolation our prices reproduce the official annual market
+  values of onshore wind, offshore wind and solar for 2021-2025 to 0.00 EUR/MWh, except 2024
+  (June 2024 only, the day-ahead decoupling). The extrapolation counts 7-9% more onshore energy
+  than the measured feed-in, mostly curtailed output in cheap hours.
+- Imbalance cost of the national portfolio (day-ahead forecast errors at reBAP): onshore
+  1.0-3.5, solar 1.4-5.5 EUR/MWh in 2021-2026, following the reBAP spread (mean 193 EUR/MWh in
+  2022, 49 in 2026) more than the forecast error (onshore about 9%, solar about 7%).
+- Borrentin: indicative 27.4 EUR/MWh (28.1); with the clause 52.2 per delivered MWh (36.3 per
+  MWh of output). Everswinkel: PPA 78.6 (78.1), EEG 93.8 (93.4).
+
 ## [1.9.0] (ticket PPA-7c: Everswinkel's EEG premium as a strip of puts)
 
 ### Added

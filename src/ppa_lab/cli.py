@@ -7,13 +7,18 @@
     ppa-lab capture  write the Step 2 capture-price report and charts to reports/
     ppa-lab ppa      write the Step 3 PPA-structures back-test and charts to reports/
     ppa-lab weather  fetch ERA5 weather per site, build park generation, write the Step 4 report
+    ppa-lab tso      download reBAP and the TSOs' online extrapolations from netztransparenz.de
+                     (needs a free API client; see src/ppa_lab/data/netztransparenz.py)
+    ppa-lab forecasts  download day-ahead wind and solar forecasts from ENTSO-E (needs the token)
+    ppa-lab balancing  official market values and balancing costs from the TSO data, Step 2b report
     ppa-lab prices   calibrate and validate the stochastic price model, write the Step 5 report
     ppa-lab scenarios  joint weather x price scenarios for the delivery year, Step 6 report
     ppa-lab pricing  price the parks' PPAs: structures, risk premia, price stack, Step 7 report
     ppa-lab hedging  hedging the parks' output with power futures, Step 8 report
     ppa-lab memo     one-page management memo + reports/results.json for the dashboard (Step 9)
-    ppa-lab all      fetch + build + check + report + capture + ppa + weather + prices + scenarios
-                     + pricing + hedging + memo
+    ppa-lab all      fetch + build + check + report + capture + balancing + ppa + weather + prices
+                     + scenarios + pricing + hedging + memo (tso and forecasts need credentials:
+                     run them separately)
 """
 
 from __future__ import annotations
@@ -23,13 +28,22 @@ import dataclasses
 import logging
 import sys
 from collections import Counter
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
 
 from ppa_lab.config import load_settings
 from ppa_lab.data.energy_charts import EnergyChartsClient
+from ppa_lab.data.netztransparenz import (
+    DATASETS as TSO_DATASETS,
+)
+from ppa_lab.data.netztransparenz import (
+    MISSING_CREDENTIALS,
+    NetztransparenzClient,
+    fetch_tso,
+    load_credentials,
+)
 from ppa_lab.data.open_meteo import OpenMeteoClient
 from ppa_lab.data.pipeline import DATASETS, build_processed, fetch
 from ppa_lab.data.quality import run_all
@@ -37,6 +51,7 @@ from ppa_lab.data.store import RawStore
 from ppa_lab.data.weather_pipeline import build_generation, fetch_weather
 
 log = logging.getLogger("ppa_lab")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _client(settings) -> EnergyChartsClient:
@@ -55,6 +70,46 @@ def cmd_fetch(args, settings) -> int:
     summary = Counter((r.dataset, r.action) for r in results)
     for (dataset, action), n in sorted(summary.items()):
         log.info("%-6s %-10s %3d months", dataset, action, n)
+    return 0
+
+
+def cmd_tso(args, settings) -> int:
+    credentials = load_credentials(PROJECT_ROOT / ".env")
+    if credentials is None:
+        log.error(MISSING_CREDENTIALS)
+        return 2
+    client = NetztransparenzClient(*credentials)
+    store = RawStore(settings.raw_dir, source="netztransparenz")
+    end = min(settings.end, date.today())
+    start = datetime(settings.start.year, settings.start.month, settings.start.day)
+    results = fetch_tso(client, store, list(args.datasets), start,
+                        datetime(end.year, end.month, end.day), refresh=args.refresh)
+    summary = Counter((d, a) for d, _, a in results)
+    for (dataset, action), n in sorted(summary.items()):
+        log.info("%-22s %-10s %3d months", dataset, action, n)
+    return 0
+
+
+def cmd_forecasts(args, settings) -> int:
+    from ppa_lab.data.entsoe import EntsoeClient, fetch_forecasts, load_api_key
+    key = load_api_key(PROJECT_ROOT / ".env")
+    if key is None:
+        log.error("ENTSO-E needs a token: ENTSOE_API_KEY in the environment or the .env file")
+        return 2
+    store = RawStore(settings.raw_dir, source="entsoe")
+    end = min(settings.end, date.today())
+    results = fetch_forecasts(EntsoeClient(key), store, pd.Timestamp(settings.start),
+                              pd.Timestamp(end), refresh=args.refresh)
+    summary = Counter(a for _, a in results)
+    for action, n in sorted(summary.items()):
+        log.info("wind_solar_forecast %-10s %3d months", action, n)
+    return 0
+
+
+def cmd_balancing(args, settings) -> int:
+    from ppa_lab.analysis.step02b_report import write_step02b_report
+    out = write_step02b_report(settings)
+    log.info("Report written to %s", out["report"])
     return 0
 
 
@@ -192,7 +247,8 @@ def cmd_memo(args, settings) -> int:
 
 
 def cmd_all(args, settings) -> int:
-    steps = (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_ppa, cmd_weather,
+    steps = (cmd_fetch, cmd_build, cmd_check, cmd_report, cmd_capture, cmd_balancing, cmd_ppa,
+             cmd_weather,
              cmd_prices, cmd_scenarios, cmd_pricing, cmd_hedging, cmd_memo)
     for step in steps:
         code = step(args, settings)
@@ -216,6 +272,9 @@ def build_parser() -> argparse.ArgumentParser:
         ("capture", cmd_capture, "write the Step 2 capture-price report"),
         ("ppa", cmd_ppa, "write the Step 3 PPA-structures back-test"),
         ("weather", cmd_weather, "ERA5 weather -> park generation -> Step 4 report"),
+        ("tso", cmd_tso, "reBAP and online extrapolations from netztransparenz.de"),
+        ("forecasts", cmd_forecasts, "day-ahead wind and solar forecasts from ENTSO-E"),
+        ("balancing", cmd_balancing, "market values and balancing costs -> Step 2b report"),
         ("prices", cmd_prices, "calibrate and validate the price model -> Step 5 report"),
         ("scenarios", cmd_scenarios, "joint weather x price scenarios -> Step 6 report"),
         ("pricing", cmd_pricing, "price the PPAs with their risk premia -> Step 7 report"),
@@ -228,6 +287,14 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "weather":
             p.add_argument("--refresh", action="store_true",
                            help="re-download weather years even if cached")
+        if name == "forecasts":
+            p.add_argument("--refresh", action="store_true",
+                           help="re-download months even if cached")
+        if name == "tso":
+            p.add_argument("--datasets", nargs="+", choices=TSO_DATASETS,
+                           default=list(TSO_DATASETS))
+            p.add_argument("--refresh", action="store_true",
+                           help="re-download months even if cached")
         if name in ("fetch", "all"):
             p.add_argument("--datasets", nargs="+", choices=DATASETS, default=list(DATASETS))
             p.add_argument("--refresh", action="store_true",
