@@ -23,6 +23,7 @@ that step is written.
 | PPA-8e | 8e | Capture rates that follow the build-out (out-of-sample solar error +0.12 → +0.03) | **Done** (v1.7) |
 | PPA-8f | later | Build-out and storage scenario for 2028-2036 instead of the −1 pp a year view | To do |
 | PPA-7b | 7b | Curtailment at negative prices; the negative-price clause at its own fair strike | **Done** (v1.8) |
+| PPA-7c | 7c | Everswinkel's EEG market premium as a strip of puts, against a PPA | **Done** (v1.9) |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
 
@@ -248,6 +249,23 @@ the solar output falls in negative hours in 2027 and about 30% over the tenor.
 - [x] The value of curtailing in 2027 and in 2021-2026 history; Step 7 section 5.
 - [x] Step 8 hedges the curtailing merchant; the memo prices the clause; the dashboard can
       switch to it.
+
+## PPA-7c: The EEG premium against a PPA (v1.9)
+
+**Story:** Everswinkel is paid under the EEG, so its PPA price was a what-if. As the owner's
+analyst I want to know what the EEG is worth, and what a PPA would have to pay to beat it.
+
+**Acceptance criteria**
+- [x] The market premium as a strip of monthly puts on the onshore market value, tested by
+      hand (premium, annual vs monthly, nothing at negative prices, basis ratio).
+- [x] The market value proxied from the park's capture price and the official values, with
+      the basis measured on history.
+- [x] Per year and over the tenor against the PPA; risk at two price levels; by award value and
+      with the annual market value. Award value stated as an assumption with its sources.
+
+**Open:** the award value (ask the owner); the n-hour rule of §51 (the model pays no premium in
+any negative hour); Everswinkel II (N163, 2025) may have a different award; guarantees of
+origin are not valued.
 
 ## PPA-8f: Build-out and storage after the delivery year (open)
 

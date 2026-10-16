@@ -88,6 +88,12 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   MWh of output) but gives back volume risk (cash flow at risk 1.29 instead of 0.70 m); letting
   the buyer curtail and pay the output as if produced keeps the value without that risk
   ([Step 7, section 5](reports/step07_ppa_pricing.md)).
+- **Everswinkel should stay in the EEG:** its market premium is a strip of monthly puts on the
+  onshore market value at its award value (assumed 77 EUR/MWh; not published). Worth 0.5
+  EUR/MWh at the 2027 forward but 8.9 at the Cal-29 level, it lifts the park to 93.4 EUR/MWh
+  over ten years after the marketing fee, against 78.1 for a PPA at the indicative price, and
+  the EEG pays more at every award from 60 to 95 EUR/MWh
+  ([Step 7, section 6](reports/step07_ppa_pricing.md)).
 - **The market's winter premium hurts solar and helps wind:** solar produces in the cheaper
   Q2 and Q3 (capture rate 0.55), wind in the expensive winter (0.92).
 - **Most of the buyer's risk is hedgeable:** a baseload forward removes 59-84% of it. Solar's
@@ -128,7 +134,7 @@ Every step has tests, a report, a learning-track page, a notebook section and ex
 
 ```bash
 make setup     # create .venv and install the project with dev tools
-make test      # 258 offline tests, about 30 seconds
+make test      # 263 offline tests, about 30 seconds
 make all       # download data and weather, build datasets, check quality, write all reports
 make app       # the dashboard (reads the committed results; no download needed)
 ```

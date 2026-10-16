@@ -1,6 +1,6 @@
 # Step 7 report: pricing the PPAs and their risk
 
-Generated 2026-10-15 21:16 UTC by `ppa-lab pricing`.
+Generated 2026-10-16 06:49 UTC by `ppa-lab pricing`.
 
 Inputs: the Step 6 joint scenarios for 2027
 (496 scenarios: 31 weather years x
@@ -111,7 +111,43 @@ The clause's tenor price follows the curtailed output's capture rate and its del
 
 2026: January to September. Out of sample (Step 6, section 4) the model put the solar park's output at negative prices 3 percentage points below history, so these values are if anything low.
 
-## 6. Does the capture rate rise with the price level?
+## 6. The EEG premium against a PPA
+
+### Wind park
+
+The wind park is paid under the EEG market premium model: it sells at spot and the grid operator adds max(AW − MW, 0) per MWh, MW the month's official onshore wind market value. That is a strip of puts on the market value, struck at the award value AW, here **77 EUR/MWh (an assumption: the award is not published; see `[eeg]`)**. To sign a PPA the park would leave the premium (a PPA buyer wants the guarantees of origin, which the EEG does not issue), so the PPA must be worth more than the EEG. MW in a scenario: the park's own capture price that month times 0.968, the ratio of the official value to the park's capture price in 44 months from 2023-01 (sd 0.042). No premium at negative prices (§51 EEG; the park curtails).
+
+Per MWh of output (EUR/MWh):
+
+| Year | Forward | Merchant | Market premium | Under the EEG |
+|---|---|---|---|---|
+| 2027 | 141.1 | 130.6 | 0.49 | 131.1 |
+| 2028 | 104.8 | 95.9 | 4.11 | 100.0 |
+| 2029-2036 | 87.6 | 79.6 | 8.88 | 88.5 |
+
+Over 10 years (discounted, energy-weighted) the EEG pays 95.4 EUR/MWh, of which 7.23 premium; after the direct marketer's fee (2.0) **93.4**. A PPA pays 86.6 at its fair price and **78.1** at the indicative price: 15.2 EUR/MWh less than staying in the EEG. The put is worth little at the 2027 forward but much at the lower forwards of later years.
+
+Risk in one delivery year, at two price levels:
+
+| Price level | CFaR95, EUR m: merchant / EEG / PPA | 5% quantile, EUR/MWh: merchant / EEG / PPA |
+|---|---|---|
+| 2027 forward (140) | 2.10 / 2.03 / 0.96 | 97.8 / 99.4 / 114.9 |
+| lowest quoted forward (88) | 1.58 / 0.99 / 0.58 | 55.4 / 73.4 / 69.4 |
+
+The put cuts the merchant's risk most where prices are low, and a PPA removes more of it; but at the lowest forward the EEG's bad year is better than the PPA's (73.4 against 69.4 EUR/MWh): the put floors the price and the EEG keeps the upside. By award value:
+
+| Award value AW (EUR/MWh) | Market premium, ten years | Under the EEG, after the fee |
+|---|---|---|
+| 60 | 2.30 | 88.4 |
+| 70 | 4.76 | 90.9 |
+| 77 (assumed) | 7.23 | 93.4 |
+| 85 | 10.77 | 96.9 |
+| 95 | 16.26 | 102.4 |
+| 77, yearly market value | 5.14 | 91.3 |
+
+For every award value in the range the EEG pays more than a PPA at the indicative price (by 10.3 EUR/MWh even at AW 60). Leaving the EEG for a PPA pays only at a price of at least about 93 EUR/MWh, less what the producer would pay to be rid of the remaining risk, plus the guarantees of origin it could then sell. The PPA price of section 4 is a what-if for this park.
+
+## 7. Does the capture rate rise with the price level?
 
 The price model shifts all hours together in arcsinh units, so a higher price level lifts the hours near zero and solar's capture rate rises with it. The usual shape-factor view scales all hours instead, and the capture rate stays put. The 2027 forward (141 EUR/MWh) lies above the recent level (105) and the curve falls to 88, so the answer moves the price.
 
@@ -133,11 +169,11 @@ So the base case moves each year's capture rate along the model's response (char
 
 ![Capture rate vs price level](figures/step07_level_effect.png)
 
-## 7. The answer
+## 8. The answer
 
 For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **41.1 EUR/MWh** (first year: forward 141.1 × expected capture rate 0.55 = 77.5). After a profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 2.5 EUR/MWh, the indicative price is **28.1 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant) to EUR 0.70 m per year: only volume risk is left.
 
-## 8. Charts
+## 9. Charts
 
 ![Price stack](figures/step07_price_stack.png)
 

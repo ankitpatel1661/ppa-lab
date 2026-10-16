@@ -154,6 +154,15 @@ tab_price, tab_risk, tab_hedge, tab_built, tab_method = st.tabs(
      "Method and limits"])
 
 with tab_price:
+    eeg = r.get("eeg")
+    if eeg:
+        st.info(
+            f"This park is paid under the EEG: spot plus a monthly put on the onshore market "
+            f"value at its award value ({eeg['award_eur_mwh']:g} EUR/MWh, assumed; the award is "
+            f"not published). Over {results['tenor_years']} years that pays about "
+            f"{eeg['tenor']['net']:.1f} EUR/MWh after the marketing fee, against "
+            f"{eeg['ppa']['indicative']:.1f} for the PPA at the base case: the PPA here is a "
+            "what-if (Step 7 report, section 6).")
     st.pyplot(stack_figure(s))
     years = result["years"].rename(columns={
         "forward_eur_mwh": "Forward (EUR/MWh)", "capture_rate": "Capture rate",

@@ -152,6 +152,25 @@ credit_eur_mwh = 1.0
 capture_rate_drift = 0.0
 degradation = 0.0
 
+[eeg]
+# Roadmap item 5 (Step 7, v1.9): Everswinkel is paid under the EEG market premium model. It
+# sells at spot and gets max(AW - MW, 0) per MWh, MW the month's official onshore wind market
+# value: a strip of monthly puts. The scenarios simulate the park, not all German wind, so MW
+# = the park's monthly capture price x the historical ratio of the official value to it
+# (from this month on).
+basis_start = "2023-01"
+
+[eeg.parks.wind_park]
+# The award value is not published. Everswinkel I went on the grid in August 2024 (Encavis
+# press release, December 2024), which points to a 2022 tender: the rounds cleared at 5.76-5.87
+# ct/kWh at the reference site (BNetzA; cap 5.88). A site of Everswinkel's quality (about 2,250
+# full-load hours) gets a correction factor of about 1.3: AW about 7.7 ct/kWh. An assumption;
+# the range covers other rounds (2023: up to 7.35 ct/kWh at the reference site) and factors.
+award_eur_mwh = 77.0
+reference = "month"
+market_value_column = "wind_onshore_ct_kwh"
+award_range = [60.0, 70.0, 85.0, 95.0]
+
 [hedging]
 # Step 8: hedging the parks' merchant output with power futures (src/ppa_lab/hedging/).
 # Back-test: Cal base for year Y sold at year Y-1's average spot price (a naive forward

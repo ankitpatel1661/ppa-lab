@@ -41,6 +41,7 @@ def test_step07_report_end_to_end(settings):
         assert out[key].exists()
     assert "Does the capture rate rise with the price level?" in text
     assert "Negative prices: curtail, and who keeps the value" in text
+    assert "The EEG premium against a PPA" in text and "strip of puts" in text
     assert "NaN" not in out["results"].read_text()          # strict JSON: null, not NaN
     results = json.loads(out["results"].read_text())
     solar = results["parks"]["solar_park"]
@@ -60,6 +61,17 @@ def test_step07_report_end_to_end(settings):
     curtailing = solar["structures"]["merchant"]["expected_revenue_eur"]
     producing = solar["structures"]["merchant_no_curtailment"]["expected_revenue_eur"]
     assert curtailing > producing
+    # the EEG (v1.9): merchant revenue plus the market premium, against the PPA
+    eeg = results["parks"]["wind_park"]["eeg"]
+    years = eeg["tenor"]["years"]
+    assert [r["year"] for r in years] == [2026, 2027, 2028]
+    for r in years:
+        assert r["premium_eur_mwh"] >= 0
+        assert r["eeg_eur_mwh"] == pytest.approx(r["merchant_eur_mwh"] + r["premium_eur_mwh"])
+    assert eeg["tenor"]["net"] == pytest.approx(eeg["tenor"]["value"] - eeg["fee_eur_mwh"])
+    premia = [v["premium"] for _, v in sorted(eeg["awards"].items(), key=lambda kv: float(kv[0]))]
+    assert premia == sorted(premia)                      # a higher strike is worth more
+    assert results["parks"]["solar_park"]["eeg"] is None
     # the model's capture rate by price level, for the dashboard (PPA-8d)
     levels = solar["level_response"]["level"]
     assert levels == sorted(levels) and len(levels) == len(results["level_grid"])

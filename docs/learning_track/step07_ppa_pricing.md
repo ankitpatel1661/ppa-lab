@@ -302,6 +302,45 @@ History backs the numbers: the solar park's output at negative prices was 1.6% i
 in 2024 and 23.6% in 2025; curtailing it would have saved 4.9 EUR/MWh in 2026 (January to
 September).
 
+### 4.7 Update (v1.9): Everswinkel already has a hedge, from the state
+
+Everswinkel is paid under the EEG market premium model. It sells at spot, and the grid
+operator adds per MWh
+
+    premium = max(AW − MW_month, 0)
+
+AW is the park's award value from its tender, MW the month's market value of all German
+onshore wind. That is a **put on the market value, struck at AW, renewed every month**: when
+wind earns less than AW, the premium makes up the difference. A PPA would replace it, because a
+PPA buyer wants the guarantees of origin, which the EEG does not issue.
+
+What the put is worth depends on how far the market value sits above the strike (AW 77
+EUR/MWh assumed; the award is not published):
+
+| Year | Forward | Merchant revenue per MWh | Premium per MWh |
+|---|---|---|---|
+| 2027 | 141 | 130.6 | 0.49 |
+| 2028 | 105 | 95.9 | 4.11 |
+| 2029-2036 | 88 | 79.6 | 8.88 |
+
+Over ten years the EEG pays 93.4 EUR/MWh after the direct marketer's fee; a PPA at the
+indicative price pays 78.1. Three lessons:
+
+1. **An out-of-the-money option is not worthless over time.** In 2027 the put is far out of
+   the money; at the Cal-29 level it is near the money and worth 8.9 EUR/MWh. Value an option
+   along the whole forward curve, not at today's price.
+2. **Twelve options are worth more than one.** With an annual market value the premium is
+   5.14 instead of 7.23 EUR/MWh: monthly puts pay in a cheap month even when the year as a
+   whole is not cheap.
+3. **Compare like with like.** At the Cal-29 level the EEG's bad year (5% quantile 73.4 EUR/MWh)
+   is better than the PPA's (69.4), yet its cash flow at risk is higher (0.99 against 0.58 m),
+   because the EEG keeps the upside. The PPA's lower CFaR is not a better deal; it is a
+   narrower one.
+
+The assumption that matters most is the award value: at AW 60 the premium is worth 2.3, at 95
+it is 16.3 EUR/MWh. In real work the first question would be to the asset manager: what is the
+park's AW, and was it a 2022 or 2023 tender?
+
 ---
 
 ## 5. Hands-on: run it yourself

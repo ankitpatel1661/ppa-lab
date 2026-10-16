@@ -20,14 +20,17 @@ import pandas as pd
 
 from ppa_lab.analysis.level_effect import level_regression, monthly_panel, share_pace
 from ppa_lab.analysis.plotting import BLUE, GREEN, INK, INK_2, ORANGE, save, style
+from ppa_lab.analysis.step02_report import MARKET_VALUES_FILE
 from ppa_lab.analysis.step05_report import calibration_history, hourly_prices
 from ppa_lab.analysis.step06_report import complete_weather_years, load_weather_inputs, parks
 from ppa_lab.config import PpaParkSettings, Settings
 from ppa_lab.prices.model import fit
+from ppa_lab.pricing.eeg import basis_ratio, market_premium, month_codes, official_market_values
 from ppa_lab.pricing.forwards import describe_forward, quarter_forwards
 from ppa_lab.pricing.risk import (
     buyer_value,
     capture_rate_at,
+    cash_flow_at_risk,
     curtail,
     curtailment_value,
     level_shift,
@@ -171,6 +174,123 @@ def price_clause(base: Scenarios, whole: Scenarios | None, park: str, cost: PpaP
     }
 
 
+def eeg_comparison(grid: list[dict], park: str, spec: dict, ppa, cost: PpaParkSettings,
+                   tenor: list[dict], low: float) -> dict:
+    """The EEG against a PPA for one park: the tenor value per MWh of output under the EEG
+    (merchant revenue plus market premium, before and after the direct marketer's fee, here
+    the balancing cost), for each award and the other reference period; the revenue risk at
+    the first forward and at the lowest quoted one; the PPA's tenor prices."""
+    def table(key):
+        return eeg_tenor(grid, park, ppa.start_year, ppa.tenor_years, ppa.discount_rate,
+                         ppa.forward_curve, cost.capture_rate_drift, cost.degradation, key)
+
+    fee = cost.balancing_eur_mwh
+    base = table(f"{spec['award']:g}")
+    other = "year" if spec["reference"] == "month" else "month"
+    alternative = table(f"premium_{other}")
+    first = next(r for r in grid if r["base"])
+    lowest = min(grid, key=lambda r: abs(r["forward"] - low))
+    return {
+        "award_eur_mwh": spec["award"], "reference": spec["reference"], "fee_eur_mwh": fee,
+        "basis": {k: spec[k] for k in ("basis", "basis_sd", "basis_months", "basis_start")},
+        "tenor": {"value": base.attrs["value"], "premium": base.attrs["premium"],
+                  "net": base.attrs["value"] - fee,
+                  "years": [{"year": int(y), **{k: float(v) for k, v in row.items()}}
+                            for y, row in base.iterrows()]},
+        "awards": {f"{aw:g}": {"premium": (t := table(f"{aw:g}")).attrs["premium"],
+                               "net": t.attrs["value"] - fee} for aw in spec["awards"]},
+        f"tenor_{other}": {"premium": alternative.attrs["premium"],
+                           "net": alternative.attrs["value"] - fee},
+        "risk": {"first": {"forward": first["forward"], **first["eeg"][park]},
+                 "lowest": {"forward": lowest["forward"], **lowest["eeg"][park]}},
+        "ppa": {"fair": tenor[0]["fair_price"], "indicative": tenor[0]["indicative"]},
+    }
+
+
+def eeg_specs(settings: Settings, names, inputs: dict, prices: pd.Series) -> dict[str, dict]:
+    """Per park under the EEG: its award value, the awards of the sensitivity, the reference
+    period and the basis ratio of the official market value to the park's capture price."""
+    if settings.eeg is None:
+        return {}
+    out = {}
+    for park, cfg in settings.eeg.parks.items():
+        if park not in names:
+            continue
+        official = official_market_values(settings.reference_dir / MARKET_VALUES_FILE,
+                                          cfg.market_value_column)
+        basis = basis_ratio(official, prices, inputs["gen"][park], settings.timezone,
+                            settings.eeg.basis_start)
+        out[park] = {"award": cfg.award_eur_mwh, "reference": cfg.reference,
+                     "awards": sorted({cfg.award_eur_mwh, *cfg.award_range}),
+                     "basis": basis["mean"], "basis_sd": basis["sd"],
+                     "basis_months": basis["months"], "basis_start": settings.eeg.basis_start}
+    return out
+
+
+def eeg_metrics(scenarios: Scenarios, park: str, spec: dict, below: float | None, tz: str,
+                quantile: float) -> dict:
+    """On one scenario set, per MWh of output: merchant revenue (curtailing), the plain PPA's
+    fair price and the market premium for each award (monthly, and annual at the configured
+    award); and the 95% cash flow at risk and the 5% quantile per MWh of merchant, EEG and PPA
+    revenue."""
+    p, q = scenarios.prices, scenarios.volume(park)
+    months = month_codes(scenarios.index, tz)
+    energy = float(q.sum(axis=1).mean())
+    merchant = (p * curtail(p, q, below)).sum(axis=1)
+    k = float((p * q).sum() / q.sum())
+    premia = {f"{aw:g}": market_premium(p, q, months, aw, spec["basis"], spec["reference"], below)
+              for aw in spec["awards"]}
+    other = "year" if spec["reference"] == "month" else "month"
+    alternative = market_premium(p, q, months, spec["award"], spec["basis"], other, below)
+    eeg = merchant + premia[f"{spec['award']:g}"]
+    ppa = k * q.sum(axis=1)
+    revenues = {"merchant": merchant, "eeg": eeg, "ppa": ppa}
+    return {"merchant": float(merchant.mean()) / energy, "ppa_fair": k,
+            "premium": {aw: float(v.mean()) / energy for aw, v in premia.items()},
+            f"premium_{other}": float(alternative.mean()) / energy,
+            "cfar": {name: cash_flow_at_risk(v, quantile) for name, v in revenues.items()},
+            "p05": {name: float(np.quantile(v, quantile)) / energy
+                    for name, v in revenues.items()}}
+
+
+def eeg_tenor(grid: list[dict], park: str, start: int, years: int, rate: float,
+              curve: dict[int, float], drift: float, degradation: float,
+              key: str) -> pd.DataFrame:
+    """Year by year under the EEG, per MWh of output: forward, merchant revenue (its capture
+    rate read at the year's forward, plus the trend), market premium (`key`: an award label of
+    the grid's premium, or "premium_year"/"premium_month"), discount factor and energy weight;
+    the tenor value in `.attrs["value"]` (discounted and energy-weighted)."""
+    level = np.log([r["average"] for r in grid])
+    rate_m = [r["eeg"][park]["merchant"] / r["average"] for r in grid]
+    prem = [r["eeg"][park]["premium"][key] if key in r["eeg"][park]["premium"]
+            else r["eeg"][park][key] for r in grid]
+    first = grid_level_at(grid, None)
+    rows, f_y = [], first
+    for i in range(years):
+        y = start + i
+        f_y = curve.get(y, f_y)
+        x = np.log(f_y)
+        merchant = f_y * (float(np.interp(x, level, rate_m)) + drift * i)
+        rows.append({"year": y, "forward_eur_mwh": f_y, "merchant_eur_mwh": merchant,
+                     "premium_eur_mwh": float(np.interp(x, level, prem)),
+                     "discount_factor": (1.0 + rate) ** -(i + 0.5),
+                     "energy_weight": (1.0 - degradation) ** i})
+    table = pd.DataFrame(rows).set_index("year")
+    w = table["discount_factor"] * table["energy_weight"]
+    table["eeg_eur_mwh"] = table["merchant_eur_mwh"] + table["premium_eur_mwh"]
+    table.attrs["value"] = float((w * table["eeg_eur_mwh"]).sum() / w.sum())
+    table.attrs["premium"] = float((w * table["premium_eur_mwh"]).sum() / w.sum())
+    return table
+
+
+def grid_level_at(grid: list[dict], forward: float | None) -> float:
+    """The scenarios' average price of the grid row at `forward` (None: the base forward,
+    the row whose merchant revenue was computed on the base set)."""
+    rows = [r for r in grid if r.get("base")] if forward is None else [
+        r for r in grid if r["forward"] == forward]
+    return rows[0]["average"]
+
+
 def tenor_forwards(first: float, curve: dict[int, float], end_year: int,
                    start: int) -> dict[str, float]:
     """The forward of each contract year that has its own quote, labelled by year ("+" when
@@ -228,13 +348,14 @@ def delivered_shares(scenarios: Scenarios, names, curtail_below: float) -> dict[
 
 
 def model_response(settings: Settings, inputs: dict, base: Scenarios, names,
-                   levels: list[float]) -> list[dict]:
+                   levels: list[float], eeg: dict[str, dict] | None = None) -> list[dict]:
     """The price model's capture rate of each park at each forward level (PPA-8d).
 
     The scenarios are rebuilt at each level with the same random draws (the base set is
     reused at its own forward). Per level: the forward, the scenarios' average price and the
     parks' capture rates; with curtailment (v1.8) also the capture rate of the curtailed
-    output and the share of the output delivered.
+    output and the share of the output delivered; for parks under the EEG (`eeg`, v1.9) the
+    market premium and the revenue risk (`eeg_metrics`).
     """
     pm = settings.price_model
     below = settings.ppa.curtail_below_eur_mwh
@@ -244,10 +365,14 @@ def model_response(settings: Settings, inputs: dict, base: Scenarios, names,
         scenarios = base if level == round(pm.forward_eur_mwh, 2) else scenario_set(
             replace(settings, price_model=replace(pm, forward_eur_mwh=level)), inputs, pool)
         row = {"forward": level, "average": float(scenarios.prices.mean()),
-               "capture_rate": capture_rates(scenarios, names)}
+               "capture_rate": capture_rates(scenarios, names), "base": scenarios is base}
         if below is not None:
             row["clause_capture_rate"] = capture_rates(scenarios, names, below)
             row["delivered_share"] = delivered_shares(scenarios, names, below)
+        if eeg:
+            row["eeg"] = {park: eeg_metrics(scenarios, park, spec, below, settings.timezone,
+                                            settings.ppa.risk_quantile)
+                          for park, spec in eeg.items()}
         rows.append(row)
     return sorted(rows, key=lambda r: r["average"])
 
@@ -505,6 +630,81 @@ def _curtailment_history_md(negative: dict[str, dict], names: dict[str, str]) ->
     return "\n".join(lines)
 
 
+def _eeg_md(e: dict, label: str, start: int, years: int) -> str:
+    """Section text: one park's EEG market premium against a PPA."""
+    tenor, risk, aw = e["tenor"], e["risk"], e["award_eur_mwh"]
+    other = "year" if e["reference"] == "month" else "month"
+    by_year = tenor["years"]
+    rows = [r for r in by_year if r["year"] <= start + 1] + [by_year[-1]]
+    year_lines = ["| Year | Forward | Merchant | Market premium | Under the EEG |",
+                  "|---|---|---|---|---|"]
+    for r in rows:
+        name = f"{r['year']}" if r["year"] <= start + 1 else f"{start + 2}-{start + years - 1}"
+        year_lines.append(f"| {name} | {r['forward_eur_mwh']:.1f} | {r['merchant_eur_mwh']:.1f} "
+                          f"| {r['premium_eur_mwh']:.2f} | {r['eeg_eur_mwh']:.1f} |")
+    risk_lines = ["| Price level | CFaR95, EUR m: merchant / EEG / PPA | 5% quantile, EUR/MWh: "
+                  "merchant / EEG / PPA |", "|---|---|---|"]
+    for key, name in (("first", f"{start} forward"), ("lowest", "lowest quoted forward")):
+        r = risk[key]
+        risk_lines.append(
+            f"| {name} ({r['forward']:.0f}) | {_m(r['cfar']['merchant'])} / {_m(r['cfar']['eeg'])}"
+            f" / {_m(r['cfar']['ppa'])} | {r['p05']['merchant']:.1f} / {r['p05']['eeg']:.1f} / "
+            f"{r['p05']['ppa']:.1f} |")
+    award_lines = ["| Award value AW (EUR/MWh) | Market premium, ten years | Under the EEG, after "
+                   "the fee |", "|---|---|---|"]
+    for key, v in sorted(e["awards"].items(), key=lambda kv: float(kv[0])):
+        mark = " (assumed)" if float(key) == aw else ""
+        award_lines.append(f"| {key}{mark} | {v['premium']:.2f} | {v['net']:.1f} |")
+    alt = e[f"tenor_{other}"]
+    award_lines.append(f"| {aw:g}, {other}ly market value | {alt['premium']:.2f} | "
+                       f"{alt['net']:.1f} |")
+    gap = tenor["net"] - e["ppa"]["indicative"]
+    b = e["basis"]
+    low = risk["lowest"]["p05"]
+    floor_text = "" if low["eeg"] <= low["ppa"] else (
+        f"; but at the lowest forward the EEG's bad year is better than the PPA's ("
+        f"{low['eeg']:.1f} against {low['ppa']:.1f} EUR/MWh): the put floors the price and the "
+        "EEG keeps the upside")
+    worst = min(e["awards"].items(), key=lambda kv: kv[1]["net"])
+    margin = worst[1]["net"] - e["ppa"]["indicative"]
+    if margin > 0:
+        verdict = (
+            f"For every award value in the range the EEG pays more than a PPA at the indicative "
+            f"price (by {margin:.1f} EUR/MWh even at AW {worst[0]}). Leaving the EEG for a PPA "
+            f"pays only at a price of at least about {tenor['net']:.0f} EUR/MWh, less what the "
+            "producer would pay to be rid of the remaining risk, plus the guarantees of origin "
+            "it could then sell. The PPA price of section 4 is a what-if for this park.")
+    else:
+        awards = sorted((float(k), v["net"]) for k, v in e["awards"].items())
+        level = float(np.interp(e["ppa"]["indicative"], [n for _, n in awards],
+                                [a for a, _ in awards]))
+        verdict = (
+            f"Below an award value of about {level:.0f} EUR/MWh a PPA at the indicative price "
+            "pays more than the EEG; above it, the EEG does.")
+    return (
+        f"The {label.lower()} is paid under the EEG market premium model: it sells at spot and "
+        f"the grid operator adds max(AW − MW, 0) per MWh, MW the {e['reference']}'s official "
+        "onshore wind market value. That is a strip of puts on the market value, struck at the "
+        f"award value AW, here **{aw:g} EUR/MWh (an assumption: the award is not published; "
+        "see `[eeg]`)**. To sign a PPA the park would leave the premium (a PPA buyer wants the "
+        "guarantees of origin, which the EEG does not issue), so the PPA must be worth more "
+        "than the EEG. MW in a scenario: the park's own capture price that month times "
+        f"{b['basis']:.3f}, the ratio of the official value to the park's capture price in "
+        f"{b['basis_months']} months from {b['basis_start']} (sd {b['basis_sd']:.3f}). No "
+        "premium at negative prices (§51 EEG; the park curtails).\n\n"
+        "Per MWh of output (EUR/MWh):\n\n" + "\n".join(year_lines) + "\n\n"
+        f"Over {years} years (discounted, energy-weighted) the EEG pays {tenor['value']:.1f} "
+        f"EUR/MWh, of which {tenor['premium']:.2f} premium; after the direct marketer's fee "
+        f"({e['fee_eur_mwh']:.1f}) **{tenor['net']:.1f}**. A PPA pays {e['ppa']['fair']:.1f} at "
+        f"its fair price and **{e['ppa']['indicative']:.1f}** at the indicative price: "
+        f"{abs(gap):.1f} EUR/MWh {'less' if gap > 0 else 'more'} than staying in the EEG. "
+        "The put is worth little at the 2027 forward but much at the lower forwards of later "
+        "years.\n\nRisk in one delivery year, at two price levels:\n\n"
+        + "\n".join(risk_lines) + "\n\nThe put cuts the merchant's risk most where prices "
+        "are low, and a PPA removes more of it" + floor_text + ". By award value:\n\n"
+        + "\n".join(award_lines) + "\n\n" + verdict)
+
+
 def _premia_md(priced: dict[str, dict], names: dict[str, str]) -> str:
     rows = []
     for park, result in priced.items():
@@ -662,7 +862,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     # Does the capture rate move with the price level? The model's answer at each forward,
     # and history's (PPA-8d)
     recent = recent_level(settings)
-    grid = model_response(settings, inputs, base, names, level_grid(settings, recent))
+    all_prices = hourly_prices(settings)
+    eeg = eeg_specs(settings, names, inputs, all_prices)
+    grid = model_response(settings, inputs, base, names, level_grid(settings, recent), eeg)
     ref = next(r for r in grid if r["forward"] == round(recent, 2))
     regs = level_regressions(settings)
     techs = {p.name: ("solar" if p is solar else "wind") for p in (solar, wind)}
@@ -679,9 +881,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
     check = json.loads(check_path.read_text()) if check_path.exists() else None
 
     priced, tenors, results, effects, negative = {}, {}, {}, {}, {}
+    eeg_results = {}
     end_year = ppa.start_year + ppa.tenor_years - 1
     below = ppa.curtail_below_eur_mwh
-    all_prices = hourly_prices(settings) if below is not None else None
     for park in names:
         cost = ppa.parks[park]
         priced[park] = price_park(base.prices, base.volume(park), cost, q, below)
@@ -716,6 +918,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         if below is not None:
             negative[park] = price_clause(base, whole, park, cost, q, below, grid, ppa,
                                           priced[park], all_prices, inputs["gen"][park], tz)
+        if park in eeg:
+            eeg_results[park] = eeg_comparison(grid, park, eeg[park], ppa, cost, tenors[park],
+                                               low)
         annual = annual_energy(inputs["gen"][park], tz).loc[
             settings.weather_first_year:settings.scenarios.weather_last_year]
         pv = p_values(annual)
@@ -729,6 +934,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             "level_response": response,
             "level_effect": e,
             "negative_prices": negative.get(park),
+            "eeg": eeg_results.get(park),
             "assumptions": {"balancing_eur_mwh": cost.balancing_eur_mwh,
                             "credit_eur_mwh": cost.credit_eur_mwh,
                             "capture_rate_drift": cost.capture_rate_drift,
@@ -848,6 +1054,9 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
         + "\n\nSo the base case moves each year's capture rate along the model's response "
         f"(chart below); holding the first year's capture rate over the tenor instead (as "
         f"before v1.5) would give fair prices of {without} EUR/MWh.")
+    eeg_text = "\n\n".join(f"### {names[p]}\n\n" + _eeg_md(e, names[p], ppa.start_year,
+                                                             ppa.tenor_years)
+                           for p, e in eeg_results.items()) or "No park under the EEG (`[eeg]`)."
     curtail_text, negative_text = "", "Not configured (`[ppa] curtail_below_eur_mwh`)."
     if negative:
         curtail_text = (
@@ -928,17 +1137,21 @@ are applied to every year (a simplification).
 
 {negative_text}
 
-## 6. Does the capture rate rise with the price level?
+## 6. The EEG premium against a PPA
+
+{eeg_text}
+
+## 7. Does the capture rate rise with the price level?
 
 {level_section}
 
 ![Capture rate vs price level](figures/{figs["level"].name})
 
-## 7. The answer
+## 8. The answer
 
 {answer}
 
-## 8. Charts
+## 9. Charts
 
 ![Price stack](figures/{figs["stack"].name})
 

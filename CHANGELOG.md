@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.0] (ticket PPA-7c: Everswinkel's EEG premium as a strip of puts)
+
+### Added
+- `pricing/eeg.py`: the EEG market premium max(AW − MW, 0) per MWh as a strip of monthly (or
+  annual) puts on the technology's market value, paid on the output delivered at prices >= 0;
+  MW proxied by the park's own capture price times the historical ratio of the official
+  value to it (`basis_ratio`: 0.968, 44 months from 2023, sd 0.042).
+- `[eeg]` configuration: Everswinkel's award value is not published; 77 EUR/MWh assumed (a
+  2022 tender at 5.76-5.87 ct/kWh times a site factor of about 1.3), range 60-95.
+- Step 7 section 6: per year and over the tenor, merchant revenue plus premium against the PPA;
+  revenue risk at the 2027 and the lowest quoted forward; by award value and with the annual
+  market value. The level grid stores the premium and risk per level.
+- Dashboard: an EEG note for the wind park.
+
+### Findings
+- The put is worth 0.49 EUR/MWh at the 2027 forward, 4.11 at 2028's and 8.88 at the Cal-29
+  level: 7.23 over ten years. Under the EEG the park earns 93.4 EUR/MWh after the marketing fee
+  against 78.1 for a PPA at the indicative price (86.6 fair); the EEG pays more for every award
+  value from 60 (88.4) to 95 (102.4). An annual market value would be worth 5.14 instead of 7.23.
+- At the Cal-29 level the EEG's 5% quantile (73.4 EUR/MWh) beats the PPA's (69.4): the put
+  floors the price and the EEG keeps the upside; its CFaR95 is 0.99 m against the PPA's 0.58 m.
+
 ## [1.8.0] (ticket PPA-7b: curtailment at negative prices)
 
 ### Changed

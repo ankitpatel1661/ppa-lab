@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.8** (ticket PPA-7b): cash flows and fair prices of the standard structures,
+**Version 1.9** (ticket PPA-7c): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
@@ -21,7 +21,8 @@ prices have their own scale in the transform (section 8), and the model is teste
 has not seen (section 9). Since version 1.7 historical days are moved forward by the measured
 build-out trend of the intraday shape (section 8), which removed most of the out-of-sample solar
 error. Since version 1.8 parks stop producing at negative prices when they sell at spot or have
-a negative-price clause, and the clause is priced at its own fair strike (section 10).
+a negative-price clause, and the clause is priced at its own fair strike (section 10). Since
+version 1.9 the EEG market premium of the wind park is valued as a strip of puts (section 10).
 
 ---
 
@@ -466,6 +467,24 @@ $E_i \propto (1 - g)^i\, v_c(F_i) / v_c(F_0)$. At lower forwards more hours are 
 the clause delivers less and keeps more value: for the solar park 82.5% of the output is
 delivered at 141 EUR/MWh and 66.9% at 88.
 
+**The EEG market premium (v1.9).** A park under the EEG market premium model sells at spot and
+receives, per MWh delivered at a non-negative price,
+
+$$
+\text{MP}_m = \max(\text{AW} - \text{MW}_m, 0), \qquad
+\text{MW}_m \approx \rho\, \frac{\sum_{t \in m} q_t P_t}{\sum_{t \in m} q_t},
+$$
+
+with AW the award value and $\text{MW}_m$ the month's official market value of its technology:
+a strip of monthly puts on the market value (one annual put where the annual value applies).
+The scenarios simulate the park, not all German wind, so $\text{MW}_m$ is the park's own
+capture price times $\rho$ = 0.968, the mean ratio of the official onshore value to the park's
+capture price in 2023-2026 (sd 0.042). Annual revenue $\sum_t q^c_t P_t + \sum_m \text{MP}_m
+\sum_{t \in m} q^c_t$. Over the tenor, merchant revenue per MWh and premium per MWh are read at
+each year's forward from the scenarios rebuilt at that forward (the level grid), like the
+capture rate. Against a PPA the park would leave the premium: the comparison is the EEG's value
+after the direct marketer's fee (the balancing cost) with the PPA price.
+
 **Buyer's premium.** The buyer of a pay-as-produced PPA at strike $K$ is worth, per scenario,
 
 $$
@@ -613,6 +632,7 @@ sources and stand in for EEX settlement prices.
 | Measured generation is after curtailment | Slightly higher capture prices than official market values (Step 2) | Backlog PPA-2b |
 | Balancing, route-to-market and credit costs as fixed EUR/MWh | Not modelled from imbalance prices or counterparty data | Stated assumptions in PPA-7; models in v2 |
 | Curtailment is instant and free, the threshold the same in every hour | Real parks need a ramp, the direct marketer's systems and sometimes the grid operator; some parks earn guarantees of origin or have variable costs | Threshold in `[ppa]`; notebook 7.2b |
+| EEG: award value assumed (77 EUR/MWh), market value from the park's capture price, no premium in any negative hour, one award for both Everswinkel phases | The premium's value moves 2.3-16.3 EUR/MWh over AW 60-95; the official value is national (basis sd 0.042 a month); the n-hour rule of §51 pays some negative hours | v1.9 (PPA-7c): award range and annual value as sensitivities; ask the owner for the award |
 | Option premiums not included in cash flows (history) | Floors and caps shown as payoffs only in the back-test | PPA-7 prices the floor on scenarios |
 | No taxes, grid fees, guarantees of origin | Not part of the energy price | – |
 
@@ -645,3 +665,5 @@ sources and stand in for EEX settlement prices.
   sample (section 9); limitations updated.
 - **v1.8, PPA-7b:** curtailment at negative prices; the negative-price clause and deemed output
   at their own fair strikes, the clause over the tenor (section 10); limitations updated.
+- **v1.9, PPA-7c:** the EEG market premium as a strip of puts against a PPA (section 10);
+  limitations updated.

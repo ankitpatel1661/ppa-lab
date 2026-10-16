@@ -148,6 +148,24 @@ class HedgingSettings:
 
 
 @dataclass(frozen=True)
+class EegParkSettings:
+    """A park's EEG market premium (roadmap item 5)."""
+
+    award_eur_mwh: float                  # "anzulegender Wert" AW, EUR/MWh
+    reference: str = "month"              # market value per "month" or "year"
+    market_value_column: str = "wind_onshore_ct_kwh"   # official values in data/reference
+    award_range: tuple[float, ...] = ()   # AW sensitivities, EUR/MWh
+
+
+@dataclass(frozen=True)
+class EegSettings:
+    """EEG market premium against a PPA (Step 7, v1.9)."""
+
+    basis_start: str                      # first month of the market-value basis, "YYYY-MM"
+    parks: dict[str, EegParkSettings] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class EnergyChartsSettings:
     base_url: str
     timeout_s: float
@@ -181,6 +199,7 @@ class Settings:
     scenarios: ScenarioSettings | None = None
     ppa: PpaSettings | None = None
     hedging: HedgingSettings | None = None
+    eeg: EegSettings | None = None
 
     def price_limit_on(self, day: date) -> PriceLimit:
         """Return the clearing-price limits in force on a given delivery day."""
@@ -205,6 +224,13 @@ def _ppa(raw: dict) -> PpaSettings:
     curve = {int(year): float(price) for year, price in raw.get("forward_curve", {}).items()}
     return PpaSettings(**{k: v for k, v in raw.items() if k not in ("parks", "forward_curve")},
                        parks=parks, forward_curve=curve)
+
+
+def _eeg(raw: dict) -> EegSettings:
+    parks = {name: EegParkSettings(**{k: tuple(v) if k == "award_range" else v
+                                      for k, v in values.items()})
+             for name, values in raw.get("parks", {}).items()}
+    return EegSettings(**{k: v for k, v in raw.items() if k != "parks"}, parks=parks)
 
 
 def _hedging(raw: dict) -> HedgingSettings:
@@ -262,6 +288,7 @@ def load_settings(path: Path | None = None, root: Path | None = None) -> Setting
         scenarios=ScenarioSettings(**raw["scenarios"]) if "scenarios" in raw else None,
         ppa=_ppa(raw["ppa"]) if "ppa" in raw else None,
         hedging=_hedging(raw["hedging"]) if "hedging" in raw else None,
+        eeg=_eeg(raw["eeg"]) if "eeg" in raw else None,
     )
     _validate(settings)
     return settings
@@ -335,6 +362,16 @@ def _validate(s: Settings) -> None:
         unknown = set(ppa.parks) - {p.name for p in s.parks}
         if unknown:
             raise ValueError(f"[ppa.parks] names unknown parks: {sorted(unknown)}")
+    eeg = s.eeg
+    if eeg is not None:
+        unknown = set(eeg.parks) - {p.name for p in s.parks}
+        if unknown:
+            raise ValueError(f"[eeg.parks] names unknown parks: {sorted(unknown)}")
+        for name, park in eeg.parks.items():
+            if park.reference not in ("month", "year"):
+                raise ValueError(f"eeg.parks.{name}.reference must be 'month' or 'year'")
+            if park.award_eur_mwh <= 0:
+                raise ValueError(f"eeg.parks.{name}.award_eur_mwh must be positive")
     hg = s.hedging
     if hg is not None:
         for y in hg.backtest_years:
