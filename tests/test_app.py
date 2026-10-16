@@ -14,6 +14,21 @@ RESULTS = APP.parents[1] / "reports" / "results.json"
 pytestmark = pytest.mark.skipif(not RESULTS.exists(), reason="reports/results.json missing")
 
 
+def _ppa_lab_modules() -> dict:
+    return {k: v for k, v in sys.modules.items() if k == "ppa_lab" or k.startswith("ppa_lab.")}
+
+
+@pytest.fixture(autouse=True)
+def restore_ppa_lab_modules():
+    """The app imports ppa_lab afresh, in this process: give later tests the module objects
+    their imports point to, or monkeypatching a module would miss the functions they use."""
+    saved = _ppa_lab_modules()
+    yield
+    for name in _ppa_lab_modules():
+        del sys.modules[name]
+    sys.modules.update(saved)
+
+
 def test_dashboard_runs_and_reacts_to_assumptions():
     at = AppTest.from_file(str(APP), default_timeout=60).run()
     assert not at.exception
