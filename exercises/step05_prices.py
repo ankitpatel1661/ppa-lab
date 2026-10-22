@@ -51,7 +51,36 @@ def daily_ar1(prices: pd.DataFrame, scale: float, year: int) -> dict[str, float]
     Return {"phi": ..., "half_life_days": ...}.
     Hints: .tz_convert(TZ).loc[str(year)], groupby(index.date), groupby(...).transform("mean").
     """
-    raise NotImplementedError("Exercise 1")
+    p = prices["price_eur_mwh"].tz_convert(TZ).loc[str(year)]
+
+    # Transform prices and average by local calendar day.
+    y = pd.Series(transform(p.to_numpy(), scale), index=p.index)
+    d = y.groupby(y.index.date).mean()
+
+    # Remove monthly level effects.
+    dates = pd.DatetimeIndex(d.index)
+    d.index = dates
+    d = d - d.groupby(d.index.month).transform("mean")
+
+    # Remove weekday effects from the monthly-adjusted daily series.
+    d = d - d.groupby(d.index.dayofweek).transform("mean")
+
+    # OLS AR(1) coefficient without an intercept.
+    previous = d.iloc[:-1].to_numpy()
+    current = d.iloc[1:].to_numpy()
+    denominator = np.sum(previous ** 2)
+
+    if denominator == 0:
+        raise ValueError("Cannot estimate AR(1): previous-day values have zero variance")
+
+    phi = float(np.sum(current * previous) / denominator)
+
+    if not 0 < phi < 1:
+        raise ValueError(f"Estimated phi must be between 0 and 1 for this half-life formula; got {phi}")
+
+    half_life = float(np.log(2) / -np.log(phi))
+
+    return {"phi": phi, "half_life_days": half_life}
 
 
 # --------------------------------------------------------------------------- #
@@ -65,7 +94,27 @@ def simulate_ar1(phi: float, sigma: float, n_days: int, n_paths: int, seed: int)
     N(0, sigma^2 / (1 - phi^2)), not 0. Otherwise every simulated year starts too calm.
     Use rng = np.random.default_rng(seed), so the same seed gives the same paths.
     """
-    raise NotImplementedError("Exercise 2")
+    if not -1 < phi < 1:
+        raise ValueError("phi must be between -1 and 1 for a stationary AR(1)")
+    if sigma < 0:
+        raise ValueError("sigma must be non-negative")
+    if n_days < 1 or n_paths < 1:
+        raise ValueError("n_days and n_paths must be positive")
+
+    rng = np.random.default_rng(seed)
+    x = np.empty((n_paths, n_days), dtype=float)
+
+    # Start in the stationary distribution.
+    stationary_sd = sigma / np.sqrt(1 - phi**2)
+    x[:, 0] = rng.normal(0, stationary_sd, size=n_paths)
+
+    # Simulate the remaining days.
+    if n_days > 1:
+        eps = rng.normal(0, sigma, size=(n_paths, n_days - 1))
+        for t in range(1, n_days):
+            x[:, t] = phi * x[:, t - 1] + eps[:, t - 1]
+
+    return x
 
 
 # --------------------------------------------------------------------------- #
@@ -81,7 +130,28 @@ def level_for_forward(x: np.ndarray, scale: float, target: float) -> float:
     start with low = -10, high = 10 and halve the interval until it is shorter than 1e-10.
     (The average price rises with L, so the sign of the error tells you which half to keep.)
     """
-    raise NotImplementedError("Exercise 3")
+    if scale <= 0:
+        raise ValueError("scale must be positive")
+    if x.size == 0:
+        raise ValueError("x must not be empty")
+
+    low, high = -10.0, 10.0
+
+    def average_price(level: float) -> float:
+        return float(np.mean(scale * np.sinh(level + x)))
+
+    # Ensure the target is bracketed by the starting interval.
+    if not average_price(low) <= target <= average_price(high):
+        raise ValueError("Target forward is outside the price range bracketed by [-10, 10]")
+
+    while high - low >= 1e-10:
+        mid = (low + high) / 2
+        if average_price(mid) < target:
+            low = mid
+        else:
+            high = mid
+
+    return float((low + high) / 2)
 
 
 def shape_of_year(prices: pd.DataFrame, scale: float, year: int) -> np.ndarray:
@@ -102,7 +172,7 @@ def shape_of_year(prices: pd.DataFrame, scale: float, year: int) -> np.ndarray:
 #
 # Your answer:
 #
-#
+#A price model that is independent of weather overstates solar earnings because high solar generation often coincides with lower electricity prices, reducing the price solar plants receive. The model underestimates negative-price hours (4.9% versus 6.2% in history) and 24-hour autocorrelation (0.59 versus 0.70), so it misses some low-price periods and persistent daily price patterns. This helps explain why the simulated solar capture rate of about 0.61 is higher than the 2025 historical value of 0.555. I would first link simulated prices to weather-driven solar and wind generation, then recalibrate and validate negative-price frequency and hourly autocorrelation.
 
 
 if __name__ == "__main__":
