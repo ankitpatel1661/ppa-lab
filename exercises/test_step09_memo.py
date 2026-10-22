@@ -15,7 +15,9 @@ import step09_memo as ex  # noqa: E402
 
 def test_ex1_the_indicative_price_for_your_costs():
     results = ex.load_results()
-    assert ex.indicative_price(results, "solar_park", 1.5, 1.0) == pytest.approx(
+    costs = results["parks"]["solar_park"]["assumptions"]           # the configured costs
+    assert ex.indicative_price(results, "solar_park", costs["balancing_eur_mwh"],
+                               costs["credit_eur_mwh"]) == pytest.approx(
         results["parks"]["solar_park"]["stack_eur_mwh"]["indicative"])
     stack = results["parks"]["wind_park"]["stack_eur_mwh"]
     assert ex.indicative_price(results, "wind_park", 3.0, 2.0) == pytest.approx(

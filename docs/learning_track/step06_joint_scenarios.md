@@ -1,15 +1,10 @@
 # Step 6: Weather and prices together (ticket PPA-6)
 
-> **Numbers on this page (update for v1.1).** This page was written with the illustrative
-> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
-> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
-> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
-> since v1.2 the market's seasonal shape and a solar cannibalisation trend
-> ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
-> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
-> ones. The methods and lessons are unchanged; current numbers are in the reports and the
-> README, and the exercise checks use the current data.
+> **Numbers on this page.** The parks are the Borrentin solar park (114 MWp) and the
+> Everswinkel wind park (28.5 MW); prices are calibrated to the market forward (EEX Cal-27
+> base 140.21 EUR/MWh, each quarter at the market's seasonal shape). Results are from
+> `reports/step06_joint_scenarios.md` (v1.11). The updates in sections 4.6 and 4.7 keep the
+> numbers of the version they describe.
 
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
@@ -39,8 +34,8 @@
 
 Monday. Risk management reviews the Step 5 numbers and sends one line back:
 
-> *"Your wind park earns 102% of the baseload price in your simulation. In reality it has
-> never earned more than 90%. Windy hours are cheap hours. Fix the correlation before
+> *"Your wind park earns 106% of the baseload price in your simulation. In reality it has
+> never earned more than 87%. Windy hours are cheap hours. Fix the correlation before
 > anything goes to the pricing committee. Ticket PPA-6."*
 
 They are right. Step 4 produced 31 years of weather and park output; Step 5 produced price
@@ -76,7 +71,7 @@ The covariance term is negative for renewables: when the wind blows, every wind 
 Germany produces, the merit order shifts, and the price falls (Step 1 showed it for
 residual load). A model in which q and P are independent sets Cov(q, P) = 0 and therefore
 pays every MWh the **average** price of its hours. For wind that means a capture rate near
-1.0; history says 0.83-0.88. The error is not small and not random: it always favours the
+1.0; for Everswinkel history says 0.82-0.87 (0.70 in the 2022 crisis). The error is not small and not random: it always favours the
 seller of renewable power.
 
 > **Pitfall:** "We simulate weather and prices, then combine them" sounds right but is
@@ -120,8 +115,9 @@ a future year.
 
 ### 1.4 Analog days (k nearest neighbours)
 
-For a simulated day with weather w (from any weather year), the candidates are the 998
-historical days within ±30 days of the same date, in any of 2024-2026. Their distance to w is
+For a simulated day with weather w (from any weather year), the candidates are the
+historical days within ±30 days of the same date: in any of 2024-2026 for the validation (998
+days in the pool), from the last 12 months for 2027 (section 4.3). Their distance to w is
 
     distance² = Σ_features ((w_f − w_f,candidate) / sd_f)²
 
@@ -141,8 +137,9 @@ A scenario s is a pair (weather year Y, price path n). Its volumes are the parks
 weather year Y, **placed date by date** on the 2027 calendar (29 February maps to 28
 February); its prices are simulated for that weather. 31 weather years × 16 paths = 496
 scenarios, all with equal weight. One annual level is calibrated so that the average price
-over all scenarios equals the 85 EUR/MWh forward (Step 5's bisection, now over all
-scenarios), and the level uncertainty adds one shift per scenario.
+over all scenarios equals the forward, each quarter at its own level (Cal-27 140.21 EUR/MWh,
+Q1-Q4 185 / 118 / 124 / 134; Step 5's bisection, now over all scenarios), and the level
+uncertainty adds one shift per scenario.
 
 The fair pay-as-produced price is Step 3's formula over the scenarios:
 
@@ -157,7 +154,7 @@ The Monte Carlo standard error of a ratio estimator is
 
     SE(K*) ≈ sd_s(revenue_s − K* · energy_s) / (√S · mean_s(energy_s))
 
-With 496 scenarios it is 0.75 EUR/MWh for solar and 0.80 EUR/MWh for wind: mostly the level
+With 496 scenarios it is 0.77 EUR/MWh for Borrentin and 1.00 EUR/MWh for Everswinkel: mostly the level
 uncertainty, which moves whole years. Halving it needs four times as many scenarios. The
 convergence chart shows the running estimate settling inside ±2 standard errors after about
 100 scenarios.
@@ -247,74 +244,73 @@ years hid it; it now checks every weather year separately for wind.
 
 ### 4.1 Wind is where independence hurts most
 
-| Wind park capture rate | History | Step 5 (independent) | Step 6 (linked) |
+| Everswinkel capture rate | History | Step 5 (independent) | Step 6 (linked) |
 |---|---|---|---|
-| 2024 | 0.827 | 1.000 (0.978-1.023) | 0.865 (0.845-0.883) |
-| 2025 | 0.881 | 1.021 (0.998-1.040) | 0.893 (0.875-0.911) |
+| 2024 | 0.818 | 1.008 (0.980-1.042) | 0.848 (0.831-0.865) |
+| 2025 | 0.855 | 1.037 (1.012-1.064) | 0.874 (0.858-0.887) |
 
-With independent prices the wind park earns **the baseload price**, as if wind had no
-influence on prices. With the link it earns 87-89% of it, close to history. In money: the
-2027 fair pay-as-produced price falls from 87.00 to 75.35 EUR/MWh, **11.64 EUR/MWh or 13%**.
-For solar the error is 3.09 EUR/MWh (51.76 → 48.66), because Step 5 already knew the
+With independent prices the wind park earns **more than the baseload price**, as if wind had
+no influence on prices. With the link it earns 85-87% of it, close to history. In money: the
+2027 fair pay-as-produced price falls from 149.51 to 130.56 EUR/MWh, **18.95 EUR/MWh or 13%**.
+For Borrentin the error is 2.31 EUR/MWh (79.78 → 77.47), because Step 5 already knew the
 *average* midday dip; it did not know that sunny days have deeper ones.
 
 ### 4.2 The daily level responds to weather as the merit order says
 
-At 85 EUR/MWh, per +0.1 capacity factor (and per +1 °C):
+At 140 EUR/MWh, per +0.1 capacity factor of the two parks (and per +1 °C):
 
 | Season | R² | Solar | Wind | Temperature |
 |---|---|---|---|---|
-| Winter | 0.44 | −6.3 | −5.6 | −2.1 |
-| Spring | 0.52 | −11.7 | −6.0 | −0.3 |
-| Summer | 0.56 | −7.2 | −6.4 | +1.1 |
-| Autumn | 0.54 | −0.4 | −8.3 | −0.5 |
+| Winter | 0.64 | −6.2 | −12.3 | −2.4 |
+| Spring | 0.49 | −17.1 | −13.9 | −1.7 |
+| Summer | 0.47 | −9.5 | −14.3 | +1.5 |
+| Autumn | 0.69 | −1.2 | −16.0 | −1.3 |
 
 Every sign makes sense: more wind or sun means cheaper power; cold winter days are
 expensive (heating, more gas plants running), hot summer days slightly expensive (cooling
 demand, rivers too warm for thermal plants). Spring solar has the largest effect: high
-sun, mild demand. Weather explains about half of the day-to-day price moves; the rest
-(gas, demand, outages, weather abroad) keeps a memory of φ = 0.456 per day, half-life 0.88
-days. In daily data the within-month correlation between wind and price is −0.58 in
-history, 0.00 for Step 5 and −0.60 for Step 6 (chart `step06_link.png`).
+sun, mild demand. Weather explains half to two thirds of the day-to-day price moves; the
+rest (gas, demand, outages, weather abroad) keeps a memory of φ = 0.374 per day, half-life
+0.70 days. In daily data the within-month correlation between Everswinkel's wind and the
+price is −0.64 in history, −0.01 for one Step 5 path and −0.62 for one Step 6 path (chart
+`step06_link.png`).
 
 ### 4.3 The analog pool mixes years with different amounts of solar
 
-In-sample, 2024 falls **outside** the simulated range for solar (history 0.622, Step 6
-0.513-0.568). The cause is the pool: 2024 days get intraday patterns from 2025 and 2026, when
-more solar capacity made midday dips deeper. The experiment that proves it: with analogs from
-2024 only, the simulated 2024 solar capture rate is 0.643, close to history.
+Each simulated day takes its hourly pattern from a historical day with similar weather. But
+historical days come from years with less solar: a 2024 May day has a shallower midday dip
+than a 2027 May day will. So **which past represents 2027** decides solar's price. Until v1.6
+it did, by several EUR/MWh: the more recent the pool, the lower Borrentin's fair price, and
+out of sample the model overstated Borrentin's capture rate by 0.09 to 0.14 (section 4.6).
 
-For 2027 this matters a lot, because 2027 will have even more solar than 2026:
+The fix (v1.7, section 4.7) moves every historical day to the day it stands in for, by the
+measured trend of the hourly shape. The test that the fix works is that the pool no longer
+matters:
 
-| Analog days from | Days in pool | Solar fair price | Solar median capture rate | Wind fair price |
-|---|---|---|---|---|
-| 2024-01-01 (whole window, base case) | 998 | 48.66 | 0.570 | 75.35 |
-| 2025-01-01 | 635 | 44.87 | 0.523 | 75.26 |
-| 2025-10-01 (last 12 months) | 363 | 41.08 | 0.479 | 74.81 |
-
-The choice of which past represents 2027 moves the solar price by **7.6 EUR/MWh (15%)**, more
-than the weather link itself. Wind barely moves. The base case stays the whole window (it is
-what was validated); Step 7 must decide, and this table is the argument. A professional answer
-would add a fundamental view of 2027 solar capacity.
+| Analog days from | Borrentin fair price 2027 | Everswinkel fair price 2027 |
+|---|---|---|
+| 2025-10-01 (last 12 months, base case) | 77.53 | 129.94 |
+| 2024-01-01 (whole window) | 77.47 | 130.56 |
 
 > **Interview:** "The biggest single assumption in my solar price was not the stochastic
-> model but which historical days represent 2027. I showed the sensitivity instead of hiding
-> it: 48.7 with the full window, 41.1 with the last twelve months."
+> model but which historical days represent 2027. I showed the sensitivity, then measured how
+> the daily shape changes year by year and moved the old days forward; after that the choice
+> no longer moved the price, and the out-of-sample error fell from 0.09-0.14 to 0.01-0.05."
 
 ### 4.4 What is still not explained
 
-- **Wind 2024** stays outside the range (history 0.827, Step 6 0.845-0.883) even with a
-  2024-only pool. The pool is not the cause; candidates are a stronger price response to wind
-  in 2024 or curtailment of real parks at negative prices (our park produces its potential
-  output). Open item.
-- **One statistic fewer inside the range in-sample:** Step 6 meets 6 of 11 (Step 5: 7). The 95%
-  quantile moves out (178.3 vs 173.7), while the 24-hour autocorrelation improves (0.593 →
-  0.621), as do the negative share (4.9% → 5.1%) and the weekly autocorrelation. The link
-  makes days more extreme in both directions; the soft floor at zero (Step 5, section 4.4) is
-  still missing.
-- **Auction limits:** 0.0008% of simulated hours fall below −500 EUR/MWh (minimum −660; the
-  2027 floor is −600). Clipping them would move the solar fair price by 0.004 EUR/MWh, so the
-  model leaves them.
+- **Everswinkel's capture rate sits just below the range in-sample** (2024: history 0.818,
+  Step 6 0.831-0.865; 2025: 0.855 against 0.858-0.887), and Borrentin's 2025 too (0.542
+  against 0.550-0.595). Candidates: a stronger price response to wind than one regression per
+  season can carry, and curtailment of real parks at negative prices (our parks produce their
+  potential output here; Step 7 curtails since v1.8). Open item; Step 7 prices the remaining
+  out-of-sample error as a sensitivity.
+- **In-sample statistics:** Step 6 meets 8 of 11 (Step 5: 7). The 5% and 95% quantiles stay
+  just outside (−2.2 and 178.5 against −0.1 and 173.7), and the 24-hour autocorrelation is
+  still short (0.635 against 0.700): the link makes days more extreme in both directions.
+- **Auction limits:** in v1.0, with a symmetric transform, 0.0008% of simulated hours fell
+  below −500 EUR/MWh (the 2027 floor is −600). Since v1.6 negative prices have their own
+  scale and the tail is far thinner (1% quantile −19.9 against −20.1 in history).
 
 ### 4.5 Small ones
 
@@ -415,8 +411,8 @@ Three lessons:
    matter, and it no longer does.
 
 What it does not settle: continued in a straight line, the trend would cut solar's capture
-rate by 5.6 pp a year. The base case uses it only up to 2027 and assumes −1 pp a year after
-that, because storage and curtailment are expected to slow the fall (backlog PPA-8f).
+rate by 5.6 pp a year. The scenarios use it only up to 2027. After 2027 solar's capture rate
+follows solar and storage build-out scenarios (v1.11, Step 7 page, section 4.8).
 
 ---
 
@@ -424,7 +420,7 @@ that, because storage and curtailment are expected to slow the fall (backlog PPA
 
 ```bash
 cd ".../Encavis quantitative/ppa-lab"
-make test                  # 194 offline tests
+make test                  # the offline tests (290 in v1.11)
 make scenarios             # link, validation, 2027 scenarios, sensitivity (about 20 s)
 open reports/step06_joint_scenarios.md
 make notebook              # Step 6 section: 6.1 to 6.6, then your solutions
@@ -441,24 +437,26 @@ prices one week of 2027 with the weather of any year, 6.6 changes the analog poo
 
 | Check | History | Step 5 | Step 6 |
 |---|---|---|---|
-| Statistics inside the 5-95% range (of 11) | | 7 | 6 |
-| Share of negative hours | 6.2% | 4.9% | 5.1% |
-| Autocorrelation at 24 hours | 0.700 | 0.593 | 0.621 |
-| Within-month correlation, wind vs daily price | −0.58 | 0.00 | −0.60 |
-| Solar capture rate 2025 | 0.555 | 0.617 | 0.575 |
-| Wind capture rate 2025 | 0.881 | 1.021 | 0.893 |
+| Statistics inside the 5-95% range (of 11) | | 7 | 8 |
+| Share of negative hours | 6.2% | 5.9% | 6.5% |
+| Autocorrelation at 24 hours | 0.700 | 0.607 | 0.635 |
+| Within-month correlation, Everswinkel's wind vs daily price (one path) | −0.64 | −0.01 | −0.62 |
+| Borrentin capture rate 2025 | 0.542 | 0.609 | 0.571 |
+| Everswinkel capture rate 2025 | 0.855 | 1.037 | 0.874 |
 
-### 6.2 Delivery year 2027 (31 weather years × 16 paths, forward 85 EUR/MWh)
+### 6.2 Delivery year 2027 (31 weather years × 16 paths, Cal-27 base 140.21 EUR/MWh)
 
 | Park | Prices | Fair PaP price | Capture rate 5/50/95% | Revenue P10/P50/P90 (EUR m) | Corr(energy, baseload price) |
 |---|---|---|---|---|---|
-| Solar | independent | 51.76 | 0.458 / 0.605 / 0.692 | 1.71 / 2.82 / 4.06 | +0.00 |
-| Solar | **linked** | **48.66** | 0.404 / 0.570 / 0.661 | 1.52 / 2.67 / 3.90 | −0.03 |
-| Wind | independent | 87.00 | 0.990 / 1.018 / 1.050 | 6.97 / 9.55 / 12.49 | +0.01 |
-| Wind | **linked** | **75.35** | 0.830 / 0.883 / 0.915 | 5.88 / 8.23 / 10.95 | −0.12 |
+| Borrentin | independent | 79.78 | 0.501 / 0.563 / 0.615 | 6.98 / 9.49 / 12.32 | +0.01 |
+| Borrentin | **linked** | **77.47** | 0.481 / 0.546 / 0.602 | 6.88 / 9.26 / 12.16 | +0.02 |
+| Everswinkel | independent | 149.51 | 1.023 / 1.059 / 1.099 | 7.54 / 9.49 / 11.74 | −0.01 |
+| Everswinkel | **linked** | **130.56** | 0.882 / 0.930 / 0.962 | 6.60 / 8.27 / 10.31 | −0.16 |
 
-The 2025 capture rates of both parks (0.555 and 0.881) fall inside the linked 5-95% ranges;
-the wind one is far outside the independent range.
+Borrentin's 2025 capture rate (0.542) falls inside its linked 5-95% range; Everswinkel's
+(0.855) just below it (0.882-0.962), and far below the independent one. The comparison mixes
+in the price level: 2027 is simulated at 140 EUR/MWh, 2025 averaged 89, and the capture rate
+rises with the level (Step 7, section 7); the in-sample validation above is the test.
 
 ![Capture rate per scenario: linked vs independent, with history](../../reports/figures/step06_capture_rates.png)
 
@@ -469,25 +467,28 @@ the wind one is far outside the independent range.
 ### 6.3 Five stories
 
 1. **Independence is a gift to the seller.** Prices that ignore the weather overstate the
-   fair price by 3 EUR/MWh for solar and 12 EUR/MWh for wind. On 110 GWh of wind a year that
-   is about EUR 1.3 million per year.
-2. **A windy year is a cheap year.** Across weather years, the wind park's energy and the
-   baseload price correlate at −0.12: more MWh, each worth less. Volume risk and price risk
+   fair price by 2.3 EUR/MWh for Borrentin and 19 EUR/MWh for Everswinkel. On Everswinkel's
+   64 GWh a year that is about EUR 1.2 million per year.
+2. **A windy year is a cheap year.** Across weather years, Everswinkel's energy and the
+   baseload price correlate at −0.16: more MWh, each worth less. Volume risk and price risk
    partly offset for the producer, and a model must keep that.
-3. **The weather explains half.** R² of 0.44-0.56 per season: the other half of daily price
-   moves comes from gas, demand and outages, which is why the AR(1) residual stays.
-4. **Which past represents the future** moves the solar price by 15%. Model choices you
-   can see (a regression) matter less than data choices you might not notice (the pool).
-5. **496 scenarios give ±0.8 EUR/MWh.** Precise enough to compare structures in Step 7, not
-   precise enough to quote to the cent.
+3. **The weather explains half to two thirds.** R² of 0.47-0.69 per season: the rest of the
+   daily price moves comes from gas, demand and outages, which is why the AR(1) residual
+   stays.
+4. **Which past represents the future** decided the solar price until the old days were moved
+   forward by the measured build-out trend (section 4.3). Data choices you might not notice
+   (the pool) can matter more than model choices you can see (a regression).
+5. **496 scenarios give ±0.8 (solar) to ±1.0 (wind) EUR/MWh.** Precise enough to compare
+   structures in Step 7, not precise enough to quote to the cent.
 
 ### 6.4 What this means for pricing
 
-- Step 7 prices the solar pay-as-produced PPA on these scenarios, adds the risk premium
-  (Step 3, METHODOLOGY section 5) and must choose the analog pool explicitly.
+- Step 7 prices the pay-as-produced PPAs on these scenarios and adds the risk premium (Step
+  3, METHODOLOGY section 5), with analog days from the last 12 months (2025-10-01 on), moved
+  to 2027 by the build-out trend.
 - Every number above is for the **potential** output of the parks. Curtailment at negative
-  prices (common for real parks) would raise their capture rates a little and is one candidate
-  for the wind 2024 gap.
+  prices (common for real parks) raises their capture rates a little; Step 7 models it since
+  v1.8, and it is one candidate for Everswinkel's in-sample gap.
 
 ---
 
@@ -523,26 +524,25 @@ the wind one is far outside the independent range.
 
 1. Daily means of `price_eur_mwh` and `mw / 28.5`, `groupby(index.month).transform("mean")` to
    take out each month, then `sum(w * p) / sum(w ** 2)`. 2025: −11.34 EUR/MWh per +0.1 CF,
-   correlation −0.694 (2024: −11.78 and −0.621), for the Everswinkel park (v1.3). The link's
+   correlation −0.694 (2024: −11.78 and −0.621), for Everswinkel. The link's
    seasonal responses (−12.3 to −15.6, at the 140 EUR/MWh forward level) are consistent.
 2. Filter by circular day-of-year gap ≤ 30, drop |days| < `exclude`, scale by the column
    standard deviations over all rows, sum squares, sort stably. Without exclusion the first
    analog is 15 June 2025 itself; with `exclude=8` the first is 3 July 2025.
-3. `groupby("prices")` and Σ revenue / Σ MWh: solar 79.78 → 77.47, wind 149.51 → 130.56 for
-   the Encavis parks at the market forward curve and seasons (v1.7, with the build-out trend;
-   v1.3: 97.64 → 94.45 and 148.31 → 129.46; illustrative parks at 85: 51.76 → 48.66 and
-   87.00 → 75.35). The mean of the capture prices gives 77.48 and 130.85: years with more
+3. `groupby("prices")` and Σ revenue / Σ MWh: Borrentin 79.78 → 77.47, Everswinkel
+   149.51 → 130.56 at the market forward and its quarter shape. The mean of the capture prices gives 77.48 and 130.85: years with more
    energy count more in the fair price, and for wind those are the cheaper years.
 4. Cov(q, P) < 0 for wind: windy hours are cheap, so an independent model pays every MWh the
-   average price (capture rate about 1.0 instead of 0.88). For solar Step 5 already knew the
-   average midday dip, so only the day-to-day part (sunny days deeper) was missing. But the
-   pool sensitivity shows the solar price could be up to 7.6 EUR/MWh lower if recent days
-   represent 2027, so the true solar error may be larger than 3.
+   average price (capture rate 1.04 instead of 0.86 for Everswinkel in 2025). For solar Step 5
+   already knew the average midday dip, so only the day-to-day part (sunny days deeper) was
+   missing. But out of sample, before the v1.7 trend, Borrentin's capture rate was 0.09-0.14
+   too high: independence was not solar's biggest error.
 5. `weights = 0.5 ** (age_days / 365)`; draw with `rng.choice(near, p=w / w.sum())`.
 6. `fit_link(model, hist.loc["2024"], ...)` and compare `link.beta["wind"]`.
 7. Group the hourly scenario prices by month before summing.
 8. `q = np.where(P < 0, 0, q)`; recompute Σ qP / Σ q.
-9. SE scales with 1/√S: (0.8 / 0.25)² × 496 ≈ 5,000 scenarios.
+9. SE scales with 1/√S: (0.77 / 0.25)² × 496 ≈ 4,700 scenarios for Borrentin, (1.00 / 0.25)²
+   × 496 ≈ 7,900 for Everswinkel.
 
 </details>
 
@@ -557,8 +557,8 @@ the wind one is far outside the independent range.
 5. What is an analog day, and why must validation exclude days close to the target?
 6. How is a weather year from 2004 placed on the 2027 calendar?
 7. Why is the fair price Σ revenue / Σ energy and not the mean of the capture prices?
-8. What does a correlation of −0.12 between annual wind energy and baseload price mean for the producer?
-9. Why did 2024 solar fall outside the simulated range, and what does it imply for 2027?
+8. What does a correlation of −0.16 between annual wind energy and baseload price mean for the producer?
+9. Why did the model overstate solar's capture rate out of sample, and how was it fixed?
 10. How does the Monte Carlo standard error fall with the number of scenarios?
 
 <details>
@@ -579,8 +579,9 @@ the wind one is far outside the independent range.
    prices gives a low-energy year the same weight as a high-energy year.
 8. Windy years bring more MWh at lower prices: volume and price risk partly offset, so revenue
    varies less than volume alone suggests.
-9. The pool's 2025-2026 days have deeper midday dips (more solar capacity). 2027 will have even
-   more solar, so the whole-window pool probably overstates what solar earns in 2027.
+9. Analog days come from earlier years with less solar capacity and shallower midday dips;
+   2027 will have more solar still. v1.7 moves every historical day to the simulated day by
+   the measured trend of the hourly shape: the error fell from 0.09-0.14 to 0.01-0.05.
 10. With 1/√S: four times the scenarios for half the error.
 
 </details>
@@ -591,15 +592,15 @@ the wind one is far outside the independent range.
 
 **Your 60-second story (STAR):**
 
-> *Situation:* my first price model was independent of the weather, so a wind park earned
-> the baseload price in simulation, against 83-88% in reality. *Task:* simulate prices and
+> *Situation:* my first price model was independent of the weather, so the Everswinkel wind
+> park earned more than the baseload price in simulation, against at most 87% in reality. *Task:* simulate prices and
 > volumes together so their correlation is preserved. *Action:* I regressed the daily price
 > level on solar, wind and temperature anomalies per season, kept an AR(1) for the rest,
 > and took hourly patterns from historical analog days with similar weather. I validated it
 > with the real weather of 2024-2026, excluding nearby days, and built 496 joint scenarios for
-> 2027. *Result:* the wind fair price fell from 87 to 75 EUR/MWh and solar from 52 to 49; the
-> historical capture rates fall inside the simulated ranges; and I found that the period of
-> historical days used moves the solar price by another 15%.
+> 2027. *Result:* the wind fair price fell from 150 to 131 EUR/MWh and solar from 79.8 to
+> 77.5; and a test on years the model never saw showed it overstated solar by 0.09-0.14,
+> until I moved the historical days forward by the measured build-out trend (0.01-0.05 left).
 
 **Likely questions and strong answers:**
 
@@ -611,10 +612,11 @@ the wind one is far outside the independent range.
   PPA needs the hourly joint behaviour (the midday dip on sunny days). Conditioning on the
   weather keeps it by construction.
 - *"Your model has a limited history of prices. How do you price 2027?"* The weather comes
-  from 31 years; the price response and patterns from 2024-2026. The sensitivity to which
-  years represent 2027 is reported; a fundamental view of 2027 capacity should anchor it.
+  from 31 years; the price response and patterns from 2024-2026, moved to 2027 by the
+  measured build-out trend and tested on years the model never saw. For the later years of a
+  contract I use solar and storage build-out scenarios.
 - *"How many scenarios do you need?"* Enough that the Monte Carlo error is small against the
-  decision: here ±0.8 EUR/MWh with 496; the error falls with 1/√S.
+  decision: here ±0.8 to ±1.0 EUR/MWh with 496; the error falls with 1/√S.
 
 ---
 
@@ -646,9 +648,9 @@ model would overstate revenue and lead to offers that look profitable but are no
       Analogtag, das Szenario, die Monte-Carlo-Simulation, der Standardfehler, das
       Erzeugungsprofil, der Kannibalisierungseffekt, der Kapazitätsfaktor (auch
       Auslastungsgrad), die Klimatologie, die Abregelung (curtailment).
-- [ ] Stand-up update: *"Yesterday: joint weather and price scenarios; the wind fair price falls
-      from 87 to 75 EUR/MWh once prices see the weather. Today: price the solar PPA with its
-      risk premium (PPA-7). Blockers: the analog-pool choice for 2027 needs a decision."*
+- [ ] Stand-up update: *"Yesterday: joint weather and price scenarios; Everswinkel's fair price
+      falls from 150 to 131 EUR/MWh once prices see the weather. Today: price the Borrentin
+      PPA with its risk premium (PPA-7). Blockers: none."*
 
 Commit (check `git status` first: no `.env`, no ` M .env.example`):
 

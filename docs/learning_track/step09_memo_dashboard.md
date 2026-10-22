@@ -1,15 +1,9 @@
 # Step 9: Telling the result: memo, dashboard, front page (ticket PPA-9)
 
-> **Numbers on this page (update for v1.1).** This page was written with the illustrative
-> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
-> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
-> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
-> since v1.2 the market's seasonal shape and a solar cannibalisation trend
-> ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
-> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
-> ones. The methods and lessons are unchanged; current numbers are in the reports and the
-> README, and the exercise checks use the current data.
+> **Numbers on this page.** The parks are the Borrentin solar park (114 MWp) and the
+> Everswinkel wind park (28.5 MW), priced at the market forward (EEX Cal-27 base 140.21
+> EUR/MWh). All numbers are those of the current memo, dashboard and `reports/results.json`
+> (v1.11).
 
 > **Time needed:** about 4 hours. Concepts take 45 minutes, code tour and findings
 > 30 minutes, hands-on, deployment and exercises 2 hours, to-dos 45 minutes.
@@ -68,8 +62,8 @@ details: the *pyramid principle* (Minto), or BLUF ("bottom line up front") in mi
 writing. The memo's first paragraph therefore says: the price range, what it buys, what it
 costs. Everything else supports it.
 
-A good bottom line is **a decision, a number and a trade-off**: "negotiate between 33.3 and
-41.1 EUR/MWh; the PPA cuts our cash flow at risk by 86% for about 6.3 EUR/MWh."
+A good bottom line is **a decision, a number and a trade-off**: "negotiate between 21.4 and
+35.1 EUR/MWh; the PPA cuts our cash flow at risk by 77% for about 14.6 EUR/MWh."
 
 ### 1.2 Numbers that cannot drift
 
@@ -161,17 +155,17 @@ installed, so Streamlit Community Cloud needs only `app/requirements.txt`.
 
 ## 4. Five real findings
 
-### 4.1 The cost of certainty is small, the certainty is large
+### 4.1 The cost of certainty, and what it buys
 
-Against selling at spot, the PPA costs the producer the buyer's premium and the credit
-charge, **6.3 EUR/MWh** or **EUR 0.35 m a year** on 55 GWh (balancing is paid either way). It
-removes **EUR 1.24 m** of cash flow at risk (from 1.44 to 0.20). That ratio, not the price
-alone, is what a CFO decides on.
+Against selling at spot, the PPA costs Borrentin the buyer's premium, the credit charge and
+the value of stopping at negative prices, which a merchant keeps: **14.6 EUR/MWh** or **EUR
+1.77 m a year** on 121 GWh (balancing is paid either way). It removes **EUR 2.32 m** of cash flow
+at risk (from 3.02 to 0.70). That ratio, not the price alone, is what a CFO decides on.
 
 ### 4.2 A fair price wins only half the time
 
 At the fair strike the PPA earns more than merchant sales in about **half** of the scenarios
-(solar 53%, wind 51% in v1.3; Exercise 2). "Fair" means no one wins on average; the PPA's value is the
+(Borrentin 53%, Everswinkel 51%; Exercise 2). "Fair" means no one wins on average; the PPA's value is the
 narrower spread, not a higher expectation. A memo that says "the PPA earns more" would be wrong.
 
 ### 4.3 NaN is not JSON
@@ -184,11 +178,12 @@ parsers (and some web tools) refuse it. Step 7 now writes `null`, and a test che
 The app worked in the project's `.venv`, where everything is installed. In a clean virtual
 environment with only `app/requirements.txt` (what Streamlit Cloud does) it needed `ppa_lab`
 from `src/`; the app now adds that path itself, and the check was repeated in a fresh
-environment: no errors, the whole-window switch gives 40.9 EUR/MWh as in Step 7.
+environment: no errors, and every switch gives the same numbers as Step 7 (the whole-window
+pool, for example, 21.3 EUR/MWh).
 
 ### 4.5 Small ones
 
-- **Truncated metrics:** "33.3 EUR/…" did not fit four columns; units moved into the labels.
+- **Truncated metrics:** "21.4 EUR/…" did not fit four columns; units moved into the labels.
 - **Arrows that lie:** Streamlit draws an up-arrow next to any metric delta, even "+0.0 vs base
   case"; the context lines are now captions.
 - **"−0.0"** on a flat trend bar: rounded before formatting.
@@ -229,10 +224,13 @@ the app.
 - **The README** opens with the question, the answer, the price-stack chart, a table of the seven
   steps and how to run everything.
 - **The memo** ([`reports/step09_memo.md`](../../reports/step09_memo.md), PDF next to it) fits
-  one page: range 33.3-41.1 EUR/MWh, CFaR −86% for 6.3 EUR/MWh, three levers, three
-  recommendations, method and limits.
-- **The dashboard** opens on the same numbers and lets the reader move the six most important
-  assumptions; switching to "whole 2024-2026 window" raises the solar offer to 40.9 EUR/MWh.
+  one page: range 21.4-35.1 EUR/MWh, CFaR −77% for 14.6 EUR/MWh, the levers (solar and
+  storage build-out, forward, the model's remaining error), three recommendations, method and
+  limits.
+- **The dashboard** opens on the same numbers and lets the reader move the assumptions that
+  matter: the forward curve, the build-out scenario, a capture-rate trend, tenor, discount
+  rate, degradation, costs, the analog pool and the negative-price clause. The storage boom
+  scenario, for example, raises Borrentin's offer from 21.4 to 30.1 EUR/MWh.
 
 ---
 
@@ -254,14 +252,15 @@ the app.
 <details>
 <summary>Hints and solution sketches</summary>
 
-1. `fair_price − risk_premium − balancing − credit` from `stack_eur_mwh`: 33.31 for solar with the
-   base costs, 66.43 for wind with 3.0 and 2.0.
-2. Linked rows, `K = rev.sum() / mwh.sum()`, `(K * mwh > rev).mean()`: 0.514 (solar), 0.512 (wind).
+1. `fair_price − risk_premium − balancing − credit` from `stack_eur_mwh`: 63.80 for Borrentin with
+   its configured costs (2.18 and 1.0), 119.45 for Everswinkel with 3.0 and 2.0 (first year).
+2. Linked rows, `K = rev.sum() / mwh.sum()`, `(K * mwh > rev).mean()`: 0.528 (Borrentin), 0.506
+   (Everswinkel).
 3. Lead with the price and the decision, then what it buys (a much more predictable income),
    then the one assumption that could move it (how much cheaper solar hours get). German, e.g.:
-   *"Wir empfehlen einen Festpreis zwischen 33 und 41 EUR/MWh für zehn Jahre."*
-4. The buyer's bottom line: "Pay at most 41.1 (fair) minus the premium we need for the risk we
-   take, 5.3, minus our costs."
+   *"Wir empfehlen einen Festpreis zwischen 21 und 35 EUR/MWh für zehn Jahre."*
+4. The buyer's bottom line: "Pay at most 35.1 (fair) minus the premium we need for the risk we
+   take, 10.5, minus our costs."
 5. The clause's revenue share is in `results.json` (`pay_as_produced_clause`).
 
 </details>
@@ -288,11 +287,13 @@ the app.
 2. So they cannot drift apart: one model run updates all three.
 3. The cloud has no market or weather data, and the expensive results do not depend on the knobs
    it exposes; it recombines stored results instead.
-4. The analog pool, forward, capture-rate trend, tenor, discount rate, degradation and costs: the
+4. The forward curve, the solar and storage build-out scenario, a capture-rate trend, tenor,
+   discount rate, degradation, costs, the analog pool and the negative-price clause: the
    biggest levers and the terms a buyer asks about.
 5. The logic in `ppa_lab.dashboard` by unit tests everywhere; the app by a headless smoke test
    that needs Streamlit, which CI does not install.
-6. About 6.3 EUR/MWh (EUR 0.35 m a year); it removes EUR 1.24 m of cash flow at risk.
+6. About 14.6 EUR/MWh for Borrentin (EUR 1.77 m a year); it removes EUR 2.32 m of cash flow
+   at risk.
 7. At the fair strike the expectation is equal; the PPA narrows the spread, it does not raise
    the average.
 8. Other tools (browsers, web parsers) reject `NaN`; strict JSON is portable.
@@ -312,21 +313,24 @@ the app.
 > of a solar park's output, and how much risk is left? I built it from public data. First the
 > market data, reconciled with the official figures; then capture prices, which match the TSOs'
 > market values; then the PPA structures as tested cash-flow functions. For volumes I modelled a
-> 50 MWp solar and a 30 MW wind park at real sites over 31 ERA5 weather years. For prices I built
-> an hourly model with seasonality and daily mean reversion, validated against history, and then
-> linked it to the weather, because windy and sunny days are cheap days: ignoring that would
-> overprice wind by 12 EUR/MWh. On 496 joint scenarios the solar PPA's fair price is 41 EUR/MWh
-> and the indicative offer 33 after the buyer's hedged risk premium and costs; the PPA cuts our
-> cash flow at risk by 86%. The biggest open question is how much cheaper solar hours will get,
-> and I show that as a sensitivity rather than hiding it. Everything is tested, reproducible with
+> 114 MWp solar and a 28.5 MW wind park at their real sites over 31 ERA5 weather years,
+> calibrated to their published yields. For prices I built an hourly model with seasonality and
+> daily mean reversion, calibrated to the EEX forward curve, validated against history and on
+> years it never saw, and linked it to the weather, because windy and sunny days are cheap days:
+> ignoring that would overprice wind by 19 EUR/MWh. On 496 joint scenarios the solar PPA's
+> ten-year fair price is 35 EUR/MWh and the indicative offer 21 after the buyer's hedged risk
+> premium and costs; the PPA cuts our cash flow at risk by 77%. The biggest open question is how
+> much cheaper solar hours will get, and I show it as solar and storage build-out scenarios,
+> 18 to 30 EUR/MWh, rather than hiding it. Everything is tested, reproducible with
 > one command, and there is a one-page memo and a dashboard."*
 
 **Likely questions:**
 
 - *"How would a non-quant use your work?"* The memo's first paragraph, and the dashboard to test
   their own assumptions; both show the same numbers as the model.
-- *"What would you do next?"* Market forwards and the hedge (Step 8), then a fundamental view of
-  solar capacity and storage for the capture-rate trend.
+- *"What would you do next?"* A dispatch model of storage and flexible demand behind the
+  build-out scenarios, a portfolio view of both parks, and EEX settlement data instead of
+  published quotes.
 - *"What are you least sure about?"* The future of solar cannibalisation, and the cost
   assumptions; both are stated and visible in the dashboard.
 

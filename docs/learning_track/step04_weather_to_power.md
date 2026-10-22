@@ -1,11 +1,9 @@
 # Step 4: Weather to power (ticket PPA-4)
 
-> **Sites and numbers on this page (update for v1.3).** This page was written for two
-> illustrative parks (a 50 MWp solar park in Lusatia, a 30 MW wind park in North Frisia).
-> Since v1.3 the project models two Encavis parks from public data: the Borrentin solar park
-> (114 MWp, Mecklenburg-Western Pomerania) and the Everswinkel wind park (28.5 MW, North
-> Rhine-Westphalia). The methods and lessons are unchanged; current numbers are in the
-> reports and the README, and the exercise checks use the current data.
+> **The parks on this page.** Two Encavis parks, modelled from public data: the Borrentin
+> solar park (114 MWp, Mecklenburg-Western Pomerania, about 121 GWh a year) and the
+> Everswinkel wind park (28.5 MW onshore, four Nordex N149 and one N163, North
+> Rhine-Westphalia, about 64 GWh a year). All numbers are from `reports/step04_generation.md`.
 
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.
@@ -50,7 +48,9 @@ weather record at the exact location and a model that turns weather into power.
       licence, completeness).
 - [x] The timestamp convention handled and verified against the sun's position (test and
       a check on every build).
-- [x] A pvlib solar park (50 MWp) and a windpowerlib wind park (30 MW) from configuration.
+- [x] A pvlib model of the Borrentin solar park (114 MWp) and a windpowerlib model of the
+      Everswinkel wind park (28.5 MW), from configuration, calibrated to their published
+      annual yields.
 - [x] Annual energy per weather year, P50 and P90 (one year and ten years), trend.
 - [x] Checks against national generation: hourly correlation, monthly shares, capture rate.
 - [x] Report, learning page, notebook section, exercises.
@@ -104,13 +104,16 @@ The chain in `weather/pv.py` (pvlib does each step):
    GHI/DNI/DHI are transposed onto that plane (Hay-Davies model).
 3. **Cell temperature** (Faiman model): hot cells produce less, about **−0.35% per °C**.
 4. **DC power** (PVWatts): proportional to POA irradiance, corrected for temperature.
-5. **System losses** of 10%: soiling, mismatch, wiring, availability.
-6. **Inverter** (96% efficiency) with a **DC/AC ratio of 1.2**: 50 MWp of panels on
-   41.7 MW of inverters. On the sunniest hours the inverter **clips** the output.
+5. **System losses** of 12.4%: soiling, mismatch, wiring, availability, plus site effects
+   the model cannot see, calibrated so that the P50 matches Borrentin's published 121 GWh
+   (section 4.2).
+6. **Inverter** (96% efficiency) with a **DC/AC ratio of 1.2**: 114 MWp of panels on
+   95 MW of inverters (tilt, orientation and DC/AC ratio are assumptions: the layout is not
+   published). On the sunniest hours the inverter **clips** the output.
 
 The result per year divided by the DC capacity is the **specific yield** (kWh per kWp).
-German ground-mounted parks reach roughly 950-1,150 kWh/kWp; the east (Lusatia) is among
-the sunnier regions.
+German ground-mounted parks reach roughly 950-1,150 kWh/kWp; Borrentin's published
+expectation, 121 GWh from 114 MWp, is 1,061 kWh/kWp.
 
 ### 1.4 Wind: from wind speed to MW
 
@@ -119,16 +122,22 @@ the sunnier regions.
   `alpha = ln(v100 / v10) / ln(100 / 10)` and extrapolate to the hub:
   `v_hub = v100 · (hub height / 100)^alpha`. Alpha is clipped to [0, 0.6].
 - **Power curve:** a turbine produces nothing below the **cut-in** speed (about 3 m/s),
-  rises roughly with the **cube** of wind speed, reaches **rated power** (3.45 MW at
-  12 m/s for the Vestas V126) and shuts down above **cut-out** (22.5 m/s in the library
-  curve).
+  rises roughly with the **cube** of wind speed, reaches **rated power** and shuts down
+  above **cut-out**. windpowerlib has no curve for Everswinkel's Nordex N149 and N163, so
+  the Enercon E-126 EP4 (4.2 MW, rated at about 14 m/s, cut-out 25 m/s) stands in: its
+  specific power is similar (337 W/m² against 327 for the N149/5.7), and it is scaled to
+  28.5 MW at a 164 m hub (the usual N149 height in Germany; not published).
 - **The cube law means the mean wind speed is not enough.** Two sites with the same mean
   but a different distribution produce different energy. That is why we model every hour.
-- **Losses** of 12%: wake effects of turbines on each other (~7%), availability (~3%) and
-  electrical losses (~2%).
+- **Losses** of 26.4%: the usual 12% (wake effects of turbines on each other ~7%,
+  availability ~3%, electrical ~2%) plus what a reanalysis model cannot see at this site:
+  sound-reduced night operation and bat curtailment (common in North Rhine-Westphalia), the
+  stand-in curve, and ERA5 winds extrapolated to 164 m. Calibrated so that the P50 matches
+  the published 64 GWh (section 4.2).
 - Energy per year divided by capacity gives the **full-load hours**: how many hours at
   full power would produce the same energy. The German onshore fleet averages below 2,000;
-  modern large-rotor turbines at good sites in the north reach 3,000 and more.
+  modern large-rotor turbines at good sites in the north reach 3,000 and more; Everswinkel,
+  inland in the Münsterland, is expected at 2,246.
 
 ### 1.5 P50 and P90
 
@@ -149,11 +158,14 @@ P90 (10 yr)  = μ − 1.2816 σ / √10   for the average over ten years
 
 ### 1.6 Checking a model with no official number
 
-In Step 1 and Step 2 we reconciled against published figures. Nobody publishes the output
-of an illustrative park. Instead we check that the model **behaves like reality**:
+In Step 1 and Step 2 we reconciled against published figures. For a single park there is
+at most one: Encavis publishes an expected annual yield (about 121 GWh for Borrentin, 64 GWh
+for Everswinkel), nobody publishes its hourly output. So the model takes its **level** from
+the published yield (section 4.2) and we check that everything else **behaves like
+reality**:
 
 1. **Benchmarks:** specific yield and full-load hours in the right range for the region
-   and technology.
+   and technology, before calibration as well as after.
 2. **Pattern:** hourly correlation with the national fleet of the same technology (Step 1
    data). High for solar (everyone sees the same sun), lower for one wind site.
 3. **Seasonality:** the share of annual energy per month should look like the fleet's.
@@ -265,37 +277,39 @@ The key tests were checked by planting the bug they protect against and watching
   build that stops `ppa-lab weather` if the data ever arrives shifted
   (`test_build_generation_refuses_weather_with_shifted_timestamps`).
 
-### 4.2 The first wind park was in the sea
+### 4.2 The wind model was 19.5% above the published yield
 
-- **Symptom:** the first run gave the wind park **3,961 full-load hours**, an offshore value.
-- **Investigation:** the report's site table showed the ERA5 grid point for
-  54.50 N, 9.00 E at **0 m elevation**: the cell next to Husum is partly Wadden Sea. Five
-  candidate cells, one year of wind at 100 m each:
+- **Symptom:** with the textbook 12% losses the Everswinkel model gave **76.5 GWh** a year
+  (2,684 full-load hours) against the about 64 GWh Encavis publishes: +19.5%. The solar
+  model with 10% losses gave 124.3 GWh against about 121 GWh (+2.7%).
+- **Investigation, in the order a yield analyst would go:**
 
-  | ERA5 grid point | Elevation | Mean wind at 100 m (2024) |
+  | Check | Borrentin (solar) | Everswinkel (wind) |
   |---|---|---|
-  | 54.50 N, 9.00 E (first choice) | 0 m | 7.52 m/s |
-  | **54.50 N, 9.25 E** | **30 m** | **7.11 m/s** |
-  | 54.50 N, 9.50 E | 24 m | 6.88 m/s |
-  | 54.75 N, 9.25 E | 22 m | 7.01 m/s |
-  | 54.25 N, 9.25 E | 29 m | 6.98 m/s |
+  | ERA5 grid point | 53.75 N, 13.00 E, 39 m: land, 7 km away | 52.00 N, 7.75 E, 70 m: land, 10 km away |
+  | Machine data | layout not published (tilt, DC/AC assumed) | no N149/N163 curve in the library: E-126 EP4 stand-in, similar specific power |
+  | Height | – | hub not published (164 m assumed); ERA5 gives 100 m, the rest is extrapolated with the measured shear |
+  | Site practice | – | sound-reduced night operation and bat curtailment are common in NRW, and no model of the weather sees them |
 
-- **Fix:** the park moved one cell (about 16 km) inland, to a land cell. Result: **3,668
-  full-load hours**, at the upper end of what large-rotor turbines reach in North Frisia.
-  Only the wind years were re-downloaded (the coordinates are part of the cache key).
-- **Lesson:** a reanalysis value is a cell average. Always look at the grid point you got,
-  its elevation, and whether it is land or sea. About 6% more wind speed gave 8% more energy.
+- **Fix:** keep the weather and the hourly shape from ERA5, take the level from the
+  operator: losses 12.4% for solar and 26.4% for wind, so that each P50 matches its
+  published yield (model P50 −0.0% and −0.1%).
+- **Lesson:** a pricing desk combines a **yield assessment** (the level, from the operator
+  or a consultant) with **reanalysis** (variability and hourly shape). A model 20% off
+  before calibration is normal for a single wind park with unknown machines and
+  operating rules; a model you cannot tie to any published number is the one to distrust.
+  And look at the grid point you got: a cell average, its elevation, land or sea.
 
 ### 4.3 The solar site earns a bit more than the national fleet
 
 | Capture rate | 2023 | 2024 | 2025 |
 |---|---|---|---|
-| Solar park (model) | 0.781 | 0.622 | 0.555 |
+| Borrentin (model) | 0.799 | 0.601 | 0.542 |
 | National solar | 0.759 | 0.592 | 0.516 |
 
 Two candidate reasons, both plausible: (1) **one site is not the fleet**: the hourly
-correlation is 0.92, and when Lusatia is sunny while the rest of Germany is not, prices
-are higher; (2) **inverter clipping** removes energy exactly in the sunniest, cheapest
+correlation is 0.92, and when the north-east is sunny while the south, where most German
+solar is, is not, prices are higher; (2) **inverter clipping** removes energy exactly in the sunniest, cheapest
 hours. Separating them is a play idea in the notebook (change `dc_ac_ratio`). For pricing
 it means: the national capture rate is a good first guess, but a site's own profile can
 be worth a few EUR/MWh.
@@ -303,7 +317,7 @@ be worth a few EUR/MWh.
 ### 4.4 Small ones
 
 - **Rate limits:** a whole year of hourly data counts as many API calls. With 4 s between
-  requests, 64 site-years downloaded in 274 seconds without a single 429.
+  requests the two sites' 1995-2026 records (64 site-years) download in a few minutes.
 - **A test that tested formatting:** the first report test looked for `"| 2025 |"` in a
   Markdown table, which depends on column padding. It now checks that both years appear in
   the right section: test behaviour, not layout.
@@ -316,7 +330,7 @@ be worth a few EUR/MWh.
 
 ```bash
 cd ".../Encavis quantitative/ppa-lab"
-make test                  # 144 offline tests
+make test                  # the offline tests (290 in v1.11)
 make weather               # first run about 5 minutes (downloads), then seconds
 open reports/step04_generation.md
 make notebook              # Step 4 section: 4.1 to 4.6, then your solutions
@@ -331,15 +345,16 @@ both sites) and 4.6 (site vs national).
 
 ### 6.1 Volumes
 
-| | Solar park, Lusatia | Wind park, North Frisia |
+| | Borrentin solar (114 MWp) | Everswinkel wind (28.5 MW) |
 |---|---|---|
-| ERA5 grid point | 51.75 N, 14.25 E, 68 m | 54.50 N, 9.25 E, 30 m |
-| P50 | 55.1 GWh = **1,102 kWh/kWp** | 110.0 GWh = **3,668 full-load hours** |
-| Variability (CoV) | 5.0% | 5.5% |
-| P90 one year | 51.5 GWh (−6.4%) | 102.2 GWh (−7.0%) |
-| P90 ten years | 53.9 GWh (−2.0%) | 107.4 GWh (−2.2%) |
-| Worst / best year | 2001 −10.7% / 2018 +8.9% | 2003 −9.8% / 1998 +9.9% |
-| Trend | +2.5% per decade | +0.1% per decade |
+| ERA5 grid point | 53.75 N, 13.00 E, 39 m | 52.00 N, 7.75 E, 70 m |
+| P50 | 120.9 GWh = **1,061 kWh/kWp** | 64.0 GWh = **2,245 full-load hours** |
+| Published expectation | about 121 GWh | about 64 GWh |
+| Variability (CoV) | 4.6% | 7.2% |
+| P90 one year | 113.4 GWh (−5.9%) | 58.1 GWh (−9.2%) |
+| P90 ten years | 118.3 GWh (−1.9%) | 62.1 GWh (−2.9%) |
+| Worst / best year | 1998 −8.9% / 2018 +10.2% | 2010 −13.5% / 1998 +13.6% |
+| Trend | +2.1% per decade | −1.7% per decade |
 
 ![Annual energy per weather year](../../reports/figures/step04_annual_yield.png)
 
@@ -347,20 +362,26 @@ both sites) and 4.6 (site vs national).
 
 ### 6.2 Five stories
 
-1. **One year in ten is 6-7% short.** That is the one-year P90 for both parks. For a
-   10-year average it is only about 2%: the reason long contracts can carry volume risk.
-2. **Solar is getting sunnier.** +2.5% per decade over 1995-2025 matches the European
-   "brightening" (cleaner air since the 1980s and 1990s). A P50 from the full 31-year mean
-   may understate today's yields. Which period defines "standard weather" is a real
-   decision, not a detail.
-3. **The extremes are ±10%.** Encavis reports that annual wind yields can deviate by up to
-   ±25%: real parks add outages, curtailment and shorter periods to the weather signal,
-   which our potential-output model does not include. Treat our P90 as a weather-only floor.
-4. **Wind is a winter product, solar a summer one.** Wind delivers 11.5% of its year in
-   January and 5.8% in August; solar 13% in May and 2.5% in December. The two parks
-   together are smoother than either alone (exercise 3 shows what that is worth).
-5. **One site is not the fleet.** Hourly correlation with the national fleet is 0.92 for
-   solar but only 0.72-0.75 for wind: wind volume risk is far more local.
+1. **One year in ten is 6-9% short.** The one-year P90 is 5.9% below the mean for
+   Borrentin and 9.2% for Everswinkel. For a 10-year average it is only 1.9% and 2.9%: the
+   reason long contracts can carry volume risk.
+2. **Solar is getting sunnier, this wind site calmer.** Borrentin +2.1% per decade over
+   1995-2025 matches the European "brightening" (cleaner air since the 1980s and 1990s);
+   Everswinkel −1.7% per decade. A P50 from the full 31-year mean may misstate today's
+   yields either way. Which period defines "standard weather" is a real decision, not a
+   detail.
+3. **The extremes are −9 to +10% for solar and ±14% for wind.** Encavis reports that annual
+   wind yields can deviate by up to ±25%: real parks add outages, curtailment and shorter
+   periods to the weather signal, which our potential-output model does not include. Treat
+   our P90 as a weather-only floor.
+4. **Wind is a winter product, solar a summer one.** In 2021-2025 Everswinkel delivered
+   12.1% of its year in January and 5.0% in August; Borrentin 14.0% in May and in June and
+   1.7% in December. The two parks together are smoother than either alone (exercise 3
+   shows what that is worth).
+5. **One site is not the fleet, and wind is more local.** Hourly correlation with the
+   national fleet is 0.91-0.93 for Borrentin and 0.86-0.88 for Everswinkel. Wind is the
+   riskier volume on every count here: year to year (7.2% against 4.6%), locally, and in
+   the modelling choices (power curve, hub height, losses).
 
 ### 6.3 What this means for pricing
 
@@ -385,7 +406,8 @@ both sites) and 4.6 (site vs national).
 5. **Clipping (test first).** Write a test that a DC/AC ratio of 1.0 produces more energy
    than 1.4 at the same DC capacity, then measure the energy and capture-rate difference
    for 2025. Does clipping explain the solar site's higher capture rate (section 4.3)?
-6. **Hub height.** Re-run the wind model with 117 m and 157 m hubs for 2024. How much energy
+6. **Hub height.** Re-run the wind model with 144 m and 184 m hubs for 2024 (Everswinkel
+   is modelled at 164 m). How much energy
    does each 20 m add, and why does the answer depend on the shear?
 7. **Monthly P90.** Compute P90 for each calendar month of the solar park. Why do the twelve
    monthly P90s not add up to the annual P90?
@@ -400,8 +422,7 @@ both sites) and 4.6 (site vs national).
 <summary>Hints and solution sketches</summary>
 
 1. `generation["mw"].tz_convert(TZ).loc["2024"].sum() / capacity`: about 1,058 kWh/kWp for
-   solar and 2,267 hours for wind in 2024 (Borrentin and Everswinkel, v1.3; the illustrative
-   parks of v1.0 gave 1,141 and 3,692).
+   Borrentin and 2,267 hours for Everswinkel in 2024.
 2. `annual.median()` and `annual.mean() - 1.2816 * annual.std(ddof=1)`.
 3. Add the two `mw` Series, align with prices on common hours, then capture / mean price.
 4. Averages of independent years have a standard deviation σ/√n. Lenders of a 10-year
@@ -429,7 +450,7 @@ both sites) and 4.6 (site vs national).
 6. Why is the mean wind speed not enough to compute energy?
 7. How is wind speed extrapolated from 100 m to hub height here?
 8. Define P50, one-year P90 and ten-year P90. Why is the ten-year P90 closer to the mean?
-9. Why did the first wind site give offshore-like full-load hours?
+9. Why are the models' losses 12.4% (solar) and 26.4% (wind) instead of the textbook 10-12%?
 10. How do you check a model when no official figure exists?
 
 <details>
@@ -450,9 +471,14 @@ both sites) and 4.6 (site vs national).
    v_hub = v100 · (h/100)^alpha, alpha clipped to [0, 0.6].
 8. Median year; mean − 1.2816σ; mean − 1.2816σ/√10. Averaging ten independent years
    shrinks the standard deviation by √10.
-9. Its ERA5 grid cell had 0 m elevation, partly sea, so the cell's wind was offshore-like.
-10. Benchmarks, hourly correlation and seasonal shape against the national fleet, capture
-    rate at real prices, and physical checks such as timestamps against the sun.
+9. They are calibrated so that each P50 matches the yield Encavis publishes (121 and 64
+   GWh): with textbook losses the models gave +2.7% and +19.5%. For wind the gap covers what
+   the model cannot see: sound-reduced nights and bat curtailment, the stand-in power curve,
+   the extrapolation from 100 m to 164 m. The level comes from the operator, the variability
+   and hourly shape from ERA5.
+10. Tie the level to whatever is published (here the expected annual yield), then check
+    benchmarks, hourly correlation and seasonal shape against the national fleet, the
+    capture rate at real prices, and physical checks such as timestamps against the sun.
 
 </details>
 
@@ -463,13 +489,14 @@ both sites) and 4.6 (site vs national).
 **Your 60-second story (STAR):**
 
 > *Situation:* to price a PPA and size its debt, a bank needs the park's own P50 and P90,
-> not a national profile. *Task:* model hourly output of a 50 MWp solar and a 30 MW wind
-> park at real German sites over many weather years. *Action:* I pulled 31 years of ERA5
-> reanalysis for each site, converted its end-of-hour radiation labels and verified them
-> against the sun's position, modelled the parks with pvlib and windpowerlib, and checked
-> them against the national fleet. *Result:* 1,102 kWh/kWp and 3,668 full-load hours at
-> P50, one-year P90s about 6-7% below the mean, and two traps caught on the way: shifted
-> timestamps, and a wind site whose grid cell was partly sea.
+> not a national profile. *Task:* model hourly output of two Encavis parks, the Borrentin
+> solar park (114 MWp) and the Everswinkel wind park (28.5 MW), over many weather years.
+> *Action:* I pulled 31 years of ERA5 reanalysis for each site, converted its end-of-hour
+> radiation labels and verified them against the sun's position, modelled the parks with
+> pvlib and windpowerlib, calibrated their losses to the published yields and checked them
+> against the national fleet. *Result:* P50 120.9 GWh (1,061 kWh/kWp) and 64.0 GWh (2,245
+> full-load hours), one-year P90s 5.9% and 9.2% below the mean, and two traps caught on the
+> way: shifted timestamps, and a raw wind model 19.5% above the published yield.
 
 **Likely questions and strong answers:**
 
@@ -482,9 +509,9 @@ both sites) and 4.6 (site vs national).
 - *"What drives the difference between one-year and ten-year P90?"* Averaging: σ/√n under
   independence. In practice lenders add margins for trends, persistence and estimation
   error.
-- *"Is wind or solar riskier on volume?"* Here similar year to year (5.0% vs 5.5%), but
-  wind is far more local (hourly correlation with the fleet 0.72 vs 0.92) and more
-  sensitive to modelling choices such as hub height and site exposure.
+- *"Is wind or solar riskier on volume?"* Wind, here on every count: year to year (7.2%
+  against 4.6%), more local (hourly correlation with the fleet 0.87 against 0.92) and more
+  sensitive to modelling choices such as the power curve, hub height and site losses.
 
 ---
 
@@ -496,7 +523,7 @@ both sites) and 4.6 (site vs national).
 | pvlib / windpowerlib models | Energy yield assessments by consultants; SCADA data of operating parks |
 | P50/P90 over 31 weather years | Budget (P50), debt sizing (P90/P99), "standard weather" over 30 years |
 | Sun check on timestamps | Data-quality rules on SCADA and meter data |
-| Grid cell in the sea | Site exposure and representativeness checks in yield reports |
+| Losses calibrated to the published yield | Yield assessment for the level, reanalysis for variability and shape; site exposure checks |
 | Site vs national capture rate | Asset-level capture-rate monitoring and PPA settlement checks |
 
 Encavis reports that annual wind yields can deviate strongly from the mean and uses
@@ -508,7 +535,7 @@ small, transparent version of that toolbox.
 ## 11. Your to-dos for Step 4
 
 - [ ] Read sections 1 and 4; redo the shear calculation in 1.4 for v10 = 5, v100 = 7.5 m/s
-      and a 137 m hub (you should get about 7.93 m/s).
+      and Everswinkel's 164 m hub (you should get about 8.18 m/s).
 - [ ] Run section 5; in the notebook, reproduce the timestamp table of section 4.1 (cell 4.2).
 - [ ] Exercises 1-4 in `exercises/step04_generation.py`; check them in "My solutions: Step 4".
 - [ ] **Commit Step 4** (commands below).
@@ -516,8 +543,9 @@ small, transparent version of that toolbox.
       Diffusstrahlung, die Modultemperatur, der Wechselrichter, die Nabenhöhe, die
       Leistungskennlinie, die Volllaststunden, der spezifische Ertrag, das Windjahr,
       der Nachlaufverlust (wake loss), die Verfügbarkeit, die Reanalyse.
-- [ ] Stand-up update: *"Yesterday: site models for the solar and wind parks from 31 years
-      of ERA5; P50 1,102 kWh/kWp and 3,668 full-load hours, P90 one year about −6 to −7%.
+- [ ] Stand-up update: *"Yesterday: site models for Borrentin and Everswinkel from 31 years
+      of ERA5, calibrated to their published yields; P50 120.9 and 64.0 GWh, P90 one year
+      −5.9% and −9.2%.
       Today: stochastic price model (PPA-5). Blockers: none."*
 
 Commit (check `git status` first: no `.env`, no ` M .env.example`):

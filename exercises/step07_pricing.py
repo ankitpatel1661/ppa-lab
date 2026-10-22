@@ -28,15 +28,15 @@ def load_scenarios() -> pd.DataFrame:
 
 def toy_market() -> tuple[np.ndarray, np.ndarray]:
     """Given: 300 scenarios x one week of hours. Prices = a level that differs between
-    scenarios minus a midday dip that is deeper on sunny scenarios; volumes = a 50 MW solar
-    park whose output follows the same sunshine. Returns (prices, volumes), both
+    scenarios minus a midday dip that is deeper on sunny scenarios; volumes = a 114 MW solar
+    park (Borrentin's size) whose output follows the same sunshine. Returns (prices, volumes), both
     (scenarios, hours), in EUR/MWh and MWh."""
     rng = np.random.default_rng(7)
     hours = np.arange(24 * 7)
     solar = np.clip(np.sin(2 * np.pi * (hours % 24 - 6) / 24), 0, None)
     level = 85 + 15 * rng.standard_normal((300, 1))
     sun = 1 + 0.25 * rng.standard_normal((300, 1))
-    return level - 30 * sun * solar[None, :], 50 * sun * solar[None, :]
+    return level - 30 * sun * solar[None, :], 114 * sun * solar[None, :]
 
 
 # --------------------------------------------------------------------------- #

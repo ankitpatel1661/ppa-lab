@@ -26,9 +26,10 @@ def test_ex1_a_ppa_takes_most_of_the_risk_away():
 
 
 def test_ex2_ten_years_with_a_falling_capture_rate():
-    assert ex.tenor_price(41.08, 85.42, 55_000, 2027, 10, 0.06, -0.01, 0.005) == pytest.approx(
-        37.679, abs=1e-3)
-    assert ex.tenor_price(41.08, 85.42, 55_000, 2027, 10, 0.06) == pytest.approx(41.08)
+    # Borrentin's 2027 fair price and forward, its expected energy (Step 7)
+    assert ex.tenor_price(77.53, 141.06, 120_435, 2027, 10, 0.06, -0.01, 0.005) == pytest.approx(
+        71.914, abs=1e-3)
+    assert ex.tenor_price(77.53, 141.06, 120_435, 2027, 10, 0.06) == pytest.approx(77.53)
 
 
 def test_ex3_the_hedge_shrinks_the_premium():

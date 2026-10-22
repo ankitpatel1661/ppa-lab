@@ -1,15 +1,10 @@
 # Step 7: Pricing the PPA and its risk (ticket PPA-7)
 
-> **Numbers on this page (update for v1.1).** This page was written with the illustrative
-> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
-> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
-> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
-> since v1.2 the market's seasonal shape and a solar cannibalisation trend
-> ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
-> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
-> ones. The methods and lessons are unchanged; current numbers are in the reports and the
-> README, and the exercise checks use the current data.
+> **Numbers on this page.** The parks are the Borrentin solar park (114 MWp) and the
+> Everswinkel wind park (28.5 MW); prices are calibrated to the market forward (EEX Cal-27
+> base 140.21 EUR/MWh, Cal-28 104.75, Cal-29 87.58, each quarter at the market's seasonal
+> shape). All numbers are from `reports/step07_ppa_pricing.md` (v1.11). The updates in
+> sections 4.6 to 4.8 explain what each later version added.
 
 > **Time needed:** about 5 hours. Concepts take 75 minutes, code tour and findings
 > 45 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
@@ -40,7 +35,7 @@
 Tuesday, pricing committee at 3 pm. The head of origination:
 
 > *"We have the scenarios. Now I need a number I can put in front of the buyer for ten years of
-> the Lusatia solar park, a number I can defend in front of Risk, and one sentence on how much
+> the Borrentin solar park, a number I can defend in front of Risk, and one sentence on how much
 > risk we keep. Ticket PPA-7."*
 
 Steps 1 to 6 built the ingredients: prices that reconcile (Step 1), capture prices (Step 2),
@@ -97,7 +92,7 @@ spread around zero. The premium it asks for is the 5% shortfall per expected MWh
 
     premium = (E[V] − q5%(V)) / E[Σ q],      V = Σ_t q_t (P_t − K)
 
-But most of that spread is the **price level**: if 2027 is a 100 EUR/MWh year instead of 85,
+But most of that spread is the **price level**: if 2027 is a 160 EUR/MWh year instead of 140,
 the buyer gains on every MWh. The level is hedgeable with a baseload forward: the buyer sells
 a band B = E[Σ q] / 8,760 MW at the forward F, adding B · Σ_t (F − P_t) to V. What is left
 is the risk nobody can hedge with standard products: **profile** (the shape of the output
@@ -119,8 +114,9 @@ Splitting it:
 
 The forward and the capture rate come from the scenarios (Steps 5 and 6); the premium from
 1.3; balancing and route-to-market costs and credit and liquidity costs are stated
-assumptions (`[ppa.parks.*]` in the configuration: 1.5 and 1.0 EUR/MWh for solar, 2.0 and
-1.0 for wind, the preparation guide's illustrative values).
+assumptions (`[ppa.parks.*]` in the configuration: balancing 2.18 EUR/MWh for solar and 1.55
+for wind, measured from imbalance prices since v1.10 plus a 0.5 marketing fee; credit 1.0 for
+both, an assumption).
 
 ### 1.5 From one year to ten
 
@@ -142,11 +138,13 @@ level and the capture-rate trend).
 
 ### 1.6 The analog-pool decision
 
-Step 6 showed that which historical days stand in for 2027 moves the solar fair price from
-48.7 (whole 2024-2026 window) to 41.1 EUR/MWh (the last twelve months). Step 7 takes the last
+Until v1.7 which historical days stood in for 2027 moved the solar fair price by several
+EUR/MWh: recent days have deeper midday dips (Step 6, section 4.3). Step 7 takes the last
 twelve months as the base case (`analog_pool_start = 2025-10-01`), because 2027 will have at
-least as much solar capacity as 2026, and reports the whole window as a sensitivity. It is a
-judgement, written down where Risk can see and challenge it.
+least as much solar capacity as 2026, and reports the whole window as a sensitivity. Since
+v1.7 the historical days are moved to 2027 by the measured build-out trend, and the choice no
+longer matters (Borrentin 2027: 77.53 against 77.47 EUR/MWh). It stays a judgement, written
+down where Risk can see and challenge it.
 
 ---
 
@@ -203,55 +201,65 @@ free floor looked fair; the structures test now shifts prices into negative terr
 
 ## 4. Five real findings
 
-### 4.1 A PPA removes 77-86% of the producer's risk
+### 4.1 A PPA removes 54-77% of the producer's risk
 
 | 2027 | Merchant CFaR95 | PaP CFaR95 | Reduction |
 |---|---|---|---|
-| Solar park | EUR 1.44 m (64% of revenue) | EUR 0.20 m (9%) | 86% |
-| Wind park | EUR 2.95 m (36%) | EUR 0.68 m (8%) | 77% |
+| Borrentin | EUR 3.02 m (31% of revenue) | EUR 0.70 m (7%) | 77% |
+| Everswinkel | EUR 2.10 m (25%) | EUR 0.96 m (12%) | 54% |
 
-What is left is volume: a dull year still delivers fewer MWh. A baseload PPA sits in between
-(solar 0.35 m): it fixes the level but leaves the producer with the profile. A floor at 0
-EUR/MWh reduces solar CFaR only to EUR 1.07 m: it removes the negative-price tail, not the
+What is left is volume: a dull year still delivers fewer MWh, and for wind that is most of the
+risk. A baseload PPA sits in between (Borrentin EUR 1.60 m): it fixes the level but leaves the
+producer with the profile. Stopping at negative prices, a free floor at 0 EUR/MWh, lowers the
+merchant's CFaR only from EUR 3.24 m to 3.02 m: it removes the negative-price tail, not the
 price level.
 
 ### 4.2 Most of the buyer's risk is hedgeable
 
 | EUR/MWh | Unhedged premium | After baseload hedge | of which profile | of which volume |
 |---|---|---|---|---|
-| Solar park | 25.23 | **5.27** | 4.96 | 0.32 |
-| Wind park | 27.88 | **3.39** | 0.88 | 2.50 |
+| Borrentin | 25.44 | **10.54** | 10.11 | 0.43 |
+| Everswinkel | 34.81 | **5.49** | 1.95 | 3.55 |
 
-80-88% of the buyer's risk is the price level, which a baseload forward removes. Without
-the hedge the "premium" would eat 60% of the solar fair price. The residual tells the story
+59-84% of the buyer's risk is the price level, which a baseload forward removes. Without the
+hedge the "premium" would eat a third of Borrentin's fair price (25.44 of 77.53). The residual tells the story
 of each technology: **solar's risk is profile** (how deep the midday dip is in a given year),
 **wind's risk is volume** (how much wind, and the fact that windy years are cheap).
 
-### 4.3 The negative-price clause costs solar a quarter of its revenue
+### 4.3 The negative-price clause costs solar a sixth of its output
 
-At the plain fair strike, a clause that pays nothing for output at negative prices cuts the
-solar park's expected revenue from EUR 2.26 m to 1.69 m (−25%), the wind park's by 9%. That
-matches history: 24% of solar energy was produced at negative prices in 2025 (Step 2). The
-same fact makes a floor at 0 EUR/MWh worth 9.34 EUR/MWh for solar (wind 3.05). A buyer that
-asks for the clause must pay a much higher strike for it (that strike is Step 3, Exercise 3).
-Since v1.8 the clause is priced at that strike: section 4.6.
+In 2027 17.5% of Borrentin's output falls in hours with negative prices (Everswinkel 4.4%),
+and about 30% over ten years, because later forwards are lower. At the plain fair strike a
+clause that pays nothing for that output would cut Borrentin's revenue by the same 17.5%.
+History agrees: 23.6% of its modelled output fell at negative prices in 2025. Stopping at
+negative prices, a floor at 0 EUR/MWh, is worth 3.10 EUR per MWh of output for Borrentin
+(Everswinkel 0.69). A buyer that asks for the clause must pay a higher strike for it: 97.76
+instead of 77.53 EUR/MWh in 2027 (section 4.6).
 
 ### 4.4 The indicative price, and what moves it
 
-| Ten-year price 2027-2036 (EUR/MWh) | Solar fair | Solar indicative | Wind fair | Wind indicative |
+| Ten-year price 2027-2036 (EUR/MWh) | Borrentin fair | Borrentin indicative | Everswinkel fair | Everswinkel indicative |
 |---|---|---|---|---|
-| **Base case** | **41.08** | **33.31** | **74.81** | **68.43** |
-| Capture rate −2 pp per year | 34.28 | 26.51 | 67.94 | 61.56 |
-| Capture rate −1 pp per year | 37.68 | 29.91 | 71.38 | 64.99 |
-| Capture rate +1 pp per year | 44.48 | 36.71 | 78.25 | 71.86 |
-| Forward −10% | 36.97 | 29.20 | 67.33 | 60.95 |
-| Forward +10% | 45.19 | 37.42 | 82.30 | 75.91 |
-| Analog days from the whole window | 48.66 | 40.89 | 75.35 | 68.97 |
+| **Base case** | **35.09** | **21.37** | **86.64** | **78.60** |
+| Capture-rate trend 2 pp/yr steeper | 28.07 | 14.35 | 79.55 | 71.51 |
+| Capture-rate trend 1 pp/yr steeper | 31.58 | 17.86 | 83.09 | 75.05 |
+| Capture-rate trend 1 pp/yr flatter | 38.59 | 24.87 | 90.18 | 82.14 |
+| Forward −10% | 29.52 | 15.80 | 77.22 | 69.18 |
+| Forward +10% | 40.59 | 26.87 | 96.02 | 87.98 |
+| Analog days from the whole window | 35.06 | 21.34 | 87.06 | 79.02 |
+| Build-out: recent pace (16.5 GW solar, 6.5 GWh storage a year) | 33.73 | 20.01 | – | – |
+| Build-out: EEG solar target pace (24 GW, 12 GWh) | 31.64 | 17.92 | – | – |
+| Build-out: storage boom (17 GW, 35 GWh) | 43.80 | 30.08 | – | – |
+| Build-out: slowdown (12 GW, 8 GWh) | 36.66 | 22.94 | – | – |
 
-For solar, the three biggest levers are the **analog pool** (+7.6), the **capture-rate trend**
-(±3.4 per pp per year) and the **forward** (±4.1 for ±10%). The risk premium (5.3) and the costs
-(2.5) together matter less than any of them. Wind is far less sensitive to the pool (+0.5):
-its price depends on the forward and on wind's own cannibalisation.
+The base case follows the forward curve (141 in 2027, 88 from 2029), moves each year's
+capture rate with that year's forward (section 7 of the report) and, for Borrentin, follows
+the central build-out scenario: 17 GW of solar and 12 GWh of storage a year (section 4.8).
+For Borrentin the biggest levers are the **solar and storage build-out** (−3.4 to +8.7), the
+**forward** (−5.6 / +5.5 for ±10%) and a **capture-rate trend** on top (±3.5 per pp a year). The
+risk premium (10.5) and the costs (3.2) together take 13.7 off the fair price. Which historical
+days represent 2027 no longer matters (−0.03). Everswinkel depends on the forward (−9.4 /
++9.4) and on wind's own cannibalisation (±3.5 per pp a year).
 
 ### 4.5 Small ones
 
@@ -283,7 +291,7 @@ Who curtails depends on the contract:
 In 2027 17.5% of the solar output falls in negative hours at an average of −17.7 EUR/MWh:
 curtailing saves 3.1 EUR per MWh of output. Over the tenor it is about 30% of the output,
 because the forward falls to 88 EUR/MWh and more hours go negative. That is why the clause's
-ten-year price per MWh of output, 36.8, beats the plain PPA's 28.1 by more than 3.1.
+ten-year price per MWh of output, 27.3, beats the plain PPA's 21.4 by more than 3.1.
 
 Three lessons:
 
@@ -324,8 +332,8 @@ EUR/MWh assumed; the award is not published):
 | 2028 | 105 | 95.9 | 4.11 |
 | 2029-2036 | 88 | 79.6 | 8.88 |
 
-Over ten years the EEG pays 93.4 EUR/MWh after the direct marketer's fee; a PPA at the
-indicative price pays 78.1. Three lessons:
+Over ten years the EEG pays 93.8 EUR/MWh after the direct marketer's fee (1.6, the measured
+balancing cost since v1.10); a PPA at the indicative price pays 78.6. Three lessons:
 
 1. **An out-of-the-money option is not worthless over time.** In 2027 the put is far out of
    the money; at the Cal-29 level it is near the money and worth 8.9 EUR/MWh. Value an option
@@ -390,7 +398,7 @@ Three lessons:
 
 ```bash
 cd ".../Encavis quantitative/ppa-lab"
-make test                  # 207 offline tests
+make test                  # the offline tests (290 in v1.11)
 make pricing               # structures, premia, stack, ten-year price (about 12 s)
 open reports/step07_ppa_pricing.md
 make notebook              # Step 7 section: 7.1 to 7.6, then your solutions
@@ -409,26 +417,30 @@ changes the analog pool.
 
 ![The buyer's risk with and without a baseload hedge](../../reports/figures/step07_buyer_risk.png)
 
-> *"For a 10-year pay-as-produced PPA (2027-2036) from the 50 MWp solar park in Lusatia, the
-> fair price before risk premia is 41.1 EUR/MWh (forward 85.4 × expected capture rate 0.48).
-> After a profile and volume risk premium of 5.3 EUR/MWh and balancing and credit costs of
-> 2.5 EUR/MWh, the indicative price is 33.3 EUR/MWh. Expected annual energy is 55.1 GWh (P50;
-> one-year P90 51.5 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR
-> 1.44 m (merchant) to EUR 0.20 m per year: only volume risk is left."*
+> *"For a 10-year pay-as-produced PPA (2027-2036) from the 114 MWp Borrentin solar park, the
+> fair price before risk premia is 35.1 EUR/MWh (first year: forward 141.1 × expected capture
+> rate 0.55 = 77.5; later years follow the falling forward curve and solar's build-out). After a
+> profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 3.2
+> EUR/MWh, the indicative price is 21.4 EUR/MWh. Expected annual energy is 120.9 GWh (P50;
+> one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR
+> 3.02 m (merchant) to EUR 0.70 m per year: only volume risk is left. After 2027 the capture
+> rate follows the central build-out scenario; across the scenarios the indicative price
+> ranges from 17.9 to 30.1 EUR/MWh, and storage decides where."*
 
 ### 6.1 Five stories
 
-1. **Solar sells at less than half the baseload price.** 85 × 0.48 = 41: the shape alone
-   takes 44 EUR/MWh, eight times more than the risk premium.
+1. **Solar sells at about half the baseload price.** 141.1 × 0.55 = 77.5 in 2027: the shape
+   alone takes 63.5 EUR/MWh, six times the risk premium.
 2. **The hedge is the negotiation.** A buyer who quotes a 25 EUR/MWh premium is charging
-   for risk it can hedge for free; the defensible premium is about 5.
+   for risk it can hedge for free; the defensible premium is about 10.5.
 3. **Wind and solar have different risks.** Solar: profile. Wind: volume. They belong in
    different structures (solar: PaP or baseload with a shape adjustment; wind: volume
    protections or a portfolio).
-4. **The clause is not free.** A quarter of the solar output falls at negative prices; a
-   buyer asking for the clause must pay for it in the strike.
-5. **The biggest uncertainty is the future of cannibalisation,** not the weather: the analog
-   pool and the capture-rate trend move the price more than the premium and costs together.
+4. **The clause is not free.** 17.5% of Borrentin's output falls at negative prices in 2027,
+   about 30% over ten years; a buyer asking for the clause must pay for it in the strike.
+5. **The biggest uncertainty is the future of cannibalisation,** not the weather: the solar
+   and storage build-out after 2027 moves the ten-year price from 17.9 to 30.1 EUR/MWh, about
+   as much as the risk premium and the costs together (13.7).
 
 ### 6.2 What this means for the rest of the project
 
@@ -446,12 +458,13 @@ changes the analog pool.
    scenario file.
 2. **One price for ten years,** with a capture-rate trend, degradation and discounting.
 3. **The buyer's premium,** with and without a baseload hedge, on a toy market.
-4. **Written:** the price negotiation between 33 and 41 EUR/MWh.
+4. **Written:** the price negotiation between 21.4 and 35.1 EUR/MWh.
 
 **Core**
 
 5. **The fair strike with the clause on scenarios.** Solve "PPA revenue with the clause = merchant
-   revenue" over the scenarios (your Step 3 Exercise 3, now in expectation). How far above 41 is it?
+   revenue" over the scenarios (your Step 3 Exercise 3, now in expectation). How far above the
+   plain 2027 fair price of 77.5 is it?
 6. **A premium at a different quantile.** Recompute the premia at 10% and 1%. Which park's
    premium grows faster, and why?
 7. **A zero-cost collar.** With a floor at 0 EUR/MWh for solar, find the cap C at which the
@@ -468,18 +481,19 @@ changes the analog pool.
 <summary>Hints and solution sketches</summary>
 
 1. Linked rows, `K = rev.sum() / mwh.sum()`, PPA revenue `K * mwh`, `mean - quantile(0.05)`:
-   solar EUR 3.19 m vs 0.70 m for the 114 MWp Borrentin park (v1.7; v1.3: 3.74 vs 0.85; 50 MWp
-   at 85: 1.38 vs 0.23; the file uses analog days from the whole window).
-2. Loop over the years; with a −1 pp drift and 0.5% degradation at 6%: 37.68 EUR/MWh.
+   EUR 3.19 m vs 0.70 m for Borrentin (the file's merchant keeps producing at negative prices
+   and uses analog days from the whole window).
+2. Loop over the years; Borrentin's 2027 numbers (fair 77.53, forward 141.06) with a −1 pp
+   drift and 0.5% degradation at 6%: 71.91 EUR/MWh.
 3. `buyer_value` by hand; the toy gives 28.61 without and 9.64 with the hedge.
-4. The 8 EUR/MWh are the premium after the hedge (about 5) and the costs (2.5). Concede the
-   hedged premium, not the unhedged one: the buyer can sell a baseload forward. Challenge
-   first which historical days represent 2027 (and the capture-rate trend): they move the price
-   more than everything the buyer asks for.
-5. `K_clause = E[Σ q P] / E[Σ q 1(P ≥ 0)]`; for solar about 41.1 / 0.75 ≈ 55 EUR/MWh.
+4. The 13.7 EUR/MWh are the premium after the hedge (10.5) and the costs (3.2). Concede the
+   hedged premium, not the unhedged one: the buyer can sell a baseload forward. Then argue the
+   solar and storage build-out: storage alone moves the ten-year price by up to 8.7 EUR/MWh.
+5. `K_clause = E[Σ q P 1(P ≥ 0)] / E[Σ q 1(P ≥ 0)]` (what a curtailing merchant earns per MWh
+   it delivers); for Borrentin 97.76 against 77.53 EUR/MWh in 2027.
 6. `risk_premia(P, Q, quantile=0.10)`.
 7. Cap value E[Σ q (P − C)⁺] / E[Σ q] falls as C rises; bisect C until it equals the floor value
-   (9.34 EUR/MWh).
+   (Borrentin 3.10 EUR per MWh of output, the value of curtailing).
 8. Use `build_scenarios` with different seeds and sum over years before taking the quantile.
 9. 10% × premium-at-risk per MWh, discounted.
 
@@ -509,17 +523,19 @@ changes the analog pool.
 3. Σ q (P − K): it pays K for each MWh and sells at P. At K* = E[Σ q P]/E[Σ q] the expectation is zero.
 4. The price level is hedgeable with a baseload forward; charging for it would price a risk the
    buyer can remove almost for free.
-5. Profile: expected hourly volume in every scenario; volume = joint − profile. Solar's volume
-   barely varies between years (CoV 5%), while the depth of the midday dip varies a lot.
+5. Profile: expected hourly volume in every scenario; volume = joint − profile. Borrentin's
+   volume barely varies between years (CoV 4.6%), while the depth of the midday dip varies a lot.
 6. Forward × capture rate = fair price; minus risk premium, balancing and route to market,
    credit and liquidity = indicative price.
 7. Energy- and discount-weighted average of yearly fair prices; equal when forward and capture
    rate are flat.
-8. About a quarter of its output falls in negative-price hours, which the clause leaves unpaid.
-9. The analog pool (+7.6 EUR/MWh), the capture-rate trend (about ±3.4 per pp per year) and the
-   forward (about ±4.1 for ±10%).
-10. It is a judgement that moves the answer by 15%; it must be visible and challengeable, not
-    buried in code.
+8. 17.5% of Borrentin's output falls in negative-price hours in 2027 (about 30% over ten
+   years), which the clause leaves unpaid.
+9. The solar and storage build-out after 2027 (−3.4 to +8.7 EUR/MWh across the scenarios), the
+   forward (−5.6 / +5.5 for ±10%) and a capture-rate trend on top (±3.5 per pp a year).
+10. It is a judgement that moved the solar price by several EUR/MWh until v1.7; it must be
+    visible and challengeable, not buried in code. Since v1.7 it is also tested: moved to
+    2027 by the build-out trend, both pools give the same price.
 
 </details>
 
@@ -529,14 +545,15 @@ changes the analog pool.
 
 **Your 60-second story (STAR):**
 
-> *Situation:* origination needed a defensible ten-year price for a 50 MWp solar PPA and a
-> statement of the risk we keep. *Task:* price the standard structures on joint weather and
+> *Situation:* origination needed a defensible ten-year price for a PPA from a 114 MWp solar
+> park and a statement of the risk we keep. *Task:* price the standard structures on joint weather and
 > price scenarios and build the price from the forward to an offer. *Action:* I reused the
 > tested contract functions on 496 scenarios, measured the producer's cash flow at risk per
 > structure, computed the buyer's premium after a baseload hedge and split it into profile
-> and volume, and added a ten-year layer with sensitivities. *Result:* a fair price of 41.1 and
-> an indicative 33.3 EUR/MWh; the PPA cuts our CFaR by 86%; and I showed that the assumption
-> on future cannibalisation moves the price more than the whole risk premium.
+> and volume, and added a ten-year layer with solar and storage build-out scenarios.
+> *Result:* a fair price of 35.1 and an indicative 21.4 EUR/MWh; the PPA cuts our CFaR by 77%;
+> and I showed that the storage build-out moves the price (17.9 to 30.1) about as much as the
+> whole risk premium and costs.
 
 **Likely questions and strong answers:**
 
@@ -544,11 +561,11 @@ changes the analog pool.
   weather–price scenarios, minus a premium for the unhedgeable profile and volume risk, minus
   balancing, route-to-market and credit costs; then a term structure for multi-year deals.
 - *"What risk premium would you accept?"* The premium after the buyer hedges the level with
-  baseload forwards; here about 5 EUR/MWh for solar, 3.4 for wind.
+  baseload forwards; here about 10.5 EUR/MWh for solar, 5.5 for wind.
 - *"What does the PPA do to our risk?"* It replaces price and shape risk with a fixed price; we
-  keep volume risk (CFaR from EUR 1.44 m to 0.20 m per year for the solar park).
+  keep volume risk (CFaR from EUR 3.02 m to 0.70 m per year for Borrentin).
 - *"What would make you change the price?"* A view on future solar capacity and batteries (the
-  capture-rate trend and the analog pool), and market forwards (Step 8).
+  build-out scenarios), and the forward curve on the day of signing (Step 8).
 
 ---
 
@@ -559,7 +576,7 @@ changes the analog pool.
 | Fair price from 496 joint scenarios | PPA pricing models with weather years and price scenarios, often from vendors |
 | Premium after a baseload hedge, 5% quantile | Risk premia from desk hedging costs, internal capital charges, market quotes |
 | Balancing, credit as stated costs | Route-to-market contracts, balancing cost models, counterparty credit assessment |
-| Ten-year price with a capture-rate trend | Long-term price curves and cannibalisation scenarios per technology |
+| Ten-year price with solar and storage build-out scenarios | Long-term price curves and cannibalisation scenarios per technology |
 | CFaR per structure | Budget at risk, debt sizing, the risk committee's view of a deal |
 | `ppa_pricing.json` | Deal sheets and pricing memos for the investment committee |
 
@@ -567,8 +584,8 @@ changes the analog pool.
 
 ## 11. Your to-dos for Step 7
 
-- [ ] Read sections 1 and 4. By hand: forward 85, capture rate 0.48, premium 5.3, costs 2.5 →
-      indicative price? (33.3 EUR/MWh.)
+- [ ] Read sections 1 and 4. By hand: forward 141.1, capture rate 0.55, premium 10.5, costs
+      3.2 → indicative price for 2027? (63.8 EUR/MWh.)
 - [ ] Run section 5; in the notebook, find the strike in 7.3 at which the buyer's 5% quantile is zero.
 - [ ] Exercises 1-4 in `exercises/step07_pricing.py`; check them in "My solutions: Step 7".
 - [ ] **Commit Step 7** (commands below).
@@ -576,8 +593,8 @@ changes the analog pool.
       Abnehmer, der Erzeuger, die Risikoprämie, das Profilrisiko, das Mengenrisiko, die
       Absicherung (hedge), der Terminkontrakt, Cashflow at Risk, der Kreditaufschlag, die
       Laufzeit, die Abzinsung, die Kannibalisierung.
-- [ ] Stand-up update: *"Yesterday: priced the PPAs on the joint scenarios: solar 41.1 fair,
-      33.3 indicative for ten years; the PPA cuts our cash flow at risk by 86%. Today: the public
+- [ ] Stand-up update: *"Yesterday: priced the PPAs on the joint scenarios: Borrentin 35.1
+      fair, 21.4 indicative for ten years; the PPA cuts our cash flow at risk by 77%. Today: the public
       MVP (Step 9). Blockers: none."*
 
 Commit (check `git status` first: no `.env`, no ` M .env.example`):

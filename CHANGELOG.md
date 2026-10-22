@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.11.1] (fixes: the live dashboard, and one set of parks everywhere)
+
+### Fixed
+- Dashboard on Streamlit Cloud: after the v1.11.0 push the new app script ran against the
+  v1.10 `ppa_lab.dashboard` still in memory ("Assumptions() got an unexpected keyword argument
+  'buildout'"). The app now imports `ppa_lab` afresh on every run; a test runs it with a stale
+  module in memory.
+- Learning pages of Steps 3-9: their scenarios, tables, stories, quiz answers, interview stories
+  and exercise hints still carried numbers of the illustrative parks of v1.0 (a 50 MWp solar
+  park in Lusatia, a 30 MW wind park in North Frisia) and of the assumed 85 EUR/MWh forward,
+  under a banner. They now use the Borrentin and Everswinkel parks and the current results
+  throughout; the "Update" sections keep the numbers of the version they describe.
+- README per-step results of Steps 5, 6 and 8 (they were v1.3 numbers).
+- Exercises: the Step 9 Exercise 1 check compared against solar costs of 1.5 EUR/MWh, but the
+  configured balancing cost is 2.18 since v1.10 (a correct solution would have failed); it now
+  uses the configured costs. Step 7 Exercise 2 uses Borrentin's 2027 numbers, and the toy
+  market a park of Borrentin's size (the premium per MWh is unchanged).
+
 ## [1.11.0] (ticket PPA-8f: solar and storage build-out scenarios)
 
 ### Added

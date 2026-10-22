@@ -1,15 +1,9 @@
 # Step 5: A stochastic price model (ticket PPA-5)
 
-> **Numbers on this page (update for v1.1).** This page was written with the illustrative
-> forward of 85 EUR/MWh (v1.0). Since v1.1 the model uses the market forward curve (EEX Cal-27
-> base 140.21 EUR/MWh on 9 Oct 2026, Cal-28 104.75, Cal-29 87.58; see
-> [Step 8, section 4.6](step08_hedging.md#46-update-v11-the-forward-is-now-the-markets)), and
-> since v1.2 the market's seasonal shape and a solar cannibalisation trend
-> ([section 4.7](step08_hedging.md#47-update-v12-the-markets-seasons-and-a-cannibalisation-trend)),
-> so prices and fair prices are higher. Since v1.3 the parks are two Encavis parks modelled from
-> public data (Borrentin solar, 114 MWp; Everswinkel wind, 28.5 MW) instead of illustrative
-> ones. The methods and lessons are unchanged; current numbers are in the reports and the
-> README, and the exercise checks use the current data.
+> **Numbers on this page.** Section 6 shows the current results (v1.11): the market forward
+> (EEX Cal-27 base 140.21 EUR/MWh, quote of 9 Oct 2026) and the Borrentin solar park (114 MWp)
+> for the solar teaser, from `reports/step05_price_model.md`. Section 4 tells how the model
+> was built and keeps the numbers of the version it describes (v1.0 unless stated).
 
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.
@@ -40,8 +34,8 @@
 Friday. The head of origination forwards an e-mail from the buyer:
 
 > *"Thanks for the back-test. But we are signing for 2027 onwards, not for 2024. The
-> forward for 2027 is about 85 EUR/MWh. What range of outcomes should we expect around
-> that, and how often will the solar park produce into negative prices? We need a
+> forward for 2027 is about 140 EUR/MWh. What range of outcomes should we expect around
+> that, and how often will the Borrentin solar park produce into negative prices? We need a
 > distribution, not one historical year. Ticket PPA-5."*
 
 Steps 2 to 4 priced the parks against **history**: one path of prices that will never
@@ -180,7 +174,8 @@ season).
 
 ### 1.6 Calibrating to a forward price, and Jensen's inequality
 
-For 2027 the market says 85 EUR/MWh. The model must reproduce that **average**. The obvious
+Say the market quotes 85 EUR/MWh for a year (the worked example of Exercise 3; Cal-27 base
+traded at 140.21 in October 2026). The model must reproduce that **average**. The obvious
 guess, setting the level to arcsinh(85 / s), is wrong: sinh is convex for positive values,
 so the average of s · sinh(level + noise) is **higher** than s · sinh(level) (Jensen's
 inequality). With the 2025 pattern and s = 120 the naive level gives an average of about
@@ -193,7 +188,8 @@ calibrated paths average exactly the target.
 
 The forward is the market's expectation, not a promise: the realised annual average of
 2027 will differ. `level_volatility` adds one random shift of the level per path
-(0.12 in transformed units, about ±18 EUR/MWh at one standard deviation around 85).
+(0.12 in transformed units: one standard deviation moves a 140 EUR/MWh year to about 119
+or 163).
 
 ### 1.7 How to judge a stochastic model
 
@@ -297,7 +293,7 @@ daily factor at zero, use pairs across gaps, skip the bisection) and watching it
 The first model was the textbook one: a single **hourly** AR(1) on the deseasonalised
 transformed prices. It fitted well and failed validation clearly:
 
-| Statistic | History | Version 1 (hourly AR(1), s = 30 to 80) | Version 2 (today, s = 120) |
+| Statistic | History | Version 1 (hourly AR(1), s = 30 to 80) | Version 2 (v1.0, s = 120) |
 |---|---|---|---|
 | Autocorrelation at 24 hours | 0.700 | 0.38 to 0.54 | 0.593 |
 | Share of negative hours | 6.2% | 3.5% to 4.0% | 4.9% |
@@ -395,7 +391,7 @@ Four statistics stay outside the range, and each has a reason:
 
 ```bash
 cd ".../Encavis quantitative/ppa-lab"
-make test                  # 167 offline tests
+make test                  # the offline tests (290 in v1.11)
 make prices                # fits, validates, simulates 2027 (a few seconds)
 open reports/step05_price_model.md
 make notebook              # Step 5 section: 5.1 to 5.7, then your solutions
@@ -412,26 +408,30 @@ scale). Then look at 5.7: the scatter plots are the reason for Step 6.
 
 | Item | Value |
 |---|---|
-| Scale s | 120 EUR/MWh |
-| Daily factor φ | 0.521 per day, half-life **1.06 days** |
-| Daily shock σ by season | autumn 0.174, winter 0.149, spring 0.137, summer 0.117 |
-| Pool of historical days | 998 (summer 276, spring 273, winter 239, autumn 210) |
+| Scale s; negative prices b | 120 EUR/MWh; 15 EUR/MWh (v1.6) |
+| Daily factor φ | 0.511 per day, half-life **1.03 days** |
+| Daily shock σ by season | autumn 0.179, spring 0.154, winter 0.149, summer 0.132 |
+| Pool of historical days | 998, moved to the simulated day by the build-out trend (v1.7) |
 
 ### 6.2 Validation (200 paths over the calibration window)
 
 | Statistic | History | Model (mean) | Model 5-95% | Inside? |
 |---|---|---|---|---|
-| Mean (EUR/MWh) | 90.4 | 90.6 | 88.2 to 92.8 | yes |
-| Standard deviation | 57.6 | 56.0 | 54.0 to 58.2 | yes |
-| 1% quantile | −20.1 | −41.4 | −46.7 to −35.6 | no |
-| 5% quantile | −0.1 | 0.9 | −2.4 to 3.9 | yes |
-| Median | 91.4 | 90.4 | 88.4 to 92.6 | yes |
-| 95% quantile | 173.7 | 176.4 | 172.2 to 181.1 | yes |
-| 99% quantile | 246.8 | 242.5 | 231.7 to 254.3 | yes |
-| Share of negative hours | 6.2% | 4.9% | 4.3% to 5.4% | no |
-| Autocorrelation, 1 hour | 0.921 | 0.914 | 0.910 to 0.919 | no |
-| Autocorrelation, 24 hours | 0.700 | 0.593 | 0.570 to 0.617 | no |
-| Autocorrelation, 1 week | 0.548 | 0.517 | 0.482 to 0.549 | yes |
+| Mean (EUR/MWh) | 90.4 | 91.1 | 88.8 to 93.4 | yes |
+| Standard deviation | 57.6 | 55.9 | 54.0 to 58.0 | yes |
+| 1% quantile | −20.1 | −18.4 | −20.8 to −15.9 | yes |
+| 5% quantile | −0.1 | −1.4 | −2.4 to −0.5 | no |
+| Median | 91.4 | 89.8 | 87.6 to 92.1 | yes |
+| 95% quantile | 173.7 | 179.6 | 175.5 to 184.0 | no |
+| 99% quantile | 246.8 | 246.4 | 236.3 to 257.2 | yes |
+| Share of negative hours | 6.2% | 5.9% | 5.3% to 6.5% | yes |
+| Autocorrelation, 1 hour | 0.921 | 0.916 | 0.912 to 0.920 | no |
+| Autocorrelation, 24 hours | 0.700 | 0.607 | 0.584 to 0.632 | no |
+| Autocorrelation, 1 week | 0.548 | 0.527 | 0.493 to 0.562 | yes |
+
+Since v1.6 the negative tail fits (1% quantile −18.4 against −20.1, negative hours 5.9%
+against 6.2%); the 5% and 95% quantiles now sit just outside, and the day-to-day memory is
+still short (Step 6 adds the weather's).
 
 ![Average daily price shape by season: history and model](../../reports/figures/step05_profile.png)
 
@@ -439,37 +439,38 @@ scale). Then look at 5.7: the scatter plots are the reason for Step 6.
 
 ![One June week: history and three simulated paths](../../reports/figures/step05_paths.png)
 
-### 6.3 Delivery year 2027 (forward 85 EUR/MWh, 500 paths)
+### 6.3 Delivery year 2027 (Cal-27 base 140.21 EUR/MWh, 500 paths)
 
 | Item | Value |
 |---|---|
-| Average of all simulated hours | 84.9 EUR/MWh |
-| Annual average per path, 5% / 50% / 95% | 55.9 / 84.2 / 117.5 EUR/MWh |
-| Hourly prices, 1% / 99% quantile | −47.2 / 239.0 EUR/MWh |
-| Share of negative hours | 5.7% |
+| Average of all simulated hours | 140.4 EUR/MWh |
+| Annual average per path, 5% / 50% / 95% | 105.4 / 139.3 / 180.6 EUR/MWh |
+| Hourly prices, 1% / 99% quantile | −14.8 / 347.9 EUR/MWh |
+| Share of negative hours | 3.8% |
 
 ### 6.4 What solar earns under these prices (the Step 6 teaser)
 
-The solar park's 2025 output, priced with the simulated 2027 paths, earns a capture rate of
-**0.612** (5-95%: 0.446 to 0.693). With the real 2025 prices it earned **0.555**. The
+Borrentin's 2025 output, priced with the simulated 2027 paths, earns a capture rate of
+**0.580** (5-95%: 0.510 to 0.627). With the real 2025 prices it earned **0.542**. The
 model knows the *average* midday dip, but not that **sunny days have cheaper middays**.
 Within a month, the correlation between the park's daily output and the 11:00-15:00 price
-is **−0.30** in reality and **0.00** in the model (5-95% over 500 paths: −0.08 to +0.09).
-An independent price model therefore **overstates** what solar earns, here by about six
-percentage points of capture rate.
+is **−0.21** in reality and **+0.02** in the model (5-95% over 500 paths: −0.06 to +0.10).
+An independent price model therefore **overstates** what solar earns. Part of the four
+points is the level: the paths average 140 EUR/MWh, 2025 averaged 89, and the capture rate
+rises with the level (Step 7, section 7).
 
 ### 6.5 Five stories
 
 1. **Prices forget in about a day.** A windy day's price discount is half gone by the next
    day and almost entirely gone after four. Weather regimes, not hours, set the memory.
-2. **The forward is not the outcome.** Around an 85 EUR/MWh forward, one simulated 2027 in
-   twenty averages below 56 and one in twenty above 117. A fixed-price PPA moves exactly
+2. **The forward is not the outcome.** Around the 140 EUR/MWh forward, one simulated 2027
+   in twenty averages below 105 and one in twenty above 181. A fixed-price PPA moves exactly
    that risk from one party to the other.
-3. **Negative prices are a feature, not an outlier.** About one hour in eighteen is
-   negative in the model, one in sixteen in history. A pay-as-produced contract without a
-   negative-price clause pays in many of them (Step 3).
+3. **Negative prices are a feature, not an outlier.** One hour in sixteen was negative in
+   2024-2026 (the model: 5.9%), and one in 26 is in 2027 at a forward of 140. A
+   pay-as-produced contract without a negative-price clause pays in all of them (Step 3).
 4. **The transform choice matters.** Between s = 30 and s = 120 the number of statistics
-   the model reproduces moves from 1 to 7. A modelling choice that looks technical changes
+   the v1.0 model reproduced moved from 1 to 7. A modelling choice that looks technical changes
    the answer.
 5. **Independence is optimistic for solar.** The model's capture rate is too high because
    sunshine and low prices are not linked yet. Any PPA price built on independent prices
@@ -481,7 +482,8 @@ percentage points of capture rate.
   weather years, Step 7 turns the result into risk measures (P10 revenue, CVaR).
 - The weather link is not a refinement: section 6.4 shows that without it the solar capture
   rate is biased upwards.
-- The forward is still an assumption (85 EUR/MWh). Step 8 brings market forwards.
+- The forward is the market's: the EEX Cal-27 base quote since v1.1, with its quarters'
+  seasonal shape since v1.2 (Step 8 page, sections 4.6 and 4.7).
 
 ---
 
@@ -590,15 +592,15 @@ percentage points of capture rate.
 **Your 60-second story (STAR):**
 
 > *Situation:* to price a PPA for 2027 the buyer needed a distribution of outcomes around
-> the 85 EUR/MWh forward, not one historical year. *Task:* build an hourly German price
+> the 140 EUR/MWh Cal-27 forward, not one historical year. *Task:* build an hourly German price
 > model that respects the forward and behaves like real prices. *Action:* I modelled prices
 > in arcsinh space with monthly levels, a season-by-day-type daily shape, a daily
 > mean-reverting factor and intraday patterns bootstrapped from whole historical days;
 > I calibrated the level to the forward by bisection and validated against history
 > statistic by statistic. *Result:* a half-life of about one day, history inside the
-> simulated range for 7 of 11 statistics, and the remaining gaps explained: too few hours
-> just below zero, and no link between weather and prices yet, which makes solar look
-> about six capture-rate points better than it is.
+> simulated range for 7 of 11 statistics after a separate scale for negative prices, and the
+> remaining gap explained: no link between weather and prices yet, which makes Borrentin's
+> solar look better than it is.
 
 **Likely questions and strong answers:**
 
@@ -625,7 +627,7 @@ percentage points of capture rate.
 | In this project | In a company |
 |---|---|
 | arcsinh, monthly levels, daily AR(1), bootstrapped days | Fundamental models (merit order, scenarios) and statistical hourly models; vendor curves |
-| One illustrative forward (85 EUR/MWh) | The full EEX forward curve by month and quarter, plus long-term fundamental curves beyond the liquid years |
+| Published Cal and quarter quotes (Cal-27 140.21) | The full EEX forward curve by month and quarter, plus long-term fundamental curves beyond the liquid years |
 | Level volatility | Scenario sets (low/base/high) and implied volatilities of forward options |
 | Validation table with 5-95% ranges | Model validation reports, back-testing, model risk sign-off |
 | Price paths as a matrix saved for Step 6 | Monte Carlo engines feeding PPA valuation, PFC shaping, risk reports |
@@ -638,8 +640,8 @@ calibration, and explaining a model's limits to non-quants.
 
 ## 11. Your to-dos for Step 5
 
-- [ ] Read sections 1 and 4. Compute by hand: with φ = 0.521, how much of a shock is left
-      after two days (27%), and what is the half-life (1.06 days)?
+- [ ] Read sections 1 and 4. Compute by hand: with φ = 0.511, how much of a shock is left
+      after two days (26%), and what is the half-life (1.03 days)?
 - [ ] Run section 5; in the notebook, change `SCALE` in 5.6 and reproduce one column of the
       table in section 4.3.
 - [ ] Exercises 1-4 in `exercises/step05_prices.py`; check them in "My solutions: Step 5".
@@ -649,8 +651,8 @@ calibration, and explaining a model's limits to non-quants.
       Tagesprofil, der Feiertag, der Brückentag, die Preisspitze, negative Strompreise, die
       Monte-Carlo-Simulation, der Preispfad, die Kalibrierung, die Verteilung, das Quantil,
       die Autokorrelation.
-- [ ] Stand-up update: *"Yesterday: a stochastic hourly price model, calibrated to an 85 EUR/MWh
-      forward and validated against 2024-2026; prices forget in about a day. Today: joint
+- [ ] Stand-up update: *"Yesterday: a stochastic hourly price model, calibrated to the
+      140 EUR/MWh Cal-27 forward and validated against 2024-2026; prices forget in about a day. Today: joint
       weather and price Monte Carlo (PPA-6). Blockers: none."*
 
 Commit (check `git status` first: no `.env`, no ` M .env.example`):

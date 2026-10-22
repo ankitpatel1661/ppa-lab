@@ -1,11 +1,10 @@
 # Step 8: Hedging with power futures (ticket PPA-8)
 
-> **Numbers on this page (update for v1.1).** Sections 1-4.5 were written with the
-> illustrative forward of 85 EUR/MWh (v1.0). The market check led to a decision: since v1.1 the
-> model uses the market forward curve (section 4.6), and since v1.2 the market's seasonal
-> shape and a solar cannibalisation trend (section 4.7), and since v1.3 two Encavis parks
-> (Borrentin solar, Everswinkel wind) instead of illustrative ones; the current numbers are in
-> `reports/step08_hedging.md`. The methods and lessons are unchanged.
+> **Numbers on this page.** The parks are the Borrentin solar park (114 MWp) and the
+> Everswinkel wind park (28.5 MW), priced at the market forward (EEX Cal-27 base 140.21
+> EUR/MWh). All numbers are from `reports/step08_hedging.md` (v1.11). The model's forward was
+> an assumed 85 EUR/MWh until the market check of section 4.5; sections 4.6 to 4.8 explain
+> what changed after it.
 
 > **Time needed:** about 4.5 hours. Concepts take 60 minutes, code tour and findings
 > 45 minutes, hands-on, notebook and exercises 2 hours, to-dos 45 minutes.
@@ -95,7 +94,7 @@ A solar park produces when prices are low. If the price level rises by 10 EUR/MW
 rises less than 10 EUR/MWh × its energy, because in the arcsinh price model high-price hours move
 more than low-price hours, and solar produces in the low-price ones. A full baseload band then
 over-hedges: in an expensive year the hedge loses more than the park gains. The minimum-variance
-amount is about 90% of the average output for solar, 93-95% for wind.
+amount is 87% of the average output for Borrentin and 93% for Everswinkel.
 
 ### 1.4 Judging a hedge
 
@@ -108,8 +107,8 @@ fair price has an expected P&L of zero; it wins in some years and loses in other
 
 ### 1.5 Model forward and market forward
 
-The model's forward is its expected average price (here the assumed 85 EUR/MWh, by construction
-of the calibration in Step 5). The market forward is what someone will pay today. If they differ,
+The model's forward is its expected average price (by construction of the calibration in Step 5:
+an assumed 85 EUR/MWh in v1.0, the market's Cal-27 quote since v1.1). The market forward is what someone will pay today. If they differ,
 selling forward has an expected gain or loss: the **forward premium**. Before trading on it,
 the question is who is wrong. A pricing model normally takes the market forward as its level and
 uses the simulation only for shape and risk.
@@ -169,16 +168,18 @@ and a Saturday.
 
 | Merchant, 2027 | No hedge | Cal base 100% | Cal base minimum-variance |
 |---|---|---|---|
-| Solar park CFaR95 | EUR 1.44 m | EUR 0.35 m | **EUR 0.27 m** (5.6 MW, 89%) |
-| Wind park CFaR95 | EUR 2.95 m | EUR 0.88 m | **EUR 0.74 m** (11.7 MW, 93%) |
+| Borrentin CFaR95 | EUR 3.02 m | EUR 1.04 m | **EUR 0.84 m** (9.8 MW, 87%) |
+| Everswinkel CFaR95 | EUR 2.10 m | EUR 1.07 m | **EUR 1.05 m** (6.5 MW, 93%) |
 
-A single Cal base contract does almost all the work: quarters and months reduce the CFaR only a
-little further (solar 0.25 and 0.23).
+For Borrentin a single Cal base contract does most of the work (−72%); quarters and months
+take the CFaR only to 0.81 and 0.67. Everswinkel keeps more risk after a Cal base hedge
+(−50%), because wind's risk is mostly volume, which no price product hedges; quarters and
+months take it to 0.90 and 0.70, with noisy monthly amounts (4.2).
 
 ### 4.2 Monthly hedges fit noise
 
-The monthly minimum-variance amounts jump around and are even negative in some months (wind
-January −4.8 MW, November 26 MW). With 496 scenarios, twelve coefficients mostly fit sampling
+The monthly minimum-variance amounts jump around and are even negative in some months
+(Everswinkel, average output 7.0 MW: January −9.6 MW, August 38.0 MW). With 496 scenarios, twelve coefficients mostly fit sampling
 noise; and in this model one annual level shock moves all months together, so there is little
 for monthly products to add. Real markets have month-specific shocks (gas, hydro, outages), which
 is why desks do use them, with more data and constraints (no negative sales).
@@ -186,27 +187,27 @@ is why desks do use them, with more data and constraints (no negative sales).
 ### 4.3 The PPA buyer needs a smaller band, so the premium is smaller
 
 Step 7 assumed the buyer sells a band of 100% of the average output. The minimum-variance band
-is 90% (solar) and 95% (wind), and the premium falls from **5.27 to 4.45 EUR/MWh** (solar) and
-from 3.39 to 2.92 (wind). The Step 7 premium was conservative by about 0.8 EUR/MWh for solar.
+is 75% for Borrentin and 96% for Everswinkel, and the premium falls from **10.54 to 4.79
+EUR/MWh** (Borrentin) and from 5.49 to 5.37 (Everswinkel). For solar the Step 7 premium is
+conservative by about 5.8 EUR/MWh: room for the buyer to concede, if it hedges well.
 
 ### 4.4 One year of P&L says nothing
 
-Back-test (Cal base at the previous year's average, 89-93% of P50 output): the hedge earned
-EUR +0.82 m for the solar park in 2024 (sold at 95.18, spot 78.51) and lost EUR 0.53 m in 2025
-(sold at 78.51, spot 89.32). With this naive forward the hedged revenue even moved more between
-the two years than the merchant revenue (EUR 1.27 m vs 0.09 m), because last year's price moved
-against this year's. Two years are an illustration; the scenario results measure the risk.
+Back-test (Cal base at the previous year's average, at the minimum-variance ratio of the P50
+output): the hedge earned EUR +1.75 m for Borrentin in 2024 (sold at 95.18, spot 78.51) and
+lost EUR 1.13 m in 2025 (sold at 78.51, spot 89.32). With this naive forward the hedged revenue
+even moved more between the two years than the merchant revenue (EUR 2.43 m vs 0.46 m),
+because last year's price moved against this year's. Two years are an illustration; the scenario results measure the risk.
 
 ### 4.5 The model's forward is far below the market's
 
 Published Cal-27 base quotes: **104.24 EUR/MWh** (31 Jul 2026,
 [tacto.ai](https://www.tacto.ai/en/energy/electricity-price)) and **113.45 EUR/MWh**
 (28 Aug 2026, [power2market](https://www.power2market.com/en/markets)); peak 119.48. The model
-uses the assumed 85 from the preparation guide. At 113.45, with the same capture rate, premium
-and costs, the solar indicative price would be **46.8 EUR/MWh instead of 33.3**, wind 93.0 instead
-of 68.4. These are secondary web sources, not EEX settlement files; they are in the configuration
-with date and URL so they can be replaced. The decision whether to re-anchor the model to the
-market is recorded in the backlog: it moves every headline number.
+used the assumed 85 from the preparation guide: a third below the market, and every price in
+the project scales with the level. These are secondary web sources, not EEX settlement files;
+they are in the configuration with date and URL so they can be replaced. The decision was to
+re-anchor the model to the market (section 4.6).
 
 ### 4.6 Update (v1.1): the forward is now the market's
 
@@ -217,37 +218,28 @@ nuclear output), and the curve falls steeply: **Cal-28 104.75**, **Cal-29 87.58*
 PPA therefore follows the curve (`[ppa.forward_curve]`), with the years after 2029 held flat
 at the Cal-29 quote (long-dated years trade too little for a quote).
 
-| 10-year pay-as-produced PPA (2027-2036) | v1.0: 85 flat | v1.1: market curve |
-|---|---|---|
-| Solar: forward × capture rate = fair price 2027 | 85.4 × 0.48 = 41.1 | 141.0 × 0.63 = 89.1 |
-| Solar: fair price, 10 years | 41.1 | **61.1** |
-| Solar: buyer's risk premium after the hedge | 5.3 | 8.0 |
-| Solar: indicative price, 10 years | 33.3 | **50.6** |
-| Wind: indicative price, 10 years | 68.4 | **80.1** |
-
-Three lessons:
+Today Borrentin's 2027 fair price is 141.1 × 0.55 = 77.5 EUR/MWh, and its ten-year fair
+price 35.1 (Everswinkel: 129.9 and 86.6). Three lessons:
 
 1. **The curve matters as much as the level.** 2027 alone is at 141, but the discount- and
    energy-weighted forward over the ten years is 96.7 EUR/MWh: the ten-year price sits much
    closer to Cal-28 and Cal-29 than to Cal-27. A flat 140 would have overstated it badly.
 2. **The capture rate moved with the level: check it.** The arcsinh price model (Step 5) raises
-   all hours together in transformed units, so hours near zero are lifted too: the solar
-   capture rate rises from 0.48 (at 85) to 0.63 (at 141), and the share of solar output at
-   negative prices falls from 25% to 9%. History supports the direction for one step: from 2025
-   to 2026 (January to September) the level rose from 88 to 108 EUR/MWh, prices in the sunniest
-   10% of hours rose from 8 to 23 (the model predicts about +16), and the park's capture rate
-   held at 0.51 although solar capacity kept growing. But 141 lies outside the data, so Step 7
-   now also shows the usual shape-factor view (the capture rate of the recent level,
-   104 EUR/MWh, with all prices scaled to the forward): solar indicative **43.1 instead of
-   50.6**; wind barely moves (78.6 vs 80.1). That gap belongs in the conversation with Risk.
+   all hours together in transformed units, so hours near zero are lifted too: Borrentin's
+   capture rate is 0.55 at 141 EUR/MWh and 0.44 at 88, and fewer of its MWh fall at negative
+   prices at the higher level (17.5% in 2027, about 30% over the ten years). History supports
+   the direction: from 2025 to 2026 (January to September) the level rose from 89 to 108
+   EUR/MWh and Borrentin's modelled capture rate barely fell (0.542 → 0.526) although solar
+   capacity kept growing. But 141 lies outside the data, so the slope had to be tested: section
+   4.8.
 3. **The market's seasonal shape is steeper than the model's.** Q1-27 traded at 179.47 and
    Q2-27 at 114.04 EUR/MWh (14 Sep 2026), against the model's 141.4 and 124.3: the market prices
    a winter gas risk that 2024-2026 history does not contain. A quarterly forward curve is the
    next step (v2).
 
-The hedging lessons hold at the new level: Cal base at 83% (solar) and 91% (wind) of the
-average output cuts the merchant CFaR95 by 78% and 68%, and the PPA buyer's premium with the
-minimum-variance band is 4.8 instead of 8.0 EUR/MWh (solar).
+The hedging lessons hold at the market level: Cal base at 87% (Borrentin) and 93%
+(Everswinkel) of the average output cuts the merchant CFaR95 by 72% and 50%, and the PPA
+buyer's premium with the minimum-variance band is 4.8 instead of 10.5 EUR/MWh (Borrentin).
 
 ### 4.7 Update (v1.2): the market's seasons and a cannibalisation trend
 
@@ -260,23 +252,16 @@ Two steps towards how a pricing desk works:
    each quarter averages its forward: the quotes' shape scaled to today's Cal level
    (Q1 185.3, Q2 117.7, Q3 124.3, Q4 134.3 EUR/MWh; the year still averages 140.21). Months
    and hours within a quarter still come from history.
-2. **A cannibalisation trend in the base case.** Solar's capture rate fell from 0.76 to 0.51 in
-   2023-2025 as capacity grew. The base case now lets it fall 1 percentage point a year after
-   2027 (0.62 → 0.53 by 2036), slower than history because batteries and curtailment at
-   negative prices dampen it; ±1 and −2 pp are the sensitivities.
-
-| 2027-2036, EUR/MWh | v1.1 | v1.2 |
-|---|---|---|
-| Solar: fair price 2027 | 89.1 | 86.9 |
-| Wind: fair price 2027 | 127.9 | 130.7 |
-| Solar: indicative price, 10 years | 50.6 | **45.2** |
-| Solar: at the recent level's capture rate | 43.1 | 38.0 |
-| Wind: indicative price, 10 years | 80.1 | **81.8** |
+2. **A cannibalisation trend after 2027.** Germany's solar capture rate fell from 0.76 to 0.52
+   in 2023-2025 as capacity grew. From v1.2 to v1.10 the base case let it fall 1 percentage
+   point a year after 2027; since v1.11 it follows solar and storage build-out scenarios
+   instead (Step 7 page, section 4.8).
 
 The lesson: **the market's winter premium hurts solar and helps wind.** Solar produces in the
-cheaper Q2 and Q3, wind in the expensive winter. Item 3 of the plan, availability, turned out
-to be in the models already (solar losses 10% incl. availability; wind 12%: wake, availability,
-electrical); adding it again would have counted it twice. Grid curtailment is compensated in
+cheaper Q2 and Q3, wind in the expensive winter: Borrentin's 2027 capture rate is 0.55,
+Everswinkel's 0.92. Item 3 of the plan, availability, turned out to be in the models already
+(the losses include it; since v1.3 they are calibrated to the parks' published yields: 12.4%
+for Borrentin, 26.4% for Everswinkel); adding it again would have counted it twice. Grid curtailment is compensated in
 Germany (§13a EnWG), so it is a contract question, not a price one.
 
 ### 4.8 Update (v1.5): does the capture rate rise with the price level?
@@ -322,7 +307,8 @@ Three lessons:
    years 2-10. Consistency across years cost 9.8 EUR/MWh, more than the risk premium.
 3. **The same regression flags the next question.** Its build-out coefficient (−2.9 per unit of
    solar's share of load) at the 2022-2025 pace means about −3.7 pp of capture rate a year,
-   against the −1 pp the base case assumes (backlog PPA-8e).
+   against the −1 pp the base case then assumed. v1.11 turned that into solar and storage
+   build-out scenarios (Step 7 page, section 4.8).
 
 ---
 
@@ -352,20 +338,22 @@ back-test ratio.
 
 ### 6.1 Five stories
 
-1. **One product does it.** A Cal base hedge of about 90% of the average output removes 97% of
-   the solar park's revenue variance in the model.
+1. **One product does it for solar.** A Cal base hedge of 87% of Borrentin's average output
+   removes 94% of its revenue variance in the model.
 2. **100% is too much for solar.** Its output sits in cheap hours; a full band over-hedges.
 3. **Finer products need more data.** Monthly hedges from 496 scenarios fit noise.
-4. **The PPA buyer's premium shrinks** with an optimal hedge: about 4.5 instead of 5.3 EUR/MWh.
-5. **The level is the big unknown.** The market says about 104-113 EUR/MWh for 2027, the model
-   assumes 85: that gap moves the solar price by 13 EUR/MWh, far more than any hedge choice.
+4. **The PPA buyer's premium shrinks** with an optimal hedge: 4.8 instead of 10.5 EUR/MWh for
+   Borrentin.
+5. **The level is the big unknown.** Cal-27 base moved between 104 and 140 EUR/MWh from July to
+   October 2026; a 10% move of the whole curve changes Borrentin's ten-year price by about
+   5.5 EUR/MWh, more than any hedge choice. Refresh the curve on the day of signing.
 
 ### 6.2 What this means
 
-- For unsold output: sell about 90% of the average output as Cal base; review quarterly products
-  once market data are in.
-- For pricing: anchor the level to the market forward (a configuration change, see the backlog),
-  then the simulation provides shape and risk around it.
+- For unsold output: sell about 90% of the average output as Cal base (87% Borrentin, 93%
+  Everswinkel); review quarterly products once market data are in.
+- For pricing: the level is anchored to the market forward (since v1.1), and the simulation
+  provides shape and risk around it.
 
 ---
 
@@ -404,7 +392,8 @@ back-test ratio.
    so the exact ratio matters less than avoiding very small or very large hedges.
 4. Solar produces in cheap hours, so its revenue moves less than a full band with the level; a
    100% hedge loses more than the park gains in an expensive year and the reverse in a cheap one.
-   Judge a hedge by the risk it removes, not by one year's P&L (2024 +0.82, 2025 −0.53). If the
+   Judge a hedge by the risk it removes, not by one year's P&L (Borrentin: 2024 +1.75, 2025
+   −1.13 EUR m). If the
    market forward is far above the model's expectation, selling forward has an expected gain:
    either the market knows something (gas, CO2) or the model's level is wrong; check before trading.
 5. Peak covers 36% of the hours; the solar park also produces at weekends.
@@ -427,7 +416,7 @@ back-test ratio.
 7. What does the back-test with last year's price as forward show, and what does it not show?
 8. What is a forward premium?
 9. Why should a pricing model take its level from the market forward?
-10. Which number in the whole project moves most if the forward changes from 85 to 113?
+10. Which numbers move most if the whole forward curve moves by 10%, and which barely move?
 
 <details>
 <summary>Answers</summary>
@@ -440,12 +429,14 @@ back-test ratio.
    annual, so monthly products have little extra to hedge.
 5. By the risk it removes (CFaR, variance); a fair hedge has zero expected P&L and will win or lose
    in a single year by chance.
-6. The minimum-variance band (90%) hedges the buyer's position better than a full band.
+6. The minimum-variance band (75% for Borrentin) hedges the buyer's position better than a
+   full band.
 7. That hedges win and lose in single years; not how good the hedge is, because the forward proxy
    is not a real market price and two years are too few.
 8. The difference between the market forward and the expected spot price.
 9. The market price is where hedges and PPAs can actually be traded; the model adds shape and risk.
-10. The indicative prices (solar 33.3 → 46.8 EUR/MWh, wind 68.4 → 93.0).
+10. The prices: Borrentin's ten-year indicative price by −5.6 / +5.5 EUR/MWh, Everswinkel's by
+    −9.4 / +9.4. Capture rates and hedge ratios barely move.
 
 </details>
 
@@ -460,13 +451,14 @@ back-test ratio.
 > check the forward. *Action:* I modelled EEX base, peak, quarter and month products, computed
 > minimum-variance hedges, compared strategies by cash flow at risk, re-sized the PPA buyer's hedge,
 > back-tested on 2024-2025, and compared the model's forward with published Cal-27 quotes.
-> *Result:* about 90% of average output as Cal base cuts the solar park's merchant CFaR by 81%;
-> monthly hedges only fit noise; the buyer's premium is 0.8 EUR/MWh lower than assumed; and the
-> market's Cal-27 is 104-113 against our 85, which I flagged as the biggest open assumption.
+> *Result:* 87% of average output as Cal base cuts the solar park's merchant CFaR by 72%;
+> monthly hedges only fit noise; with an optimal band the buyer's premium is 5.8 EUR/MWh lower
+> than assumed; and the market's Cal-27 was far above our assumed 85, so I re-anchored the
+> model to the market curve.
 
 **Likely questions and strong answers:**
 
-- *"How do you hedge a solar park?"* Sell baseload (or a profile-matched mix) for about 90% of the
+- *"How do you hedge a solar park?"* Sell baseload (or a profile-matched mix) for about 87% of the
   expected average output, sized by minimum variance on joint scenarios; review with real forward
   quotes and keep some volume unhedged for weather risk.
 - *"Why not hedge 100%?"* Volume and shape: you would over-hedge in years when output is low or
@@ -474,7 +466,8 @@ back-test ratio.
 - *"Your hedge lost money in 2025. Was it a bad hedge?"* No: it was sold at a fair price and
   reduced risk; one year's P&L is not a measure of a hedge.
 - *"Your forward is 85, the market says 113. What now?"* Re-anchor the level to the market and
-  keep the simulation for shape and risk; the difference is the most important input to check.
+  keep the simulation for shape and risk (done here in v1.1); the difference is the most
+  important input to check.
 
 ---
 

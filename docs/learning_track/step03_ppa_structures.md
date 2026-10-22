@@ -1,11 +1,9 @@
 # Step 3: PPA structures and pricing maths (ticket PPA-3)
 
-> **Sites and numbers on this page (update for v1.3).** This page was written for two
-> illustrative parks (a 50 MWp solar park in Lusatia, a 30 MW wind park in North Frisia).
-> Since v1.3 the project models two Encavis parks from public data: the Borrentin solar park
-> (114 MWp, Mecklenburg-Western Pomerania) and the Everswinkel wind park (28.5 MW, North
-> Rhine-Westphalia). The methods and lessons are unchanged; current numbers are in the
-> reports and the README, and the exercise checks use the current data.
+> **The parks on this page.** Two Encavis parks, modelled from public data: the Borrentin
+> solar park (114 MWp, Mecklenburg-Western Pomerania, about 121 GWh a year) and the
+> Everswinkel wind park (28.5 MW onshore, North Rhine-Westphalia, about 64 GWh a year). All
+> numbers are from `reports/step03_ppa_structures.md`.
 
 > **Time needed:** about 5 hours. Concepts take 90 minutes, code tour and findings
 > 60 minutes, hands-on, notebook and exercises 2 hours, to-dos 30 minutes.
@@ -34,7 +32,7 @@
 
 Wednesday. Origination comes back:
 
-> *"The buyer for the 50 MW solar park wants options, not one price. Give me the
+> *"The buyer for the Borrentin solar park wants options, not one price. Give me the
 > economics of a pay-as-produced PPA, a baseload PPA, and a virtual PPA with a floor,
 > plus the negative-price clause they keep asking about. And Risk wants a written
 > methodology before anything goes to the credit committee. Ticket PPA-3."*
@@ -55,8 +53,8 @@ simulated futures from Step 6 on.
       risk, a baseload PPA is merchant plus a swap, the break-even strike is the
       capture price, and the fair price is a ratio of expectations.
 - [x] `METHODOLOGY.md` version 0: formulas, conventions, assumptions and limitations.
-- [x] Back-test 2024-2025 for a 50 MW solar and a 30 MW wind park, strikes fixed from
-      the previous year, with plan and surprise per structure (`ppa-lab ppa`).
+- [x] Back-test 2024-2025 for the solar park (Borrentin) and the wind park
+      (Everswinkel), strikes fixed from the previous year, with plan and surprise per structure (`ppa-lab ppa`).
 - [x] Learning page, notebook section, exercises.
 
 ---
@@ -236,7 +234,9 @@ data/processed/power_15min.parquet    ─┤
 analysis/capture.py: prices_on_grid()   (Step 2: prices on the 15-min grid)
                                         │
 pricing/backtest.py                     ▼
-  park_energy()   national profile → 50 MW solar / 30 MW wind, scaled per year
+  park_energy()   national profile → Borrentin 114 MWp × 1,061 h, Everswinkel
+                  28.5 MW × 2,246 h (their published yields), scaled per year
+  site_energy()   or the park's own Step 4 profile (report section 2)
   backtest()      strikes from Y−1, cash flows in Y, plan = same terms on Y−1
   summarise()     revenue, per MWh, vs merchant, plan, surprise, worst month
         │ uses
@@ -311,7 +311,7 @@ Each key test was checked by mutation: the planted bug had to make it fail.
 - **First version:** the report showed the standard deviation of monthly revenue within
   each year as "risk".
 - **Symptom:** for the solar park the pay-as-produced PPA came out **riskier** than
-  merchant (monthly std 111k vs 71k EUR in 2025). A fixed-price contract cannot carry
+  merchant (monthly std 269k vs 171k EUR in 2025). A fixed-price contract cannot carry
   more price risk than the spot market. Something was measuring the wrong thing.
 - **Diagnosis:** the spread across months within a year is mostly **seasonality**. Under
   a PaP PPA, revenue follows volume: big in summer, small in winter. Merchant revenue
@@ -339,8 +339,8 @@ Why is explained in exercise 4: write it yourself before you look at the noteboo
 
 ### 4.3 A baseload seller can have negative months
 
-The solar park's baseload PPA had a **negative month in January 2025** (−24k EUR): the
-band had to be delivered while the park produced almost nothing, and the shortfall was
+The solar park's baseload PPA had a **negative month in January 2025** (−58k EUR): the
+13.8 MW band had to be delivered while the park produced almost nothing, and the shortfall was
 bought at winter prices. For a project company with a debt service schedule, a negative
 cash month is a real problem even if the year is fine. That is why lenders look at
 monthly cash flows and why "worst month" is in the report.
@@ -358,7 +358,7 @@ monthly cash flows and why "worst month" is in the report.
 
 ```bash
 cd ".../Encavis quantitative/ppa-lab"
-make test                  # 115 offline tests
+make test                  # the offline tests (290 in v1.11)
 make ppa                   # reports/step03_ppa_structures.md + 2 charts
 open METHODOLOGY.md        # the maths, rendered on GitHub
 make notebook              # Step 3 section: 3.1 to 3.6, then your solutions
@@ -384,11 +384,17 @@ In the notebook, start with 3.1 (the running example as a table), then play with
 
 ![Monthly revenue of the solar park](../../reports/figures/step03_structures_monthly.png)
 
+The table uses the national profile of each technology, so its EUR/MWh do not depend on the
+park's size. With each park's own modelled output (ERA5 weather at the site, Step 4; report
+section 2) Borrentin earned 47.22 merchant and 76.06 under the PaP PPA in 2024 (national
+profile: 46.48 and 72.25), and Everswinkel 76.34 merchant in 2025 (77.27): the sites earn
+close to the national profiles, Borrentin slightly more, Everswinkel slightly less.
+
 ### 6.2 Five stories
 
 1. **Fixing a price is a bet on direction, even when it is "fair".** Signed at the 2023
    capture price, the solar PaP PPA earned 72.25 in 2024 against 46.48 merchant:
-   +EUR 1.3 million for the 50 MW park. The wind PaP signed at the 2024 capture price
+   +EUR 3.1 million for Borrentin's 121 GWh. The wind PaP signed at the 2024 capture price
    gave up 12.73 EUR/MWh in 2025 when prices recovered. The PPA did its job both times:
    it removed the surprise. Whether it "won" is hindsight.
 2. **The negative-price clause is expensive for solar.** In 2025 it cut the solar PaP

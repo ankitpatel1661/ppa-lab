@@ -69,7 +69,10 @@ def ppa_beats_merchant(table: pd.DataFrame, park: str = "solar_park") -> float:
 
 if __name__ == "__main__":
     results = load_results()
-    print("Ex 1  solar, base costs:", round(indicative_price(results, "solar_park", 1.5, 1.0), 2),
+    costs = results["parks"]["solar_park"]["assumptions"]
+    print("Ex 1  solar, configured costs:",
+          round(indicative_price(results, "solar_park", costs["balancing_eur_mwh"],
+                                 costs["credit_eur_mwh"]), 2),
           "EUR/MWh; wind with 3.0 and 2.0:",
           round(indicative_price(results, "wind_park", 3.0, 2.0), 2), "EUR/MWh")
     table = load_scenarios()

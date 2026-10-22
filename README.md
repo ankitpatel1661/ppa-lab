@@ -118,7 +118,7 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
   (−2.1); history's range for how fast the capture rate moves with the level matters less
   (−0.1 to +0.8), and which historical days represent 2027
   no longer matters (0.0: the build-out trend moves them all to 2027).
-- **Hedging the unsold output:** Cal base futures for 87% (solar) and 92% (wind) of the average
+- **Hedging the unsold output:** Cal base futures for 87% (solar) and 93% (wind) of the average
   output sold cut the merchant cash flow at risk by 72% and 50% (Step 8).
 
 **Read more:** [one-page management memo](reports/step09_memo.md) ([PDF](reports/step09_memo.pdf))
@@ -252,17 +252,17 @@ model's forward. Hedge ratio = MW sold / average output.
 
 | 2027, merchant output | Borrentin solar (114 MWp) | Everswinkel wind (28.5 MW) |
 |---|---|---|
-| CFaR95, no hedge | EUR 3.68 m | EUR 2.16 m |
-| Cal base, 100% of average output | EUR 1.29 m | EUR 1.12 m |
-| **Cal base, minimum-variance** | **EUR 0.94 m** (11.5 MW, 84%) | **EUR 1.05 m** (6.5 MW, 90%) |
-| Months, minimum-variance | EUR 0.74 m | EUR 0.70 m |
-| PPA buyer's premium: full band → minimum-variance band | 8.30 → 5.32 EUR/MWh | 5.50 → 5.26 EUR/MWh |
+| CFaR95, no hedge (stopping at negative prices) | EUR 3.02 m | EUR 2.10 m |
+| Cal base, 100% of average output | EUR 1.04 m | EUR 1.07 m |
+| **Cal base, minimum-variance** | **EUR 0.84 m** (9.8 MW, 87%) | **EUR 1.05 m** (6.5 MW, 93%) |
+| Months, minimum-variance | EUR 0.67 m | EUR 0.70 m |
+| PPA buyer's premium: full band → minimum-variance band | 10.54 → 4.79 EUR/MWh | 5.49 → 5.37 EUR/MWh |
 
-- **One product does most of the work:** Cal base at 84-90% of the average output. Wind keeps
-  more risk after the hedge (−51%): its volume varies more (P90 −9%).
+- **One product does most of the work:** Cal base at 87-93% of the average output. Wind keeps
+  more risk after the hedge (−50%): its volume varies more (P90 −9%).
   Monthly hedges from 496 scenarios mostly fit noise (some months even negative).
 - **Judge a hedge by the risk it removes:** back-tested at the previous year's average price,
-  the solar hedge earned EUR +1.69 m in 2024 and lost EUR 1.09 m in 2025.
+  the solar hedge earned EUR +1.75 m in 2024 and lost EUR 1.13 m in 2025.
 - **Market check, and a decision:** published Cal-27 base quotes rose from 104.24 EUR/MWh
   (31 Jul 2026) to 140.21 (9 Oct) against the 85 the model assumed. Since v1.1 the model's
   forward is the market's, along the curve (Cal-28 104.75, Cal-29 87.58), and since v1.2 each
@@ -280,18 +280,20 @@ similar weather (analog days).
 
 | 2027, Cal-27 forward 140.21 EUR/MWh, market quarter shape | Borrentin solar (114 MWp) | Everswinkel wind (28.5 MW) |
 |---|---|---|
-| Fair pay-as-produced price, prices independent of weather (Step 5) | 97.64 EUR/MWh | 148.31 EUR/MWh |
-| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **94.45 EUR/MWh** | **129.46 EUR/MWh** |
-| Capture rate 5/50/95%, linked | 0.61 / 0.67 / 0.72 | 0.87 / 0.92 / 0.95 |
+| Fair pay-as-produced price, prices independent of weather (Step 5) | 79.78 EUR/MWh | 149.51 EUR/MWh |
+| Fair pay-as-produced price, **prices linked to weather (Step 6)** | **77.47 EUR/MWh** | **130.56 EUR/MWh** |
+| Capture rate 5/50/95%, linked | 0.48 / 0.55 / 0.60 | 0.88 / 0.93 / 0.96 |
 
-- **Ignoring the link is a gift to the seller:** 19 EUR/MWh (13%) for wind, 3 EUR/MWh for
+- **Ignoring the link is a gift to the seller:** 19 EUR/MWh (13%) for wind, 2.3 EUR/MWh for
   solar. Within a month, Everswinkel's wind and the daily price correlate at −0.69 (2025); the
   Step 5 model, which ignores the weather, has no such link.
-- **The biggest open assumption** is which historical days represent 2027: with analogs from
-  the last 12 months only, the solar price drops from 94.5 to 86.0 EUR/MWh (deeper midday dips
-  as solar capacity grows). Step 7 uses the last 12 months.
-- Capture rates are higher than in 2025 (solar 0.555) partly because of the level: in this
-  model the capture rate rises with the price level (see the Step 8 update).
+- **Tested on years it never saw:** fitted on the years before, the model overstated solar's
+  capture rate by 0.09-0.14, because analog days from the past have shallower midday dips.
+  Since v1.7 each historical day is moved to the simulated day by the measured build-out
+  trend: the error falls to +0.05 (2025) and +0.01 (2026), and which historical days represent
+  2027 no longer matters (77.5 against 77.5 EUR/MWh).
+- Capture rates are higher than in 2025 (Borrentin 0.542) partly because of the level: in
+  this model the capture rate rises with the price level, as history confirms (Step 7).
 
 Full report: [`reports/step06_joint_scenarios.md`](reports/step06_joint_scenarios.md).
 
@@ -304,18 +306,21 @@ process + intraday patterns resampled as whole historical days.
 
 | | |
 |---|---|
-| Memory of the daily factor | phi = 0.521 per day, **half-life 1.06 days** |
-| Validation (history inside the 5-95% range of 200 simulated paths) | **7 of 11** statistics: mean, spread, 5/50/95/99% quantiles, weekly autocorrelation |
-| Still outside | 1% quantile and negative hours (6.2% in history, 4.9% in the model), autocorrelation at 1 and 24 hours |
-| 2027 at the Cal-27 forward of 140.21 EUR/MWh (500 paths) | annual average 5% / 50% / 95%: 104.9 / 139.3 / 181.3 EUR/MWh; 1.3% negative hours |
-| Solar capture rate, 2025 weather | **0.719** with simulated 2027 prices vs **0.555** with the real 2025 prices (at 89 EUR/MWh: part of the gap is the level) |
+| Memory of the daily factor | phi = 0.511 per day, **half-life 1.03 days** |
+| Validation (history inside the 5-95% range of 200 simulated paths) | **7 of 11** statistics: mean, spread, 1/50/99% quantiles, negative hours (6.2% in history, 5.9% in the model), weekly autocorrelation |
+| Still outside | 5% and 95% quantiles, autocorrelation at 1 and 24 hours |
+| 2027 at the Cal-27 forward of 140.21 EUR/MWh (500 paths) | annual average 5% / 50% / 95%: 105.4 / 139.3 / 180.6 EUR/MWh; 3.8% negative hours |
+| Borrentin's capture rate, 2025 weather | **0.580** with simulated 2027 prices vs **0.542** with the real 2025 prices (at 89 EUR/MWh: part of the gap is the level) |
 
 - **Validation changed the model twice.** A textbook hourly AR(1) forgot yesterday within
   ten hours (24-hour autocorrelation 0.38-0.54 vs 0.70) and was replaced by the two-factor
   version; a wider search of the transform's scale moved it from 80 to 120 EUR/MWh
   (5 to 7 statistics inside).
+- **Negative prices bunch just below zero:** 65% of the negative hours lie between −5 and 0
+  EUR/MWh. Since v1.6 negative prices have their own scale in the transform, and the 1%
+  quantile fits (−18.4 against −20.1).
 - **The gap that matters:** within a month, sunnier days have cheaper middays (correlation
-  −0.30 in 2025); in the model it is 0.00. Independent prices overstate what solar earns.
+  −0.21 for Borrentin in 2025); in the model it is +0.02. Independent prices overstate what solar earns.
   Step 6 links weather and prices.
 
 Full report: [`reports/step05_price_model.md`](reports/step05_price_model.md).
@@ -330,7 +335,7 @@ pvlib and windpowerlib:
 | P50 annual energy | 120.9 GWh = 1,061 kWh/kWp (published: ~121) | 64.0 GWh = 2,245 full-load hours (published: ~64) |
 | Year-to-year variability (CoV) | 4.6% | 7.2% |
 | P90, one year / 10-year average | −5.9% / −1.9% vs mean | −9.2% / −2.9% vs mean |
-| Worst / best weather year | 1998: −8.9% / 2018: +10.1% | 2010: −13.5% / 1998: +13.6% |
+| Worst / best weather year | 1998: −8.9% / 2018: +10.2% | 2010: −13.5% / 1998: +13.6% |
 | Trend 1995-2025 | +2.1% per decade (brightening) | −1.7% per decade |
 | Hourly correlation with the national fleet | 0.91-0.93 | 0.86-0.88 |
 
