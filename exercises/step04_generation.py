@@ -51,7 +51,9 @@ def specific_yield(generation: pd.DataFrame, capacity_mw: float, year: int) -> f
 
     Hints: tz_convert(TZ), .loc[str(year)], sum the hourly MW values, divide.
     """
-    raise NotImplementedError("Exercise 1")
+    mw = generation["mw"].tz_convert(TZ)
+    year_data = mw.loc[str(year)]
+    return float(year_data.sum() / capacity_mw)
 
 
 # --------------------------------------------------------------------------- #
@@ -65,7 +67,12 @@ def p50_p90(annual: pd.Series) -> dict[str, float]:
 
     Use only the full weather years 1995-2025: annual_mwh(...).loc[1995:2025].
     """
-    raise NotImplementedError("Exercise 2")
+    annual = annual.loc[1995:2025].dropna()
+
+    p50 = float(annual.median())
+    p90 = float(annual.mean() - 1.2816 * annual.std(ddof=1))
+
+    return {"p50": p50, "p90": p90}
 
 
 # --------------------------------------------------------------------------- #
@@ -82,7 +89,37 @@ def portfolio_capture_rate(
 
     Hint: align the three Series on their common hours (index.intersection) first.
     """
-    raise NotImplementedError("Exercise 3")
+    price = prices["price_eur_mwh"]
+    solar_mw = solar["mw"]
+    wind_mw = wind["mw"]
+
+    #Align all three series on the same timestamps.
+    common = price.index.intersection(solar_mw.index)
+    common = common.intersection(wind_mw.index)
+
+    price = price.loc[common]
+    solar_mw = solar_mw.loc[common]
+    wind_mw = wind_mw.loc[common]
+
+    # Convert to local time and select the requested local calendar year.
+    local_index = common.tz_convert(TZ)
+    mask = local_index.year == year
+
+    price = price.loc[mask]
+    combined = (solar_mw + wind_mw).loc[mask]
+
+    # Capture price divided by the average market price.
+    total_generation = combined.sum()
+    if total_generation == 0:
+        raise ValueError(f"No generation in the selected hours for {year}")
+
+    capture_price = (price * combined).sum() / total_generation
+    market_average = price.mean()
+
+    if market_average == 0:
+        raise ValueError(f"Average market price is zero for {year}")
+
+    return float(capture_price / market_average)
 
 
 # --------------------------------------------------------------------------- #
@@ -96,8 +133,13 @@ def portfolio_capture_rate(
 #
 # Your answer:
 #
-#
+#The P90 generation is lower than the P50 because it represents a conservative estimate of annual energy production that is expected to be exceeded with 90% probability.
 
+#For solar, the P50 is 120.9 GWh and the P90 is 113.4 GWh, a difference of approximately 6.2%. For wind, the P50 is 64.0 GWh and the P90 is 58.1 GWh, a difference of approximately 9.2%. This indicates that wind generation has greater year-to-year variability than solar generation in this analysis.
+
+#The P90 of a 10-year average is closer to the mean than the P90 of a single year because good and bad weather years tend to partly offset each other over a longer period. For a 10-year PPA, lenders would generally assess generation over the contract period when sizing debt, while also checking whether annual cash flows can cover debt repayments in weaker production years.
+
+#However, this estimate may be optimistic if it assumes that annual generation is independent from one year to the next. Multi-year weather patterns, correlated low-generation years, or long-term changes in climate and site conditions could increase the downside risk. Therefore, lenders should consider these risks rather than relying solely on the statistical P90 estimate.
 
 if __name__ == "__main__":
     solar, wind = load_generation("solar_park"), load_generation("wind_park")
