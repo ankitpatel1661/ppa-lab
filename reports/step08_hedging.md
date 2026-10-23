@@ -1,6 +1,6 @@
 # Step 8 report: hedging with power futures
 
-Generated 2026-10-16 08:23 UTC by `ppa-lab hedging`.
+Generated 2026-10-23 12:30 UTC by `ppa-lab hedging`.
 
 Inputs: the Step 7 scenarios for 2027 (496 scenarios,
 analog days from 2025-10-01). Selling a product at its forward pays, per MW,

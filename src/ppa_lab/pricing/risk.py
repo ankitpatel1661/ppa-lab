@@ -154,6 +154,43 @@ def curtailment_value(prices: np.ndarray, volumes: np.ndarray, below: float = 0.
             "value": float((removed * (below - prices)).sum() / volumes.sum())}
 
 
+def _shape_capture(prices: np.ndarray, volumes: np.ndarray, keys: np.ndarray) -> float:
+    """Capture rate if prices and volumes were their averages within each group of hours
+    (`keys`, one per hour): Σ_k n_k q̄_k P̄_k / (Σ_k n_k q̄_k · P̄)."""
+    revenue = energy = 0.0
+    for k in np.unique(keys):
+        cols = keys == k
+        n, q, p = cols.sum(), volumes[:, cols].mean(), prices[:, cols].mean()
+        revenue, energy = revenue + n * q * p, energy + n * q
+    return float(revenue / energy / prices.mean())
+
+
+def daily_profile(prices: np.ndarray, volumes: np.ndarray, index: pd.DatetimeIndex,
+                  tz: str) -> dict:
+    """Why the capture rate is what it is: average price and output by local hour of day over
+    all scenarios, and the capture rate split into what the average shape explains and the
+    rest.
+
+    `prices`, `volumes`: shape (scenarios, hours); `index`: the hours (UTC). Returns hour,
+    price (EUR/MWh) and output (MW) by hour of day; the time-average price; the capture rate;
+    the capture rate from the daily shape alone (hour-of-day averages) and from the daily and
+    seasonal shape (month x hour averages). The difference between the last and the capture
+    rate is the weather: within a month and hour, windier or sunnier days are cheaper days.
+    """
+    local = index.tz_convert(tz)
+    hour, month = local.hour.to_numpy(), local.month.to_numpy()
+    mean = float(prices.mean())
+    return {
+        "hour": list(range(24)),
+        "price": [float(prices[:, hour == h].mean()) for h in range(24)],
+        "output_mw": [float(volumes[:, hour == h].mean()) for h in range(24)],
+        "mean_price": mean,
+        "capture_rate": float((prices * volumes).sum() / volumes.sum() / mean),
+        "capture_daily_shape": _shape_capture(prices, volumes, hour),
+        "capture_seasonal_shape": _shape_capture(prices, volumes, month * 24 + hour),
+    }
+
+
 def level_shift(response: dict | None, level_from: float, level_to: float) -> float:
     """Change of the capture rate when the price level moves from `level_from` to `level_to`.
 

@@ -180,3 +180,31 @@ def test_build_out_factors_scale_each_years_capture_rate():
                     discount_rate=0.0, capture_rate_drift=-0.01,
                     capture_rate_factors={2027: 1.0, 2028: 0.9, 2029: 0.8})
     assert t["capture_rate"].tolist() == pytest.approx([0.5, 0.45 - 0.01, 0.40 - 0.02])
+
+
+def test_daily_profile_splits_the_capture_rate_into_shape_and_weather():
+    from ppa_lab.pricing.risk import daily_profile
+    index = pd.date_range("2027-06-01", periods=48, freq="h", tz="UTC")
+    midday = np.isin(np.arange(48) % 24, [10, 11, 12, 13])
+    day2 = np.arange(48) >= 24
+    q = np.where(midday, np.where(day2, 2.0, 1.0), 0.0)[None, :]     # day 2 is sunnier ...
+    p = np.where(midday, np.where(day2, 20.0, 50.0), 100.0)[None, :]  # ... and cheaper at midday
+    out = daily_profile(p, q, index, "UTC")
+    mean = (40 * 100 + 4 * 50 + 4 * 20) / 48
+    assert out["mean_price"] == pytest.approx(mean)
+    assert out["capture_rate"] == pytest.approx((4 * 50 + 8 * 20) / 12 / mean)    # 30 / mean
+    assert out["capture_daily_shape"] == pytest.approx(35 / mean)   # midday: q̄ 1.5, P̄ 35
+    assert out["capture_seasonal_shape"] == pytest.approx(35 / mean)  # one month only
+    assert out["price"][12] == pytest.approx(35) and out["output_mw"][12] == pytest.approx(1.5)
+    assert out["capture_rate"] < out["capture_daily_shape"]          # the weather term
+
+
+def test_daily_profile_without_weather_is_the_shape():
+    from ppa_lab.pricing.risk import daily_profile
+    index = pd.date_range("2027-06-01", periods=48, freq="h", tz="UTC")
+    q = np.tile(SOLAR[:24], 2)[None, :]
+    p = np.tile(100 - 60 * SOLAR[:24], 2)[None, :]                   # the same day twice
+    out = daily_profile(p, q, index, "UTC")
+    assert out["capture_rate"] == pytest.approx(out["capture_daily_shape"])
+    flat = daily_profile(np.full((2, 48), 80.0), np.ones((2, 48)), index, "UTC")
+    assert flat["capture_rate"] == pytest.approx(1.0) == flat["capture_seasonal_shape"]

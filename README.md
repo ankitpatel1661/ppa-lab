@@ -126,8 +126,10 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 [Step 8 hedging report](reports/step08_hedging.md) ·
 **try your own assumptions** in the [live dashboard](https://ppa-lab.streamlit.app) (or locally:
 `make app`): the fair price for the first year and for the whole contract, the price layer by
-layer, year by year, what moves it most and every build-out scenario, with an explanation behind
-each ⓘ and a glossary.
+layer, year by year, why the capture rate is what it is (the day's price curve against the
+park's output), what moves the price most and every build-out scenario, with an explanation
+behind each ⓘ and a glossary; in English or German
+([`?lang=de`](https://ppa-lab.streamlit.app/?lang=de)).
 
 ## How it works, in nine steps
 

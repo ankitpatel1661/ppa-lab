@@ -1,6 +1,6 @@
 # Indicative price for a 10-year solar PPA (Borrentin, 114 MWp)
 
-<p class="meta">Memo · 23 Oct 2026 · ppa-lab 1.12.0 · illustrative, from
+<p class="meta">Memo · 23 Oct 2026 · ppa-lab 1.13.0 · illustrative, from
 public data: not an offer, no view on actual contracts · details: Step 7 report</p>
 
 **Bottom line.** For a 10-year pay-as-produced PPA (2027-2036) the negotiation range is

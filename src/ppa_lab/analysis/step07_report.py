@@ -34,6 +34,7 @@ from ppa_lab.pricing.risk import (
     cash_flow_at_risk,
     curtail,
     curtailment_value,
+    daily_profile,
     level_shift,
     risk_premia,
     structure_revenues,
@@ -1059,6 +1060,7 @@ def write_step07_report(settings: Settings) -> dict[str, Path | None]:
             "whole_window": whole_window,
             "level_response": response,
             "level_effect": e,
+            "daily_profile": daily_profile(base.prices, base.volume(park), base.index, tz),
             "negative_prices": negative.get(park),
             "eeg": eeg_results.get(park),
             "buildout": None if factors is None else {

@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.13.0] (dashboard: why the capture rate is what it is, and a German version)
+
+### Added
+- "Why the capture rate is 0.55": the average price by hour of day in the delivery-year
+  scenarios against the park's average output, and the capture rate split into the daily
+  shape, the seasons and the weather. Solar loses 0.27 to the daily shape alone (it produces
+  when the midday price is lowest), 0.17 to the seasons and 0.01 to the weather; wind gains
+  from the daily and seasonal shape and loses 0.14 to the weather (windy hours are cheap).
+  `pricing.risk.daily_profile` computes it (tested); Step 7 stores it in the results.
+- A German version of the dashboard: a language switch at the top of the sidebar, or a link
+  with `?lang=de`. Every label, explanation, table and chart is translated, numbers are
+  written with German decimals (sliders included); `ppa_lab.dashboard_text` holds the texts
+  of both languages. Tests check that every text the app translates has a German version
+  with the same placeholders, and that the German dashboard shows no English label.
+
+### Changed
+- The cost and trend sliders belong to the park: switching parks starts from that park's
+  base case, and switching the language keeps your settings.
+- The help texts, glossary and explainers moved from the app into `ppa_lab.dashboard_text`.
+
 ## [1.12.0] (dashboard: the fair price in plain sight, and an explanation for every number)
 
 ### Added
