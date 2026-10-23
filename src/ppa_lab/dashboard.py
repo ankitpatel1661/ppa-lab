@@ -107,6 +107,52 @@ def offer(results: dict, park: str, a: Assumptions) -> dict:
     return {"stack": stack, "years": years}
 
 
+def sensitivities(results: dict, park: str, a: Assumptions) -> pd.DataFrame:
+    """The indicative price when one assumption moves, the others as in `a`: what moves the
+    price most. Rows: forward ±10%, capture-rate trend ±1 pp a year, discount rate ±2 pp,
+    balancing and credit ±1 EUR/MWh together, and the extreme build-out scenarios."""
+    base = offer(results, park, a)["stack"]["indicative"]
+    cases = [
+        ("Forward curve −10%", {"forward_shift": a.forward_shift - 0.10}),
+        ("Forward curve +10%", {"forward_shift": a.forward_shift + 0.10}),
+        ("Capture-rate trend −1 pp a year", {"drift": a.drift - 0.01}),
+        ("Capture-rate trend +1 pp a year", {"drift": a.drift + 0.01}),
+        ("Discount rate +2 pp", {"discount_rate": a.discount_rate + 0.02}),
+        ("Discount rate −2 pp", {"discount_rate": max(a.discount_rate - 0.02, 0.0)}),
+        ("Balancing and credit +1 EUR/MWh", {"balancing": a.balancing + 0.5,
+                                             "credit": a.credit + 0.5}),
+    ]
+    bo = results["parks"][park].get("buildout")
+    if bo and a.buildout:
+        for name, sc in bo["scenarios"].items():
+            if name != a.buildout:
+                cases.append((f"Build-out: {sc['label'].split(':')[0]}", {"buildout": name}))
+    rows = []
+    for label, change in cases:
+        value = offer(results, park, Assumptions(**{**a.__dict__, **change}))["stack"]["indicative"]
+        rows.append((label, value, value - base))
+    out = pd.DataFrame(rows, columns=["Change", "Indicative (EUR/MWh)", "vs yours (EUR/MWh)"])
+    return out.set_index("Change").round(2)
+
+
+def buildout_table(results: dict, park: str, a: Assumptions) -> pd.DataFrame | None:
+    """The fair and indicative price under each solar and storage build-out scenario, the other
+    assumptions as in `a`. None for a park without build-out scenarios (wind)."""
+    bo = results["parks"][park].get("buildout")
+    if not bo:
+        return None
+    rows = []
+    for name, sc in bo["scenarios"].items():
+        s = offer(results, park, Assumptions(**{**a.__dict__, "buildout": name}))["stack"]
+        rows.append((sc["label"].split(":")[0] + (" (base case)" if name == bo["base"] else ""),
+                     sc["pv_additions_gw"], sc["storage_additions_gwh"],
+                     100 * (1 - sc["factor_per_year"]), s["tenor_fair_price"], s["indicative"]))
+    return pd.DataFrame(rows, columns=[
+        "Scenario", "Solar added (GW a year)", "Storage added (GWh a year)",
+        "Capture-rate fall (% a year)", "Fair price (EUR/MWh)", "Indicative (EUR/MWh)",
+    ]).set_index("Scenario").round(2)
+
+
 STRUCTURE_LABELS = {
     "merchant": "Merchant, curtailing at negative prices",
     "merchant_no_curtailment": "Merchant, producing at negative prices",

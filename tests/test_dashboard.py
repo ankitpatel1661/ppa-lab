@@ -5,7 +5,14 @@ import json
 import numpy as np
 import pytest
 
-from ppa_lab.dashboard import Assumptions, default_assumptions, load_results, offer
+from ppa_lab.dashboard import (
+    Assumptions,
+    buildout_table,
+    default_assumptions,
+    load_results,
+    offer,
+    sensitivities,
+)
 from ppa_lab.pricing.risk import tenor_price
 
 
@@ -162,3 +169,34 @@ def test_a_build_out_scenario_scales_later_capture_rates_for_any_tenor():
     assert b["tenor_fair_price"] > offer(r, "solar_park", a)["stack"]["tenor_fair_price"]
     # results from before v1.11 have no build-out
     assert default_assumptions(results_fixture(), "solar_park").buildout is None
+
+
+def test_sensitivities_move_one_assumption_at_a_time():
+    r = results_fixture()
+    t = sensitivities(r, "solar_park", default_assumptions(r, "solar_park"))
+    # flat forward, no level response: the fair price scales with the forward, 40 -> 36 / 44
+    assert t.loc["Forward curve −10%", "vs yours (EUR/MWh)"] == pytest.approx(-4.0, abs=0.01)
+    assert t.loc["Forward curve +10%", "vs yours (EUR/MWh)"] == pytest.approx(4.0, abs=0.01)
+    assert t.loc["Balancing and credit +1 EUR/MWh", "vs yours (EUR/MWh)"] == pytest.approx(-1.0)
+    assert t.loc["Forward curve −10%", "Indicative (EUR/MWh)"] == pytest.approx(28.5, abs=0.01)
+    assert not any(case.startswith("Build-out") for case in t.index)   # no scenarios here
+
+
+def test_buildout_table_prices_every_scenario_with_the_other_assumptions():
+    r = results_fixture()
+    r["parks"]["solar_park"]["buildout"] = {"base": "central", "scenarios": {
+        "central": {"label": "Central: x", "factor_per_year": 0.9, "pv_additions_gw": 17.0,
+                    "storage_additions_gwh": 12.0},
+        "storage_boom": {"label": "Storage boom: y", "factor_per_year": 1.0,
+                         "pv_additions_gw": 17.0, "storage_additions_gwh": 35.0}}}
+    a = default_assumptions(r, "solar_park")
+    t = buildout_table(r, "solar_park", a)
+    assert list(t.index) == ["Central (base case)", "Storage boom"]
+    assert t.loc["Central (base case)", "Capture-rate fall (% a year)"] == pytest.approx(10.0)
+    assert t.loc["Storage boom", "Fair price (EUR/MWh)"] == pytest.approx(40.0)   # flat
+    assert (t.loc["Storage boom", "Indicative (EUR/MWh)"]
+            > t.loc["Central (base case)", "Indicative (EUR/MWh)"])
+    assert t.loc["Central (base case)", "Indicative (EUR/MWh)"] == pytest.approx(
+        offer(r, "solar_park", a)["stack"]["indicative"], abs=0.01)
+    assert "Build-out: Storage boom" in sensitivities(r, "solar_park", a).index
+    assert buildout_table(results_fixture(), "solar_park", a) is None

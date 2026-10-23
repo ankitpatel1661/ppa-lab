@@ -40,7 +40,8 @@ def test_dashboard_runs_and_reacts_to_assumptions():
     at.sidebar.selectbox[0].set_value("storage_boom").run()   # solar build-out (v1.11)
     assert not at.exception and float(at.metric[0].value) > float(lower)
     at.sidebar.radio[0].set_value("Wind park · Everswinkel · 28.5 MW").run()
-    assert not at.exception and "EUR/MWh" in at.metric[0].label
+    assert not at.exception and at.metric[0].label == "Indicative price"
+    assert any("EUR/MWh over" in c.value for c in at.caption)      # the unit, under the number
     assert float(at.metric[0].value) > 0
 
 

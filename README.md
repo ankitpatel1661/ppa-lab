@@ -125,7 +125,9 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 · [methodology](METHODOLOGY.md) · [Step 7 report](reports/step07_ppa_pricing.md) ·
 [Step 8 hedging report](reports/step08_hedging.md) ·
 **try your own assumptions** in the [live dashboard](https://ppa-lab.streamlit.app) (or locally:
-`make app`).
+`make app`): the fair price for the first year and for the whole contract, the price layer by
+layer, year by year, what moves it most and every build-out scenario, with an explanation behind
+each ⓘ and a glossary.
 
 ## How it works, in nine steps
 

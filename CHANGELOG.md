@@ -6,6 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.12.0] (dashboard: the fair price in plain sight, and an explanation for every number)
+
+### Added
+- Headline numbers for the fair price of the first year (forward × capture rate) and of the
+  whole contract, next to the indicative price, the risk premium and the cash flow at risk.
+- The price stack shows both fair prices as bars (forward → fair price first year → fair price
+  over the tenor → indicative price), with a table that explains each layer in numbers.
+- Year by year: a chart of the forward against the fair price of the park's output, and the
+  table with the fair price next to the forward and capture rate.
+- What moves the price: the indicative price with one assumption changed at a time (forward
+  ±10%, capture-rate trend ±1 pp, discount rate ±2 pp, costs, the other build-out scenarios),
+  computed from the viewer's settings (`dashboard.sensitivities`, tested).
+- Every build-out scenario priced with the viewer's other settings (`dashboard.buildout_table`,
+  tested); volume (P50, P90) for the wind park.
+- Risk tab: the buyer's premium split (without a hedge, after it, profile, volume), negative
+  prices (share of output, value of stopping, the clause's price) and what each structure means.
+- An explanation behind the ⓘ of every control, headline number, section and table column
+  (47 in all), a hedging explainer and a glossary of 17 terms.
+
+### Changed
+- Structures table: "spot" instead of an empty strike for merchant sales; cash flow at risk
+  second; shorter column titles, explained in their tooltips.
+- Headline labels are short ("Indicative price"), with the unit in the line below.
+
 ## [1.11.1] (fixes: the live dashboard, and one set of parks everywhere)
 
 ### Fixed
