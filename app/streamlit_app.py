@@ -1,17 +1,19 @@
-"""ppa-lab dashboard: the PPA price and its risk, for your own assumptions, in English or German.
+"""ppa-lab dashboard: the PPA price and its risk, for your own assumptions, in English, German
+or Italian.
 
     make app            # or: .venv/bin/python -m streamlit run app/streamlit_app.py
-    ...?lang=de         # opens the German version
+    ...?lang=de         # opens the German version (?lang=it the Italian one)
 
 Reads reports/results.json (committed, written by `ppa-lab memo`), so it runs without
 downloading any data. All calculations are in ppa_lab.dashboard (tested); all texts in
-ppa_lab.dashboard_text (English and German).
+ppa_lab.dashboard_text (English, German and Italian).
 """
 
 from __future__ import annotations
 
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -45,7 +47,7 @@ from ppa_lab.dashboard_text import (  # noqa: E402
     LANGS,
     METHOD,
     STRUCTURES_EXPLAINED,
-    forward_text_de,
+    forward_text_local,
     number,
     percent,
     translator,
@@ -78,9 +80,9 @@ n_scen = results["scenarios"]
 # --------------------------------------------------------------------------- #
 with st.sidebar:
     asked = st.query_params.get("lang", "en")
-    lang = st.radio("Language / Sprache", list(LANGS), format_func=LANGS.get, horizontal=True,
-                    index=list(LANGS).index(asked) if asked in LANGS else 0, key="lang",
-                    help=HELP["en"]["language"] + " / " + HELP["de"]["language"])
+    lang = st.radio("Language / Sprache / Lingua", list(LANGS), format_func=LANGS.get,
+                    horizontal=True, index=list(LANGS).index(asked) if asked in LANGS else 0,
+                    key="lang", help="  \n".join(HELP[k]["language"] for k in LANGS))
 st.query_params["lang"] = lang
 _ = translator(lang)
 st.set_page_config(page_title=_("ppa-lab · PPA price and risk"))
@@ -138,8 +140,8 @@ def _digits(fmt: str | None) -> tuple[int, bool]:
 
 def show_table(df: pd.DataFrame, fmt: dict[str, str] | None = None,
                height: int | None = None, text_columns: tuple[str, ...] = ()) -> None:
-    """A table with a tooltip on every column. In German the numbers are written out with
-    German decimals (the number columns format the English way), labels translated."""
+    """A table with a tooltip on every column. In German and Italian the numbers are written out
+    with their decimal comma (the number columns format the English way), labels translated."""
     fmt = fmt or {}
     if lang == "en":
         config = {c: (st.column_config.TextColumn(c, help=COLS.get(c), alignment="right")
@@ -185,7 +187,9 @@ def stack_figure(s: dict, tenor: int) -> plt.Figure:
             top, level = max(level, level + value), level + value
             text = n(round(value, 1) + 0.0, 1, sign=True)          # no "-0.0"
         ax.text(i, top + 1.5, text, ha="center", fontsize=9, fontweight="bold", color=INK)
-    ax.set_xticks(range(len(layers)), [name for name, *_rest in layers], fontsize=8)
+    names = ["\n".join(textwrap.fill(line, 15, break_long_words=False) for line in name.split("\n"))
+             for name, *_rest in layers]                     # long labels on two lines
+    ax.set_xticks(range(len(layers)), names, fontsize=8)
     ax.set_ylabel(_("EUR/MWh"))
     ax.set_ylim(0, 1.16 * max(s["forward"], s["fair_price"]))
     for side in ("top", "right"):
@@ -253,7 +257,8 @@ def profile_figure(d: dict, colour: str) -> plt.Figure:
 # --------------------------------------------------------------------------- #
 forward = results.get("forward") or {"price_eur_mwh": results.get("forward_assumption")}
 curve = results.get("forward_curve") or {}
-forward_text = (forward_text_de(forward, curve, start) if lang == "de" and forward.get("date")
+local = lang != "en" and forward.get("date")
+forward_text = (forward_text_local(forward, curve, start, lang) if local
                 else describe_forward(forward, curve, start))
 with st.sidebar:
     st.header(_("Your assumptions"), help=H["assumptions"])

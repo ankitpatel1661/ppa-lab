@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.14.0] (dashboard in Italian)
+
+### Added
+- An Italian version of the dashboard: a third option in the language switch, or a link with
+  `?lang=it`. Every label, explanation, table, chart and the glossary is translated; numbers
+  are written with a decimal comma (sliders included).
+- `dashboard_text.IT` and an Italian entry in every explanation; `TRANSLATIONS` maps each
+  language to its labels, and `forward_text_local` describes the forward in German or Italian
+  (it replaces `forward_text_de`).
+
+### Changed
+- The text tests run for every language: each label the app translates needs a version with
+  the same placeholders, and the German and Italian dashboards are checked for English labels
+  left in the tables. Switching between all three languages keeps your settings.
+- Long layer names in the price chart wrap onto two lines (the Italian ones overlapped).
+
 ## [1.13.0] (dashboard: why the capture rate is what it is, and a German version)
 
 ### Added
