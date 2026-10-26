@@ -57,7 +57,37 @@ def wind_price_response(prices: pd.DataFrame, wind: pd.DataFrame, year: int) -> 
 
     Return {"eur_per_0.1_cf": ..., "correlation": ...}.
     """
-    raise NotImplementedError("Exercise 1")
+     """Slope and correlation of daily prices on wind capacity factor."""
+    price = prices["price_eur_mwh"].copy()
+    generation = wind["mw"].copy()
+
+    # Convert timestamps to German local time before grouping into days.
+    price.index = price.index.tz_convert(TZ)
+    generation.index = generation.index.tz_convert(TZ)
+
+    daily_price = price.groupby(price.index.date).mean()
+    daily_cf = generation.groupby(generation.index.date).mean() / WIND_MW
+
+    daily = pd.DataFrame({
+        "price": daily_price,
+        "wind": daily_cf,
+    })
+    daily.index = pd.to_datetime(daily.index)
+    daily = daily.loc[daily.index.year == year].dropna()
+
+    # Remove monthly means to control for seasonality and monthly price levels.
+    anomalies = daily - daily.groupby(daily.index.month).transform("mean")
+    w = anomalies["wind"]
+    p = anomalies["price"]
+
+    denominator = (w ** 2).sum()
+    slope = (w * p).sum() / denominator if denominator else float("nan")
+    correlation = w.corr(p)
+
+    return {
+        "eur_per_0.1_cf": float(slope * 0.1),
+        "correlation": float(correlation),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -74,7 +104,38 @@ def analog_days(features: pd.DataFrame, target: pd.Timestamp, k: int = 5, window
       standard deviation over ALL rows of `features`.
     - Return the k nearest dates, nearest first (sort with kind="stable").
     """
-    raise NotImplementedError("Exercise 2")
+     """Return the k nearest weather analog dates."""
+    target = pd.Timestamp(target).normalize()
+    target_features = features.loc[target]
+
+    # Seasonal distance, wrapping around the end of the year.
+    target_doy = target.dayofyear
+    candidate_doy = features.index.dayofyear
+    gap = abs(candidate_doy - target_doy)
+    gap = pd.Series(
+        gap,
+        index=features.index,
+    )
+    gap = gap.where(gap <= 365 - gap, 365 - gap)
+
+    day_distance = abs((features.index - target).days)
+    mask = (gap <= window) & (day_distance >= exclude)
+    candidates = features.loc[mask].copy()
+
+    if candidates.empty:
+        return []
+
+    # Standardize each feature using the standard deviation over all rows.
+    std = features.std()
+    std = std.replace(0, float("nan"))
+
+    distances = (
+        (candidates - target_features) / std
+    ).pow(2).sum(axis=1)
+
+    # Stable sorting preserves the original order for tied distances.
+    order = distances.sort_values(kind="stable").head(k)
+    return [pd.Timestamp(d) for d in order.index]
 
 
 # --------------------------------------------------------------------------- #
@@ -88,7 +149,31 @@ def fair_prices(table: pd.DataFrame) -> pd.DataFrame:
     Fair price = sum of revenue / sum of MWh over the scenarios (Step 3: E[sum qP] / E[sum q]).
     Return a DataFrame: index solar_park, wind_park; columns independent, linked.
     """
-    raise NotImplementedError("Exercise 3")
+     """Calculate scenario-weighted pay-as-produced fair prices."""
+    parks = ["solar_park", "wind_park"]
+    price_types = ["independent", "linked"]
+    result = pd.DataFrame(
+        index=parks,
+        columns=price_types,
+        dtype=float,
+    )
+
+    for park in parks:
+        mwh_col = f"{park}_mwh"
+        revenue_col = f"{park}_revenue_eur"
+
+        for price_type in price_types:
+            subset = table.loc[table["prices"] == price_type]
+            total_mwh = subset[mwh_col].sum()
+            total_revenue = subset[revenue_col].sum()
+
+            result.loc[park, price_type] = (
+                total_revenue / total_mwh
+                if total_mwh != 0
+                else float("nan")
+            )
+
+    return result
 
 
 # --------------------------------------------------------------------------- #
@@ -101,7 +186,14 @@ def fair_prices(table: pd.DataFrame) -> pd.DataFrame:
 # sensitivity table: which historical days represent 2027?)?
 #
 # Your answer:
-#
+#The 148 EUR/MWh wind offer is too generous because the Step 5 model assumes prices are 
+#independent of weather and generation, missing the price impact when wind output is high; 
+#the linked scenarios put the fair price at 129 EUR/MWh. The solar error is smaller in the 
+#Step 6 report (about 3 EUR/MWh) because the scenario-based calculation captures more of the 
+#relationship between solar production and prices. However, the true solar error could be larger 
+#if the historical days used to represent 2027 underrepresent high-solar-output days with frequent
+#negative prices. The sensitivity table should reveal which historical days drive the 2027 result 
+#and whether those days adequately capture solar cannibalization.
 #
 
 
