@@ -1,6 +1,6 @@
-"""The dashboard's texts: every label the app translates has a German and an Italian version with
-the same placeholders, the explanations exist in every language, numbers are written the local
-way."""
+"""The dashboard's texts: every label the app translates has a German, Italian and Spanish
+version with the same placeholders, the explanations exist in every language, numbers are written
+the local way."""
 
 import ast
 import re
@@ -56,7 +56,8 @@ def app_texts() -> set[str]:
 
 def test_every_language_is_offered_and_translated():
     assert set(LANGS) == {"en"} | set(TRANSLATIONS)
-    assert TRANSLATIONS["it"].keys() == TRANSLATIONS["de"].keys()
+    for table in TRANSLATIONS.values():
+        assert table.keys() == TRANSLATIONS["de"].keys()
 
 
 @pytest.mark.parametrize("lang", sorted(TRANSLATIONS))
@@ -85,8 +86,8 @@ def test_explanations_fill_in():
             text.format(start=2027, n=1000, forward_text="EEX Cal-27")
         METHOD[lang].format(n=1000, forward_text="EEX Cal-27", repo="https://example.org")
         assert len(GLOSSARY[lang]) == len(GLOSSARY["en"])
-    assert [t for t, _ in GLOSSARY["de"]] != [t for t, _ in GLOSSARY["en"]]
-    assert [t for t, _ in GLOSSARY["it"]] != [t for t, _ in GLOSSARY["en"]]
+    for lang in TRANSLATIONS:
+        assert [t for t, _ in GLOSSARY[lang]] != [t for t, _ in GLOSSARY["en"]]
 
 
 def test_local_numbers():
@@ -98,9 +99,11 @@ def test_local_numbers():
     assert percent(-0.31, 0, "en", sign=True) == "−31%"
     assert number(12345.678, 1, "it") == "12.345,7"
     assert percent(0.774, 0, "it") == "77%"
+    assert number(-3.5, 2, "es") == "−3,50"
+    assert percent(0.774, 0, "es") == "77\u202f%"
 
 
-def test_forward_described_in_german_and_italian():
+def test_forward_described_in_german_italian_and_spanish():
     forward = {"price_eur_mwh": 140.21, "date": "2026-10-09"}
     curve = {"2028": 104.75, "2029": 87.58}
     assert forward_text_local(forward, curve, 2027, "de") == (
@@ -108,6 +111,8 @@ def test_forward_described_in_german_and_italian():
         "Terminkurve (2028: 104,75, 2029: 87,58), nach 2029 konstant")
     assert forward_text_local(forward, curve, 2027, "it").startswith(
         "EEX Cal-27 base 140,21 EUR/MWh (quotazione del 2026-10-09); gli anni successivi")
+    assert forward_text_local(forward, curve, 2027, "es").endswith(
+        "(2028: 104,75, 2029: 87,58), constante después de 2029")
 
 
 def test_translator_falls_back_to_english_and_records_the_gap():
@@ -118,6 +123,7 @@ def test_translator_falls_back_to_english_and_records_the_gap():
     assert translator("en")("Park") == "Park"
     assert translator("de")("Your assumptions") == "Ihre Annahmen"
     assert translator("it")("Your assumptions") == "Le tue ipotesi"
+    assert translator("es")("Your assumptions") == "Tus supuestos"
     assert translator("de")("no such label") == "no such label"
     assert missing == {"no such label"}
     missing.clear()

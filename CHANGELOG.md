@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.15.0] (dashboard in Spanish)
+
+### Added
+- A Spanish version of the dashboard: a fourth language in the switch, or a link with
+  `?lang=es`. Every label, explanation, table, chart and the glossary is translated, with the
+  Spanish market's own terms where they exist (desvíos for balancing, representante de mercado
+  for the direct marketer; the glossary gives apuntamiento for the capture rate); numbers use a
+  decimal comma and "77 %".
+- `dashboard_text.ES`, a Spanish entry in every explanation and in `FORWARD_TEXT`.
+
+### Changed
+- The language switch is a dropdown: four options no longer fit on one line of the sidebar.
+- The text and dashboard tests cover Spanish: every label translated with the same
+  placeholders, no English left in the Spanish tables, settings kept across all four languages.
+
 ## [1.14.0] (dashboard in Italian)
 
 ### Added

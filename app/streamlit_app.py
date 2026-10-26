@@ -1,12 +1,12 @@
-"""ppa-lab dashboard: the PPA price and its risk, for your own assumptions, in English, German
-or Italian.
+"""ppa-lab dashboard: the PPA price and its risk, for your own assumptions, in English, German,
+Italian or Spanish.
 
     make app            # or: .venv/bin/python -m streamlit run app/streamlit_app.py
-    ...?lang=de         # opens the German version (?lang=it the Italian one)
+    ...?lang=de         # opens the German version (?lang=it Italian, ?lang=es Spanish)
 
 Reads reports/results.json (committed, written by `ppa-lab memo`), so it runs without
 downloading any data. All calculations are in ppa_lab.dashboard (tested); all texts in
-ppa_lab.dashboard_text (English, German and Italian).
+ppa_lab.dashboard_text (English, German, Italian and Spanish).
 """
 
 from __future__ import annotations
@@ -80,9 +80,10 @@ n_scen = results["scenarios"]
 # --------------------------------------------------------------------------- #
 with st.sidebar:
     asked = st.query_params.get("lang", "en")
-    lang = st.radio("Language / Sprache / Lingua", list(LANGS), format_func=LANGS.get,
-                    horizontal=True, index=list(LANGS).index(asked) if asked in LANGS else 0,
-                    key="lang", help="  \n".join(HELP[k]["language"] for k in LANGS))
+    lang = st.selectbox("Language / Sprache / Lingua / Idioma", list(LANGS),
+                        format_func=LANGS.get, key="lang",
+                        index=list(LANGS).index(asked) if asked in LANGS else 0,
+                        help="  \n".join(HELP[k]["language"] for k in LANGS))
 st.query_params["lang"] = lang
 _ = translator(lang)
 st.set_page_config(page_title=_("ppa-lab · PPA price and risk"))
@@ -140,8 +141,8 @@ def _digits(fmt: str | None) -> tuple[int, bool]:
 
 def show_table(df: pd.DataFrame, fmt: dict[str, str] | None = None,
                height: int | None = None, text_columns: tuple[str, ...] = ()) -> None:
-    """A table with a tooltip on every column. In German and Italian the numbers are written out
-    with their decimal comma (the number columns format the English way), labels translated."""
+    """A table with a tooltip on every column. In the other languages the numbers are written out
+    with a decimal comma (the number columns format the English way), labels translated."""
     fmt = fmt or {}
     if lang == "en":
         config = {c: (st.column_config.TextColumn(c, help=COLS.get(c), alignment="right")

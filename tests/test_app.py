@@ -60,6 +60,7 @@ def _english_in_tables(at: AppTest, lang: str) -> list:
 @pytest.mark.parametrize(("lang", "indicative", "central"), [
     ("de", "Indikativer Preis", "Zentral (Basisfall)"),
     ("it", "Prezzo indicativo", "Centrale (caso base)"),
+    ("es", "Precio indicativo", "Central (caso base)"),
 ])
 def test_translated_dashboard_has_no_english_left(lang, indicative, central):
     at = AppTest.from_file(str(APP), default_timeout=60)
@@ -79,8 +80,8 @@ def test_switching_the_language_keeps_the_assumptions():
     at = AppTest.from_file(str(APP), default_timeout=60).run()
     at.slider(key="forward_shift").set_value(-20).run()
     english = float(at.metric[0].value)
-    for lang in ("de", "it"):
-        at.radio(key="lang").set_value(lang).run()
+    for lang in ("de", "it", "es"):
+        at.selectbox(key="lang").set_value(lang).run()
         assert not at.exception and at.slider(key="forward_shift").value == -20
         assert float(at.metric[0].value.replace(".", "").replace(",", ".")) == english
 

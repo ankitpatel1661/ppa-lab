@@ -129,8 +129,9 @@ years follow the curve (Cal-28 104.75, Cal-29 87.58, then held flat)
 layer, year by year, why the capture rate is what it is (the day's price curve against the
 park's output), what moves the price most and every build-out scenario, with an explanation
 behind each ⓘ and a glossary; in English, German
-([`?lang=de`](https://ppa-lab.streamlit.app/?lang=de)) or Italian
-([`?lang=it`](https://ppa-lab.streamlit.app/?lang=it)).
+([`?lang=de`](https://ppa-lab.streamlit.app/?lang=de)), Italian
+([`?lang=it`](https://ppa-lab.streamlit.app/?lang=it)) or Spanish
+([`?lang=es`](https://ppa-lab.streamlit.app/?lang=es)).
 
 ## How it works, in nine steps
 

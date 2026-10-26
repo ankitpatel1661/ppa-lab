@@ -131,7 +131,7 @@ the assumptions myself, without running the pipeline.
 - [x] v1.12: the fair price as a headline number, what moves the price, an explanation behind
       every number. v1.13: why the capture rate is what it is (price by hour against output;
       daily shape, seasons, weather), and the whole dashboard in German (`?lang=de`). v1.14:
-      Italian too (`?lang=it`).
+      Italian too (`?lang=it`); v1.15: Spanish (`?lang=es`).
 
 Done before PPA-8 on purpose: the public MVP had to be complete before the application date.
 
