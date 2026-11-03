@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.10** (tickets PPA-2b, PPA-6c): cash flows and fair prices of the standard structures,
+**Version 1.11** (ticket PPA-8f): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
