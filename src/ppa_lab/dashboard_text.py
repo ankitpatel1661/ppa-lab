@@ -70,8 +70,7 @@ DE: dict[str, str] = {
     "Credit and liquidity (EUR/MWh)": "Kredit und Liquidität (EUR/MWh)",
     "Defaults = the Step 7 base case (config/project.toml).":
         "Voreinstellungen = Basisfall aus Schritt 7 (config/project.toml).",
-    "{name}: solar +{pv} GW, storage +{storage} GWh a year":
-        "{name}: Solar +{pv} GW, Speicher +{storage} GWh pro Jahr",
+    "{name} · {pv} GW · {storage} GWh": "{name} · {pv} GW · {storage} GWh",
     "Central": "Zentral",
     "Recent pace": "Aktuelles Tempo",
     "EEG solar target pace": "EEG-Ausbaupfad Solar",
@@ -168,10 +167,13 @@ DE: dict[str, str] = {
     "Volume": "Menge",
     "P50 energy (GWh a year)": "P50-Erzeugung (GWh pro Jahr)",
     "P90, one year (GWh)": "P90, ein Jahr (GWh)",
-    "Expected energy P50 {p50} GWh a year; one year in ten below {p90} GWh (P90). Premium and "
+    "P50 (the median weather year) {p50} GWh a year, one year in ten below {p90} GWh (P90); the "
+    "years above use the scenarios' average, {mean} GWh in {start}, less degradation. Premium and "
     "costs per MWh of the first year apply to every year.":
-        "Erwartete Erzeugung P50 {p50} GWh pro Jahr; in einem von zehn Jahren unter {p90} GWh "
-        "(P90). Prämie und Kosten je MWh des ersten Jahres gelten für jedes Jahr.",
+        "P50 (das mittlere Wetterjahr) {p50} GWh pro Jahr, in einem von zehn Jahren unter "
+        "{p90} GWh (P90); die Jahre oben rechnen mit dem Mittel der Szenarien, {mean} GWh in "
+        "{start}, abzüglich Degradation. Prämie und Kosten je MWh des ersten Jahres gelten für "
+        "jedes Jahr.",
     # charts
     "Forward\n{start}": "Terminpreis\n{start}",
     "Fair price\n{start}": "Fairer Preis\n{start}",
@@ -197,14 +199,14 @@ DE: dict[str, str] = {
     "Indicative (EUR/MWh)": "Indikativ (EUR/MWh)",
     "vs yours (EUR/MWh)": "ggü. Ihrem Fall (EUR/MWh)",
     "Scenario": "Szenario",
-    "Solar added (GW a year)": "Solarzubau (GW pro Jahr)",
-    "Storage added (GWh a year)": "Speicherzubau (GWh pro Jahr)",
-    "Capture-rate fall (% a year)": "Rückgang der Capture Rate (% pro Jahr)",
+    "Solar (GW/yr)": "Solar (GW/Jahr)",
+    "Storage (GWh/yr)": "Speicher (GWh/Jahr)",
+    "Capture-rate fall (%/yr)": "Rückgang (%/Jahr)",
     "Strike (EUR/MWh)": "Strike (EUR/MWh)",
     "CFaR 95% (EUR m)": "CFaR 95 % (Mio. EUR)",
     "Expected (EUR m)": "Erwartet (Mio. EUR)",
-    "Bad year, P5 (EUR m)": "Schlechtes Jahr, P5 (Mio. EUR)",
-    "Output paid (%)": "Bezahlte Erzeugung (%)",
+    "Bad year, P5 (EUR m)": "P5-Jahr (Mio. EUR)",
+    "Output paid (%)": "Bezahlt (%)",
     "MW sold": "Verkaufte MW",
     "Hedge ratio (%)": "Hedge-Quote (%)",
     "CFaR95 (EUR m)": "CFaR95 (Mio. EUR)",
@@ -220,17 +222,16 @@ DE: dict[str, str] = {
     "Discount rate −2 pp": "Diskontsatz −2 Pp.",
     "Balancing and credit +1 EUR/MWh": "Ausgleich und Kredit +1 EUR/MWh",
     "Build-out: {name}": "Zubau: {name}",
-    "Merchant, curtailing at negative prices": "Spotmarkt, Abregelung bei negativen Preisen",
-    "Merchant, producing at negative prices": "Spotmarkt, Erzeugung bei negativen Preisen",
+    "Merchant, stops at price < 0": "Spot, abgeregelt bei Preisen < 0",
+    "Merchant, runs at price < 0": "Spot, Erzeugung bei Preisen < 0",
     "Pay-as-produced PPA": "Pay-as-produced-PPA",
-    "Pay-as-produced, negative-price clause": "Pay-as-produced mit Klausel für negative Preise",
-    "Pay-as-produced, buyer curtails, deemed output paid":
-        "Pay-as-produced, Käufer regelt ab, fiktive Erzeugung bezahlt",
+    "PaP, negative-price clause": "PaP, Klausel für negative Preise",
+    "PaP, deemed output paid": "PaP, fiktive Erzeugung bezahlt",
     "Merchant + floor at 0 (premium paid)": "Spotmarkt + Floor bei 0 (Prämie bezahlt)",
     "Baseload PPA": "Baseload-PPA",
     "No hedge (merchant)": "Keine Absicherung (Spotmarkt)",
-    "Cal base, 50% of average output": "Cal Base, 50 % der mittleren Erzeugung",
-    "Cal base, 100% of average output": "Cal Base, 100 % der mittleren Erzeugung",
+    "Cal base, 50% of average output": "Cal Base, 50 % der Erzeugung",
+    "Cal base, 100% of average output": "Cal Base, 100 % der Erzeugung",
     "Cal base, minimum-variance": "Cal Base, minimale Varianz",
     "Quarters, minimum-variance": "Quartale, minimale Varianz",
     "Months, minimum-variance": "Monate, minimale Varianz",
@@ -294,8 +295,8 @@ DE: dict[str, str] = {
         "Preise und Erzeugung seit 2021, geprüft und abgeglichen",
     "Capture prices": "Capture Prices",
     "What solar and wind earn vs the official market values":
-        "Was Solar und Wind erlösen, im Vergleich zu den offiziellen Marktwerten",
-    "TSO data": "Daten der Übertragungsnetzbetreiber",
+        "Was Solar und Wind erlösen, gegenüber den offiziellen Marktwerten",
+    "TSO data": "ÜNB-Daten",
     "Official market values reproduced; balancing cost from reBAP":
         "Offizielle Marktwerte nachgebildet; Ausgleichskosten aus dem reBAP",
     "PPA structures": "PPA-Strukturen",
@@ -313,10 +314,11 @@ DE: dict[str, str] = {
     "Structures, premia, price stack, ten-year price":
         "Strukturen, Prämien, Preisaufbau, Zehnjahrespreis",
     "Futures hedges, hedge ratio, buyer's hedge, market check":
-        "Futures-Absicherung, Hedge-Quote, Absicherung des Käufers, Marktabgleich",
+        "Futures, Hedge-Quote, Absicherung des Käufers, Marktabgleich",
     "Capture rates per scenario: prices linked to the weather vs not":
         "Capture Rates je Szenario: Preise mit und ohne Wetterbezug",
-    "Price stack, both parks": "Preisaufbau, beide Parks",
+    "Tested on years the model never saw: capture rate, model vs history":
+        "Getestet an Jahren, die das Modell nie gesehen hat: Capture Rate, Modell und Historie",
     "Glossary": "Glossar",
     "Term": "Begriff",
     "ppa-lab · PPA price and risk": "ppa-lab · PPA-Preis und Risiko",
@@ -348,11 +350,10 @@ IT: dict[str, str] = {
     "Credit and liquidity (EUR/MWh)": "Credito e liquidità (EUR/MWh)",
     "Defaults = the Step 7 base case (config/project.toml).":
         "Valori predefiniti = caso base della fase 7 (config/project.toml).",
-    "{name}: solar +{pv} GW, storage +{storage} GWh a year":
-        "{name}: fotovoltaico +{pv} GW, accumuli +{storage} GWh l'anno",
+    "{name} · {pv} GW · {storage} GWh": "{name} · {pv} GW · {storage} GWh",
     "Central": "Centrale",
     "Recent pace": "Ritmo recente",
-    "EEG solar target pace": "Ritmo dell'obiettivo EEG per il solare",
+    "EEG solar target pace": "Obiettivo EEG solare",
     "Storage boom": "Boom degli accumuli",
     "Slowdown": "Rallentamento",
     "{name} (base case)": "{name} (caso base)",
@@ -448,10 +449,12 @@ IT: dict[str, str] = {
     "Volume": "Volume",
     "P50 energy (GWh a year)": "Energia P50 (GWh l'anno)",
     "P90, one year (GWh)": "P90, un anno (GWh)",
-    "Expected energy P50 {p50} GWh a year; one year in ten below {p90} GWh (P90). Premium and "
+    "P50 (the median weather year) {p50} GWh a year, one year in ten below {p90} GWh (P90); the "
+    "years above use the scenarios' average, {mean} GWh in {start}, less degradation. Premium and "
     "costs per MWh of the first year apply to every year.":
-        "Energia attesa P50 {p50} GWh l'anno; un anno su dieci sotto {p90} GWh (P90). Premio e "
-        "costi per MWh del primo anno valgono per ogni anno.",
+        "P50 (l'anno meteo mediano) {p50} GWh l'anno, un anno su dieci sotto {p90} GWh (P90); "
+        "gli anni sopra usano la media degli scenari, {mean} GWh nel {start}, meno il degrado. "
+        "Premio e costi per MWh del primo anno valgono per ogni anno.",
     # charts
     "Forward\n{start}": "Forward\n{start}",
     "Fair price\n{start}": "Prezzo equo\n{start}",
@@ -477,18 +480,18 @@ IT: dict[str, str] = {
     "Indicative (EUR/MWh)": "Indicativo (EUR/MWh)",
     "vs yours (EUR/MWh)": "rispetto al tuo (EUR/MWh)",
     "Scenario": "Scenario",
-    "Solar added (GW a year)": "Fotovoltaico aggiunto (GW l'anno)",
-    "Storage added (GWh a year)": "Accumuli aggiunti (GWh l'anno)",
-    "Capture-rate fall (% a year)": "Calo del capture rate (% l'anno)",
+    "Solar (GW/yr)": "Solare (GW/anno)",
+    "Storage (GWh/yr)": "Accumuli (GWh/anno)",
+    "Capture-rate fall (%/yr)": "Calo (%/anno)",
     "Strike (EUR/MWh)": "Strike (EUR/MWh)",
     "CFaR 95% (EUR m)": "CFaR 95% (mln EUR)",
     "Expected (EUR m)": "Atteso (mln EUR)",
-    "Bad year, P5 (EUR m)": "Anno negativo, P5 (mln EUR)",
-    "Output paid (%)": "Produzione pagata (%)",
+    "Bad year, P5 (EUR m)": "Anno P5 (mln EUR)",
+    "Output paid (%)": "Pagata (%)",
     "MW sold": "MW venduti",
-    "Hedge ratio (%)": "Rapporto di copertura (%)",
+    "Hedge ratio (%)": "Copertura (%)",
     "CFaR95 (EUR m)": "CFaR95 (mln EUR)",
-    "CFaR cut (%)": "Riduzione del CFaR (%)",
+    "CFaR cut (%)": "Calo CFaR (%)",
     "Variance removed (%)": "Varianza eliminata (%)",
     "spot": "spot",
     # tables: rows
@@ -500,17 +503,16 @@ IT: dict[str, str] = {
     "Discount rate −2 pp": "Tasso di attualizzazione −2 p.p.",
     "Balancing and credit +1 EUR/MWh": "Sbilanciamento e credito +1 EUR/MWh",
     "Build-out: {name}": "Crescita: {name}",
-    "Merchant, curtailing at negative prices": "Merchant, fermo a prezzi negativi",
-    "Merchant, producing at negative prices": "Merchant, in produzione a prezzi negativi",
+    "Merchant, stops at price < 0": "Merchant, fermo a prezzi negativi",
+    "Merchant, runs at price < 0": "Merchant, attivo a prezzi negativi",
     "Pay-as-produced PPA": "PPA pay-as-produced",
-    "Pay-as-produced, negative-price clause": "Pay-as-produced, clausola sui prezzi negativi",
-    "Pay-as-produced, buyer curtails, deemed output paid":
-        "Pay-as-produced, l'acquirente ferma il parco e paga la produzione mancata",
+    "PaP, negative-price clause": "PaP, clausola prezzi negativi",
+    "PaP, deemed output paid": "PaP, produzione mancata pagata",
     "Merchant + floor at 0 (premium paid)": "Merchant + floor a 0 (premio pagato)",
     "Baseload PPA": "PPA baseload",
     "No hedge (merchant)": "Nessuna copertura (merchant)",
-    "Cal base, 50% of average output": "Cal base, 50% della produzione media",
-    "Cal base, 100% of average output": "Cal base, 100% della produzione media",
+    "Cal base, 50% of average output": "Cal base, 50% della produzione",
+    "Cal base, 100% of average output": "Cal base, 100% della produzione",
     "Cal base, minimum-variance": "Cal base, varianza minima",
     "Quarters, minimum-variance": "Trimestri, varianza minima",
     "Months, minimum-variance": "Mesi, varianza minima",
@@ -575,7 +577,7 @@ IT: dict[str, str] = {
     "Capture prices": "Capture price",
     "What solar and wind earn vs the official market values":
         "Quanto incassano solare ed eolico rispetto ai valori di mercato ufficiali",
-    "TSO data": "Dati dei gestori di rete (TSO)",
+    "TSO data": "Dati TSO",
     "Official market values reproduced; balancing cost from reBAP":
         "Valori di mercato ufficiali riprodotti; costo di sbilanciamento dal reBAP",
     "PPA structures": "Strutture di PPA",
@@ -593,11 +595,11 @@ IT: dict[str, str] = {
     "Structures, premia, price stack, ten-year price":
         "Strutture, premi, composizione del prezzo, prezzo decennale",
     "Futures hedges, hedge ratio, buyer's hedge, market check":
-        "Coperture con futures, rapporto di copertura, copertura dell'acquirente, verifica di "
-        "mercato",
+        "Futures, rapporto di copertura, copertura dell'acquirente, verifica di mercato",
     "Capture rates per scenario: prices linked to the weather vs not":
         "Capture rate per scenario: prezzi legati al meteo e non",
-    "Price stack, both parks": "Composizione del prezzo, entrambi i parchi",
+    "Tested on years the model never saw: capture rate, model vs history":
+        "Verificato su anni che il modello non ha mai visto: capture rate, modello e storia",
     "Glossary": "Glossario",
     "Term": "Termine",
     "ppa-lab · PPA price and risk": "ppa-lab · prezzo e rischio dei PPA",
@@ -630,12 +632,11 @@ ES: dict[str, str] = {
     "Credit and liquidity (EUR/MWh)": "Crédito y liquidez (EUR/MWh)",
     "Defaults = the Step 7 base case (config/project.toml).":
         "Valores por defecto = caso base del paso 7 (config/project.toml).",
-    "{name}: solar +{pv} GW, storage +{storage} GWh a year":
-        "{name}: solar +{pv} GW, almacenamiento +{storage} GWh al año",
+    "{name} · {pv} GW · {storage} GWh": "{name} · {pv} GW · {storage} GWh",
     "Central": "Central",
     "Recent pace": "Ritmo reciente",
-    "EEG solar target pace": "Ritmo del objetivo solar de la EEG",
-    "Storage boom": "Auge del almacenamiento",
+    "EEG solar target pace": "Objetivo solar EEG",
+    "Storage boom": "Auge de baterías",
     "Slowdown": "Desaceleración",
     "{name} (base case)": "{name} (caso base)",
     # page head
@@ -731,10 +732,13 @@ ES: dict[str, str] = {
     "Volume": "Volumen",
     "P50 energy (GWh a year)": "Energía P50 (GWh al año)",
     "P90, one year (GWh)": "P90, un año (GWh)",
-    "Expected energy P50 {p50} GWh a year; one year in ten below {p90} GWh (P90). Premium and "
+    "P50 (the median weather year) {p50} GWh a year, one year in ten below {p90} GWh (P90); the "
+    "years above use the scenarios' average, {mean} GWh in {start}, less degradation. Premium and "
     "costs per MWh of the first year apply to every year.":
-        "Energía esperada P50 {p50} GWh al año; un año de cada diez por debajo de {p90} GWh "
-        "(P90). La prima y los costes por MWh del primer año se aplican a todos los años.",
+        "P50 (el año meteorológico mediano) {p50} GWh al año, un año de cada diez por debajo "
+        "de {p90} GWh (P90); los años de arriba usan la media de los escenarios, {mean} GWh en "
+        "{start}, menos la degradación. La prima y los costes por MWh del primer año se aplican "
+        "a todos los años.",
     # charts
     "Forward\n{start}": "Forward\n{start}",
     "Fair price\n{start}": "Precio justo\n{start}",
@@ -760,18 +764,18 @@ ES: dict[str, str] = {
     "Indicative (EUR/MWh)": "Indicativo (EUR/MWh)",
     "vs yours (EUR/MWh)": "frente al tuyo (EUR/MWh)",
     "Scenario": "Escenario",
-    "Solar added (GW a year)": "Solar añadida (GW al año)",
-    "Storage added (GWh a year)": "Almacenamiento añadido (GWh al año)",
-    "Capture-rate fall (% a year)": "Caída de la tasa de captura (% anual)",
+    "Solar (GW/yr)": "Solar (GW/año)",
+    "Storage (GWh/yr)": "Baterías (GWh/año)",
+    "Capture-rate fall (%/yr)": "Caída (%/año)",
     "Strike (EUR/MWh)": "Strike (EUR/MWh)",
     "CFaR 95% (EUR m)": "CFaR 95 % (M EUR)",
     "Expected (EUR m)": "Esperado (M EUR)",
     "Bad year, P5 (EUR m)": "Año malo, P5 (M EUR)",
-    "Output paid (%)": "Producción pagada (%)",
+    "Output paid (%)": "Pagada (%)",
     "MW sold": "MW vendidos",
-    "Hedge ratio (%)": "Ratio de cobertura (%)",
+    "Hedge ratio (%)": "Cobertura (%)",
     "CFaR95 (EUR m)": "CFaR95 (M EUR)",
-    "CFaR cut (%)": "Reducción del CFaR (%)",
+    "CFaR cut (%)": "Caída CFaR (%)",
     "Variance removed (%)": "Varianza eliminada (%)",
     "spot": "spot",
     # tables: rows
@@ -783,17 +787,16 @@ ES: dict[str, str] = {
     "Discount rate −2 pp": "Tasa de descuento −2 p. p.",
     "Balancing and credit +1 EUR/MWh": "Desvíos y crédito +1 EUR/MWh",
     "Build-out: {name}": "Despliegue: {name}",
-    "Merchant, curtailing at negative prices": "Merchant, se detiene con precios negativos",
-    "Merchant, producing at negative prices": "Merchant, produce con precios negativos",
+    "Merchant, stops at price < 0": "Merchant, parado a precio < 0",
+    "Merchant, runs at price < 0": "Merchant, activo a precio < 0",
     "Pay-as-produced PPA": "PPA pay-as-produced",
-    "Pay-as-produced, negative-price clause": "Pay-as-produced, cláusula de precios negativos",
-    "Pay-as-produced, buyer curtails, deemed output paid":
-        "Pay-as-produced, el comprador detiene el parque y paga la producción perdida",
+    "PaP, negative-price clause": "PaP, cláusula de precio negativo",
+    "PaP, deemed output paid": "PaP, producción perdida pagada",
     "Merchant + floor at 0 (premium paid)": "Merchant + suelo en 0 (prima pagada)",
     "Baseload PPA": "PPA baseload",
     "No hedge (merchant)": "Sin cobertura (merchant)",
-    "Cal base, 50% of average output": "Cal base, 50 % de la producción media",
-    "Cal base, 100% of average output": "Cal base, 100 % de la producción media",
+    "Cal base, 50% of average output": "Cal base, 50 % de la producción",
+    "Cal base, 100% of average output": "Cal base, 100 % de la producción",
     "Cal base, minimum-variance": "Cal base, varianza mínima",
     "Quarters, minimum-variance": "Trimestres, varianza mínima",
     "Months, minimum-variance": "Meses, varianza mínima",
@@ -859,11 +862,11 @@ ES: dict[str, str] = {
         "Lo que ingresan la solar y la eólica frente a los valores de mercado oficiales",
     "TSO data": "Datos de los TSO",
     "Official market values reproduced; balancing cost from reBAP":
-        "Valores de mercado oficiales reproducidos; coste de desvíos a partir del reBAP",
+        "Valores de mercado oficiales reproducidos; coste de desvíos del reBAP",
     "PPA structures": "Estructuras de PPA",
     "Cash flows and fair prices; back-test 2024-2025":
         "Flujos de caja y precios justos; back-test 2024-2025",
-    "Weather to power": "De la meteorología a la energía",
+    "Weather to power": "Del tiempo a la energía",
     "31 ERA5 weather years at two real sites; P50/P90":
         "31 años meteorológicos ERA5 en dos emplazamientos reales; P50/P90",
     "Price model": "Modelo de precios",
@@ -875,11 +878,11 @@ ES: dict[str, str] = {
     "Structures, premia, price stack, ten-year price":
         "Estructuras, primas, composición del precio, precio a diez años",
     "Futures hedges, hedge ratio, buyer's hedge, market check":
-        "Coberturas con futuros, ratio de cobertura, cobertura del comprador, comprobación de "
-        "mercado",
+        "Futuros, ratio de cobertura, cobertura del comprador, control de mercado",
     "Capture rates per scenario: prices linked to the weather vs not":
         "Tasas de captura por escenario: precios ligados a la meteorología o no",
-    "Price stack, both parks": "Composición del precio, ambos parques",
+    "Tested on years the model never saw: capture rate, model vs history":
+        "Probado en años que el modelo nunca vio: tasa de captura, modelo e historia",
     "Glossary": "Glosario",
     "Term": "Término",
     "ppa-lab · PPA price and risk": "ppa-lab · precio y riesgo de un PPA",
@@ -1468,7 +1471,8 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
         "Capture rate": "The share of the average price the park's output earns that year.",
         "Fair price (EUR/MWh)": "Forward × capture rate: the break-even price for that year "
                                 "alone.",
-        "Energy (MWh)": "Expected output (P50), lower each year by degradation.",
+        "Energy (MWh)": "Expected output (the scenarios' average; P50 is the median weather year), "
+                        "lower each year by degradation.",
         "Discount factor": "Weight of that year's money today: (1 + r)^−(t + ½).",
         "Strike (EUR/MWh)": "Each structure's own fair price: the strike at which it earns the "
                             "same as the market on average. Merchant has none: it sells at "
@@ -1487,10 +1491,10 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
                                 "effectiveness).",
         "Indicative (EUR/MWh)": "Fair price minus risk premium and costs, with that one change.",
         "vs yours (EUR/MWh)": "Difference to the indicative price with your settings.",
-        "Solar added (GW a year)": "New solar capacity in Germany each year after the first "
+        "Solar (GW/yr)": "New solar capacity in Germany each year after the first "
                                    "year.",
-        "Storage added (GWh a year)": "New battery storage each year.",
-        "Capture-rate fall (% a year)": "How fast solar's capture rate falls under the "
+        "Storage (GWh/yr)": "New battery storage each year.",
+        "Capture-rate fall (%/yr)": "How fast solar's capture rate falls under the "
                                         "scenario.",
     },
     "de": {
@@ -1500,7 +1504,8 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
                         "diesem Jahr erzielt.",
         "Fair price (EUR/MWh)": "Terminpreis × Capture Rate: der Break-even-Preis allein für "
                                 "dieses Jahr.",
-        "Energy (MWh)": "Erwartete Erzeugung (P50), jedes Jahr um die Degradation niedriger.",
+        "Energy (MWh)": "Erwartete Erzeugung (Mittel der Szenarien; P50 ist das mittlere "
+                        "Wetterjahr), jedes Jahr um die Degradation niedriger.",
         "Discount factor": "Gewicht des Geldes dieses Jahres heute: (1 + r)^−(t + ½).",
         "Strike (EUR/MWh)": "Der eigene faire Preis jeder Struktur: der Strike, zu dem sie im "
                             "Mittel so viel erlöst wie der Markt. Der Spotmarkt hat keinen: er "
@@ -1521,10 +1526,10 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
         "Indicative (EUR/MWh)": "Fairer Preis minus Risikoprämie und Kosten, mit dieser einen "
                                 "Änderung.",
         "vs yours (EUR/MWh)": "Unterschied zum indikativen Preis mit Ihren Einstellungen.",
-        "Solar added (GW a year)": "Neue Solarleistung in Deutschland pro Jahr nach dem "
+        "Solar (GW/yr)": "Neue Solarleistung in Deutschland pro Jahr nach dem "
                                    "ersten Jahr.",
-        "Storage added (GWh a year)": "Neue Batteriespeicher pro Jahr.",
-        "Capture-rate fall (% a year)": "Wie schnell die Capture Rate von Solar im Szenario "
+        "Storage (GWh/yr)": "Neue Batteriespeicher pro Jahr.",
+        "Capture-rate fall (%/yr)": "Wie schnell die Capture Rate von Solar im Szenario "
                                         "fällt.",
     },
     "it": {
@@ -1534,7 +1539,8 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
                         "quell'anno.",
         "Fair price (EUR/MWh)": "Forward × capture rate: il prezzo di pareggio di quel solo "
                                 "anno.",
-        "Energy (MWh)": "Produzione attesa (P50), ogni anno più bassa per il degrado.",
+        "Energy (MWh)": "Produzione attesa (media degli scenari; il P50 è l'anno meteo mediano), "
+                        "ogni anno più bassa per il degrado.",
         "Discount factor": "Peso oggi del denaro di quell'anno: (1 + r)^−(t + ½).",
         "Strike (EUR/MWh)": "Il prezzo equo di ogni struttura: lo strike al quale incassa in "
                             "media quanto il mercato. Il merchant non ne ha: vende a spot.",
@@ -1554,9 +1560,9 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
         "Indicative (EUR/MWh)": "Prezzo equo meno premio per il rischio e costi, con quell'unica "
                                 "variazione.",
         "vs yours (EUR/MWh)": "Differenza rispetto al prezzo indicativo con le tue impostazioni.",
-        "Solar added (GW a year)": "Nuova capacità solare in Germania ogni anno dopo il primo.",
-        "Storage added (GWh a year)": "Nuovi accumuli a batteria ogni anno.",
-        "Capture-rate fall (% a year)": "Quanto velocemente scende il capture rate del solare "
+        "Solar (GW/yr)": "Nuova capacità solare in Germania ogni anno dopo il primo.",
+        "Storage (GWh/yr)": "Nuovi accumuli a batteria ogni anno.",
+        "Capture-rate fall (%/yr)": "Quanto velocemente scende il capture rate del solare "
                                         "nello scenario.",
     },
     "es": {
@@ -1565,7 +1571,8 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
         "Capture rate": "La parte del precio medio que ingresa la producción del parque ese año.",
         "Fair price (EUR/MWh)": "Forward × tasa de captura: el precio de equilibrio de ese año "
                                 "por sí solo.",
-        "Energy (MWh)": "Producción esperada (P50), cada año más baja por la degradación.",
+        "Energy (MWh)": "Producción esperada (media de los escenarios; el P50 es el año "
+                        "meteorológico mediano), cada año más baja por la degradación.",
         "Discount factor": "Peso actual del dinero de ese año: (1 + r)^−(t + ½).",
         "Strike (EUR/MWh)": "El precio justo de cada estructura: el strike al que ingresa en "
                             "media lo mismo que el mercado. El merchant no tiene: vende a spot.",
@@ -1584,10 +1591,10 @@ COLUMN_HELP: dict[str, dict[str, str]] = {
         "Indicative (EUR/MWh)": "Precio justo menos prima de riesgo y costes, con ese único "
                                 "cambio.",
         "vs yours (EUR/MWh)": "Diferencia con el precio indicativo con tus ajustes.",
-        "Solar added (GW a year)": "Nueva potencia solar en Alemania cada año después del "
+        "Solar (GW/yr)": "Nueva potencia solar en Alemania cada año después del "
                                    "primero.",
-        "Storage added (GWh a year)": "Nuevo almacenamiento en baterías cada año.",
-        "Capture-rate fall (% a year)": "A qué ritmo baja la tasa de captura de la solar en el "
+        "Storage (GWh/yr)": "Nuevo almacenamiento en baterías cada año.",
+        "Capture-rate fall (%/yr)": "A qué ritmo baja la tasa de captura de la solar en el "
                                         "escenario.",
     },
 }
@@ -1829,9 +1836,10 @@ METHOD = {
   forward for the expected average output.
 - **Tenor price**: energy- and discount-weighted average of yearly fair prices.
 - **Forward**: {forward_text}.
-- **Limits**: forwards are published quotes from secondary sources (not EEX files), balancing and
-  credit costs are illustrative, the price shape is calibrated on 2024-2026 (one market regime),
-  the parks produce their potential output.
+- **Limits**: forwards are published quotes from secondary sources (not EEX files), balancing is
+  measured on the national portfolio and the marketing fee and credit cost are assumed, the price
+  shape is calibrated on 2024-2026 (one market regime), and a park stops at negative prices only
+  when it sells at spot or has the clause, instantly and at no cost.
 
 Code, tests and methodology: [github.com/ankitpatel1661/ppa-lab](https://github.com/ankitpatel1661/ppa-lab)
 · [METHODOLOGY.md]({repo}/METHODOLOGY.md) · [one-page memo]({repo}/reports/step09_memo.md)
@@ -1845,8 +1853,10 @@ Code, tests and methodology: [github.com/ankitpatel1661/ppa-lab](https://github.
   jährlichen fairen Preise.
 - **Terminpreis**: {forward_text}.
 - **Grenzen**: Die Terminpreise sind veröffentlichte Notierungen aus Sekundärquellen (keine
-  EEX-Dateien), Ausgleichs- und Kreditkosten sind illustrativ, das Preisprofil ist auf 2024-2026
-  kalibriert (ein Marktregime), die Parks erzeugen ihre potenzielle Erzeugung.
+  EEX-Dateien), die Ausgleichskosten sind am nationalen Portfolio gemessen, Vermarktungsgebühr und
+  Kreditkosten angenommen, das Preisprofil ist auf 2024-2026 kalibriert (ein Marktregime), und ein
+  Park regelt bei negativen Preisen nur ab, wenn er am Spotmarkt verkauft oder die Klausel hat,
+  sofort und ohne Kosten.
 
 Code, Tests und Methodik (auf Englisch): [github.com/ankitpatel1661/ppa-lab](https://github.com/ankitpatel1661/ppa-lab)
 · [METHODOLOGY.md]({repo}/METHODOLOGY.md) · [Memo auf einer Seite]({repo}/reports/step09_memo.md)
@@ -1858,9 +1868,10 @@ Code, Tests und Methodik (auf Englisch): [github.com/ankitpatel1661/ppa-lab](htt
   vendita di un forward baseload per la produzione media attesa.
 - **Prezzo sulla durata**: media dei prezzi equi annuali ponderata per energia e attualizzazione.
 - **Forward**: {forward_text}.
-- **Limiti**: i forward sono quotazioni pubblicate da fonti secondarie (non file EEX), i costi di
-  sbilanciamento e di credito sono illustrativi, il profilo dei prezzi è calibrato sul 2024-2026
-  (un solo regime di mercato), i parchi producono la loro produzione potenziale.
+- **Limiti**: i forward sono quotazioni pubblicate da fonti secondarie (non file EEX), lo
+  sbilanciamento è misurato sul portafoglio nazionale e la commissione e il costo del credito sono
+  ipotizzati, il profilo dei prezzi è calibrato sul 2024-2026 (un solo regime di mercato), e un
+  parco si ferma a prezzi negativi solo se vende a spot o ha la clausola, all'istante e senza costi.
 
 Codice, test e metodologia (in inglese): [github.com/ankitpatel1661/ppa-lab](https://github.com/ankitpatel1661/ppa-lab)
 · [METHODOLOGY.md]({repo}/METHODOLOGY.md) · [memo di una pagina]({repo}/reports/step09_memo.md)
@@ -1873,8 +1884,10 @@ Codice, test e metodologia (in inglese): [github.com/ankitpatel1661/ppa-lab](htt
 - **Precio del plazo**: media de los precios justos anuales ponderada por energía y descuento.
 - **Forward**: {forward_text}.
 - **Límites**: los forwards son cotizaciones publicadas por fuentes secundarias (no archivos de
-  EEX), los costes de desvíos y de crédito son ilustrativos, el perfil de precios está calibrado
-  con 2024-2026 (un solo régimen de mercado), los parques producen su producción potencial.
+  EEX), los desvíos se miden en la cartera nacional y la comisión y el coste de crédito son
+  supuestos, el perfil de precios está calibrado con 2024-2026 (un solo régimen de mercado), y un
+  parque solo se detiene con precios negativos si vende a spot o tiene la cláusula, al instante y
+  sin coste.
 
 Código, pruebas y metodología (en inglés): [github.com/ankitpatel1661/ppa-lab](https://github.com/ankitpatel1661/ppa-lab)
 · [METHODOLOGY.md]({repo}/METHODOLOGY.md) · [memo de una página]({repo}/reports/step09_memo.md)

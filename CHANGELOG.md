@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.15.1] (dashboard: mismatches and layout fixed)
+
+### Fixed
+- "How it was built" showed the Step 7 report's first-year price stack (indicative 63.8 and
+  121.9 EUR/MWh) next to the dashboard's ten-year prices (21.4 and 78.6). It now shows the
+  out-of-sample test (capture rate in years the model never saw) instead.
+- The energy caption and the year table's tooltip called the scenarios' average energy "P50".
+  They now say which is which: P50 is the median weather year (120.9 GWh for the solar park),
+  the years of the tenor use the scenarios' average (120.4 GWh in 2027).
+- The method's limits said the parks always produce their potential output and that balancing
+  costs are illustrative; since v1.8 parks stop at negative prices when they sell at spot or
+  have the clause, and since v1.10 balancing is measured.
+- The premium split shows two decimals, so profile and volume add up to the total (wind
+  1.95 + 3.55 instead of 1.9 + 3.5 against 5.5).
+
+### Changed
+- Every table fits the page at 1280 px in all four languages (shorter row and column labels,
+  report links shown by name); the build-out scenarios read "Central · 17 GW · 12 GWh" so they
+  fit the sidebar.
+
 ## [1.15.0] (dashboard in Spanish)
 
 ### Added

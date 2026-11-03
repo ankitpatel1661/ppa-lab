@@ -61,6 +61,14 @@ PARKS = {"solar_park": "Solar park · Borrentin · 114 MWp",
 POOLS = {"recent": "Last 12 months (base case)", "whole": "Whole 2024-2026 window"}
 CLAUSE = {False: "Paid for every MWh (base case)",
           True: "Clause: we stop producing and are not paid"}
+# Shorter table labels, so the tables fit the page at 1280 px (each is explained below its table).
+SHORT = {"Merchant, curtailing at negative prices": "Merchant, stops at price < 0",
+         "Merchant, producing at negative prices": "Merchant, runs at price < 0",
+         "Pay-as-produced, negative-price clause": "PaP, negative-price clause",
+         "Pay-as-produced, buyer curtails, deemed output paid": "PaP, deemed output paid",
+         "Solar added (GW a year)": "Solar (GW/yr)",
+         "Storage added (GWh a year)": "Storage (GWh/yr)",
+         "Capture-rate fall (% a year)": "Capture-rate fall (%/yr)"}
 BLUE, ORANGE, GREEN, INK, NAVY, GREY = ("#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b", "#1d2a6b",
                                         "#8a8984")
 
@@ -119,11 +127,14 @@ def label(text: str) -> str:
 
 
 def scenario_label(sc: dict) -> str:
-    if lang == "en":
-        return sc["label"]
-    return _("{name}: solar +{pv} GW, storage +{storage} GWh a year").format(
-        name=_(sc["label"].split(":")[0]), pv=f"{sc['pv_additions_gw']:g}".replace(".", ","),
-        storage=f"{sc['storage_additions_gwh']:g}".replace(".", ","))
+    """A build-out scenario in the sidebar: name, solar GW and storage GWh added a year (short, so
+    it fits the select box)."""
+    def amount(x: float) -> str:
+        return f"{x:g}" if lang == "en" else f"{x:g}".replace(".", ",")
+
+    return _("{name} · {pv} GW · {storage} GWh").format(
+        name=_(sc["label"].split(":")[0]), pv=amount(sc["pv_additions_gw"]),
+        storage=amount(sc["storage_additions_gwh"]))
 
 
 def md_table(header: tuple[str, ...], rows: list[tuple]) -> str:
@@ -425,8 +436,9 @@ with tab_price:
     bt = buildout_table(results, park, mine)
     if bt is not None:
         st.subheader(_("Solar and storage build-out"), help=H["buildout"])
-        show_table(bt, {"Solar added (GW a year)": "%.1f", "Storage added (GWh a year)": "%.1f",
-                        "Capture-rate fall (% a year)": "%.1f", "Fair price (EUR/MWh)": "%.2f",
+        bt = bt.rename(columns=SHORT)
+        show_table(bt, {"Solar (GW/yr)": "%.1f", "Storage (GWh/yr)": "%.1f",
+                        "Capture-rate fall (%/yr)": "%.1f", "Fair price (EUR/MWh)": "%.2f",
                         "Indicative (EUR/MWh)": "%.2f"}, height=36 * (len(bt) + 1) + 4)
         st.caption(_("Storage decides solar's later years: only a storage boom keeps the capture "
                      "rate close to flat."))
@@ -435,9 +447,12 @@ with tab_price:
         v1, v2 = st.columns(2)
         v1.metric(_("P50 energy (GWh a year)"), n(r["p50_mwh"] / 1e3), help=H["p50"])
         v2.metric(_("P90, one year (GWh)"), n(r["p90_1y_mwh"] / 1e3), help=H["p90"])
-    st.caption(_("Expected energy P50 {p50} GWh a year; one year in ten below {p90} GWh (P90). "
-                 "Premium and costs per MWh of the first year apply to every year.").format(
-        p50=n(r["p50_mwh"] / 1e3), p90=n(r["p90_1y_mwh"] / 1e3)))
+    st.caption(_("P50 (the median weather year) {p50} GWh a year, one year in ten below {p90} GWh "
+                 "(P90); the years above use the scenarios' average, {mean} GWh in {start}, less "
+                 "degradation. Premium and costs per MWh of the first year apply to every year."
+                 ).format(
+        p50=n(r["p50_mwh"] / 1e3), p90=n(r["p90_1y_mwh"] / 1e3),
+        mean=n(r["energy_mwh_expected"] / 1e3), start=start))
 
 with tab_risk:
     st.subheader(_("What each structure leaves with the producer ({start}, fair strikes)").format(
@@ -448,6 +463,7 @@ with tab_risk:
         "Output sold or paid (%)": "Output paid (%)"})
     table = table[[c for c in ("Strike (EUR/MWh)", "CFaR 95% (EUR m)", "Expected (EUR m)",
                                "Bad year, P5 (EUR m)", "Output paid (%)") if c in table]]
+    table.index = [SHORT.get(i, i) for i in table.index]
     table["Strike (EUR/MWh)"] = table["Strike (EUR/MWh)"].map(
         lambda v: _("spot") if pd.isna(v) else n(v, 2))
     show_table(table, {"CFaR 95% (EUR m)": "%.2f", "Expected (EUR m)": "%.2f",
@@ -458,10 +474,10 @@ with tab_risk:
     p = r["premia_eur_mwh"]
     st.subheader(_("The buyer's risk premium"), help=H["premium"])
     cols = st.columns(4)
-    cols[0].metric(_("Without a hedge (EUR/MWh)"), n(p["unhedged"]), help=H["unhedged"])
-    cols[1].metric(_("After a baseload hedge (EUR/MWh)"), n(p["joint"]), help=H["hedged"])
-    cols[2].metric(_("of which profile (EUR/MWh)"), n(p["profile"]), help=H["profile"])
-    cols[3].metric(_("of which volume (EUR/MWh)"), n(p["volume"]), help=H["volume_risk"])
+    cols[0].metric(_("Without a hedge (EUR/MWh)"), n(p["unhedged"], 2), help=H["unhedged"])
+    cols[1].metric(_("After a baseload hedge (EUR/MWh)"), n(p["joint"], 2), help=H["hedged"])
+    cols[2].metric(_("of which profile (EUR/MWh)"), n(p["profile"], 2), help=H["profile"])
+    cols[3].metric(_("of which volume (EUR/MWh)"), n(p["volume"], 2), help=H["volume_risk"])
     st.markdown(_("The buyer of a pay-as-produced PPA asks for **{joint} EUR/MWh** after selling "
                   "a baseload forward; without the hedge it would be {unhedged}, but most of "
                   "that is the price level, which the buyer can hedge almost for free. {tech}'s "
@@ -543,12 +559,14 @@ with tab_built:
     steps[report] = steps[report].map(lambda f: f"{REPO}/reports/{f}")
     st.subheader(_("Nine steps from raw data to a price"), help=H["steps"])
     st.dataframe(steps, hide_index=True, width="stretch",
-                 column_config={report: st.column_config.LinkColumn(report)})
+                 column_config={report: st.column_config.LinkColumn(
+                     report, display_text=r"reports/(\w+)\.md$")})
     figures = ROOT / "reports" / "figures"
     left, right = st.columns(2)
     left.image(str(figures / "step06_capture_rates.png"),
                caption=_("Capture rates per scenario: prices linked to the weather vs not"))
-    right.image(str(figures / "step07_price_stack.png"), caption=_("Price stack, both parks"))
+    right.image(str(figures / "step06_out_of_sample.png"),
+                caption=_("Tested on years the model never saw: capture rate, model vs history"))
 
 with tab_method:
     st.markdown(METHOD[lang].format(n=n_scen, forward_text=forward_text, repo=REPO))
