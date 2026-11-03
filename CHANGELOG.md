@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.16.0] (re-anchored to the forward curve of 23 October 2026)
+
+### Changed
+- The forward is the market's again: EEX German Power Cal-27 base 154.42 EUR/MWh and Cal-28
+  113.94 (23 Oct 2026, tacto.ai), Cal-29 87.93 and the Q1-Q4/27 shape 168.20 / 109.22 / 116.93 /
+  129.92 (4 Oct 2026, power2market.com; the newest found). It was 140.21 / 104.75 / 87.58 (9 Oct,
+  14 Sep). The 23 Oct and 4 Oct Cal-27 quotes join the market check.
+- Steps 5-9 rebuilt at that curve. Borrentin: 2027 fair price 77.5 → 87.8 EUR/MWh (capture rate
+  0.55 → 0.57), ten-year fair price 35.1 → 37.2, indicative 21.4 → 22.6 (19.2 to 31.4 across the
+  build-out scenarios); Everswinkel indicative 78.6 → 81.5. The ten-year prices move far less
+  than Cal-27 (+10%) because Cal-29, which prices 2029-2036, barely moved.
+- README, methodology, learning pages (Steps 5-9), dashboard texts, exercise checks and the
+  notebook's inputs updated to the new numbers; the methodology's version stays 1.11 (no change
+  to the method).
+
 ## [1.15.1] (dashboard: mismatches and layout fixed)
 
 ### Fixed

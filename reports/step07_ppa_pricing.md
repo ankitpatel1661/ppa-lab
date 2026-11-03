@@ -1,13 +1,13 @@
 # Step 7 report: pricing the PPAs and their risk
 
-Generated 2026-10-23 12:28 UTC by `ppa-lab pricing`.
+Generated 2026-11-03 14:25 UTC by `ppa-lab pricing`.
 
 Inputs: the Step 6 joint scenarios for 2027
 (496 scenarios: 31 weather years x
 16 price paths), with intraday patterns from analog days
 from **2025-10-01** on (the most recent regime; the whole window is a sensitivity).
-Forward: EEX German Power Cal-27 base 140.21 EUR/MWh (quote of 2026-10-09, via tacto.ai); its quarters follow the market's seasonal shape (Q1-Q4 185.3 / 117.7 / 124.3 / 134.3, quotes of 2026-09-14); later years follow the forward curve (2028: 104.75, 2029: 87.58), held flat after 2029. The scenarios average
-141.06 EUR/MWh in 2027. Risk measures at the 5% quantile.
+Forward: EEX German Power Cal-27 base 154.42 EUR/MWh (quote of 2026-10-23, via tacto.ai); its quarters follow the market's seasonal shape (Q1-Q4 198.4 / 128.8 / 137.9 / 153.2, quotes of 2026-10-04); later years follow the forward curve (2028: 113.94, 2029: 87.93), held flat after 2029. The scenarios average
+155.35 EUR/MWh in 2027. Risk measures at the 5% quantile.
 
 ## 1. What each structure leaves with the producer (2027)
 
@@ -16,18 +16,18 @@ what changes most: the 95% cash flow at risk.
 
 | Park       | Structure                                                  | Strike (EUR/MWh)   | Output sold or paid   |   Expected revenue (EUR m) |   P5 revenue (EUR m) |   Cash flow at risk 95% (EUR m) | CFaR / expected   |
 |:-----------|:-----------------------------------------------------------|:-------------------|:----------------------|---------------------------:|---------------------:|--------------------------------:|:------------------|
-| Solar park | Merchant (no contract), curtailing at negative prices      | spot               | 82%                   |                       9.71 |                 6.69 |                            3.02 | 31%               |
-| Solar park | Merchant, producing at negative prices                     | spot               | 100%                  |                       9.34 |                 6.09 |                            3.24 | 35%               |
-| Solar park | Pay-as-produced PPA                                        | 77.53              | 100%                  |                       9.34 |                 8.64 |                            0.7  | 7%                |
-| Solar park | Pay-as-produced, negative-price clause (curtailed, unpaid) | 97.76              | 82%                   |                       9.71 |                 8.42 |                            1.29 | 13%               |
-| Solar park | Pay-as-produced, buyer curtails and pays the output        | 80.63              | 100%                  |                       9.71 |                 8.98 |                            0.73 | 7%                |
-| Solar park | Baseload PPA (band = average output)                       | 141.06             | 82%                   |                       9.71 |                 8.11 |                            1.6  | 16%               |
-| Wind park  | Merchant (no contract), curtailing at negative prices      | spot               | 96%                   |                       8.35 |                 6.25 |                            2.1  | 25%               |
-| Wind park  | Merchant, producing at negative prices                     | spot               | 100%                  |                       8.31 |                 6.18 |                            2.13 | 26%               |
-| Wind park  | Pay-as-produced PPA                                        | 129.94             | 100%                  |                       8.31 |                 7.34 |                            0.96 | 12%               |
-| Wind park  | Pay-as-produced, negative-price clause (curtailed, unpaid) | 136.66             | 96%                   |                       8.35 |                 7.37 |                            0.98 | 12%               |
-| Wind park  | Pay-as-produced, buyer curtails and pays the output        | 130.63             | 100%                  |                       8.35 |                 7.38 |                            0.97 | 12%               |
-| Wind park  | Baseload PPA (band = average output)                       | 141.06             | 96%                   |                       8.35 |                 7.24 |                            1.11 | 13%               |
+| Solar park | Merchant (no contract), curtailing at negative prices      | spot               | 85%                   |                      10.89 |                 7.65 |                            3.24 | 30%               |
+| Solar park | Merchant, producing at negative prices                     | spot               | 100%                  |                      10.58 |                 7.15 |                            3.43 | 32%               |
+| Solar park | Pay-as-produced PPA                                        | 87.82              | 100%                  |                      10.58 |                 9.79 |                            0.79 | 7%                |
+| Solar park | Pay-as-produced, negative-price clause (curtailed, unpaid) | 105.83             | 85%                   |                      10.89 |                 9.54 |                            1.35 | 12%               |
+| Solar park | Pay-as-produced, buyer curtails and pays the output        | 90.39              | 100%                  |                      10.89 |                10.07 |                            0.81 | 7%                |
+| Solar park | Baseload PPA (band = average output)                       | 155.35             | 85%                   |                      10.89 |                 9.2  |                            1.68 | 15%               |
+| Wind park  | Merchant (no contract), curtailing at negative prices      | spot               | 96%                   |                       9.22 |                 6.98 |                            2.24 | 24%               |
+| Wind park  | Merchant, producing at negative prices                     | spot               | 100%                  |                       9.18 |                 6.92 |                            2.26 | 25%               |
+| Wind park  | Pay-as-produced PPA                                        | 143.69             | 100%                  |                       9.18 |                 8.12 |                            1.06 | 12%               |
+| Wind park  | Pay-as-produced, negative-price clause (curtailed, unpaid) | 149.67             | 96%                   |                       9.22 |                 8.13 |                            1.09 | 12%               |
+| Wind park  | Pay-as-produced, buyer curtails and pays the output        | 144.25             | 100%                  |                       9.22 |                 8.15 |                            1.07 | 12%               |
+| Wind park  | Baseload PPA (band = average output)                       | 155.35             | 96%                   |                       9.22 |                 8.01 |                            1.21 | 13%               |
 
 ## 2. The buyer's risk premium
 
@@ -38,20 +38,20 @@ per expected MWh.
 
 | Park       |   Fair price |   Premium, no hedge |   Premium after baseload hedge |   of which profile |   of which volume (and its link to price) |
 |:-----------|-------------:|--------------------:|-------------------------------:|-------------------:|------------------------------------------:|
-| Solar park |        77.53 |               25.44 |                          10.54 |              10.11 |                                      0.43 |
-| Wind park  |       129.94 |               34.81 |                           5.49 |               1.95 |                                      3.55 |
+| Solar park |        87.82 |               26.91 |                          11.42 |              10.9  |                                      0.53 |
+| Wind park  |       143.69 |               36.64 |                           5.64 |               2.06 |                                      3.58 |
 
 ## 3. Price stack 2027: from the forward to an indicative price
 
 | Layer (EUR/MWh)                        |   Solar park |   Wind park |
 |:---------------------------------------|-------------:|------------:|
-| Forward (model average baseload price) |       141.06 |      141.06 |
-| Shape: capture rate below 1            |       -63.54 |      -11.12 |
-| = Fair pay-as-produced price           |        77.53 |      129.94 |
-| − Profile and volume risk premium      |        10.54 |        5.49 |
+| Forward (model average baseload price) |       155.35 |      155.35 |
+| Shape: capture rate below 1            |       -67.53 |      -11.66 |
+| = Fair pay-as-produced price           |        87.82 |      143.69 |
+| − Profile and volume risk premium      |        11.42 |        5.64 |
 | − Balancing and route to market        |         2.18 |        1.55 |
 | − Credit and liquidity                 |         1    |        1    |
-| = Indicative pay-as-produced price     |        63.8  |      121.9  |
+| = Indicative pay-as-produced price     |        73.22 |      135.5  |
 
 Balancing and credit costs are stated assumptions (`[ppa.parks.*]` in `config/project.toml`).
 
@@ -64,22 +64,22 @@ are applied to every year (a simplification).
 
 | Case                                                                   |   Solar park: fair |   Solar park: indicative | Wind park: fair   | Wind park: indicative   |
 |:-----------------------------------------------------------------------|-------------------:|-------------------------:|:------------------|:------------------------|
-| Base case                                                              |              35.09 |                    21.37 | 86.64             | 78.60                   |
-| Capture-rate trend 2 pp/yr steeper                                     |              28.07 |                    14.35 | 79.55             | 71.51                   |
-| Capture-rate trend 1 pp/yr steeper                                     |              31.58 |                    17.86 | 83.09             | 75.05                   |
-| Capture-rate trend 1 pp/yr flatter                                     |              38.59 |                    24.87 | 90.18             | 82.14                   |
-| Forward −10%                                                           |              29.52 |                    15.8  | 77.22             | 69.18                   |
-| Forward +10%                                                           |              40.59 |                    26.87 | 96.02             | 87.98                   |
-| Analog days from the whole window                                      |              35.06 |                    21.34 | 87.06             | 79.02                   |
-| Capture rate vs price level: low end of history                        |              35.87 |                    22.15 | 87.83             | 79.78                   |
-| Capture rate vs price level: high end of history                       |              35.04 |                    21.31 | 86.36             | 78.32                   |
-| Capture rate less the model's out-of-sample error                      |              32.94 |                    19.22 | 82.35             | 74.31                   |
-| Build-out: Recent pace: solar +16.5 GW, storage +6.5 GWh a year        |              33.73 |                    20.01 | –                 | –                       |
-| Build-out: EEG solar target pace: solar +24 GW, storage +12 GWh a year |              31.64 |                    17.92 | –                 | –                       |
-| Build-out: Storage boom: solar +17 GW, storage +35 GWh a year          |              43.8  |                    30.08 | –                 | –                       |
-| Build-out: Slowdown: solar +12 GW, storage +8 GWh a year               |              36.66 |                    22.94 | –                 | –                       |
+| Base case                                                              |              37.24 |                    22.64 | 89.70             | 81.51                   |
+| Capture-rate trend 2 pp/yr steeper                                     |              30.18 |                    15.57 | 82.56             | 74.38                   |
+| Capture-rate trend 1 pp/yr steeper                                     |              33.71 |                    19.11 | 86.13             | 77.94                   |
+| Capture-rate trend 1 pp/yr flatter                                     |              40.78 |                    26.17 | 93.27             | 85.08                   |
+| Forward −10%                                                           |              31.48 |                    16.87 | 79.99             | 71.80                   |
+| Forward +10%                                                           |              42.97 |                    28.37 | 99.39             | 91.20                   |
+| Analog days from the whole window                                      |              37.2  |                    22.6  | 90.10             | 81.91                   |
+| Capture rate vs price level: low end of history                        |              37.61 |                    23.01 | 90.32             | 82.14                   |
+| Capture rate vs price level: high end of history                       |              38.07 |                    23.47 | 89.75             | 81.56                   |
+| Capture rate less the model's out-of-sample error                      |              35.01 |                    20.41 | 85.27             | 77.08                   |
+| Build-out: Recent pace: solar +16.5 GW, storage +6.5 GWh a year        |              35.87 |                    21.27 | –                 | –                       |
+| Build-out: EEG solar target pace: solar +24 GW, storage +12 GWh a year |              33.76 |                    19.16 | –                 | –                       |
+| Build-out: Storage boom: solar +17 GW, storage +35 GWh a year          |              46.04 |                    31.43 | –                 | –                       |
+| Build-out: Slowdown: solar +12 GW, storage +8 GWh a year               |              38.83 |                    24.23 | –                 | –                       |
 
-Each year's capture rate moves with that year's forward along the model's own response to the price level (section 7), on top of the trend. The two rows on the capture rate vs price level use history's 95% interval for that slope instead, from the recent level (105 EUR/MWh): a flatter slope gives a lower capture rate at the high 2027 forward but a higher one once the curve falls below the recent level. The last row takes the model's mean out-of-sample capture-rate error off every year (solar park +0.029, wind park +0.044; test years 2025, 2026, fitted like 2027; Step 6, section 4): fitted on the years before, the model overstated capture rates even with the price level given. The 2027 scenarios carry history's build-out trend up to 2027 (Step 6, section 4); continued for one more year at the same forward it would move the capture rate by solar park −5.6 pp, wind park +0.3 pp. After that the base case follows: solar park the central build-out scenario (section 8); wind park +0 pp a year; the build-out rows show the other scenarios, and the trend rows move the capture rate by whole points a year on top.
+Each year's capture rate moves with that year's forward along the model's own response to the price level (section 7), on top of the trend. The two rows on the capture rate vs price level use history's 95% interval for that slope instead, from the recent level (105 EUR/MWh): a flatter slope gives a lower capture rate at the high 2027 forward but a higher one once the curve falls below the recent level. The last row takes the model's mean out-of-sample capture-rate error off every year (solar park +0.029, wind park +0.044; test years 2025, 2026, fitted like 2027; Step 6, section 4): fitted on the years before, the model overstated capture rates even with the price level given. The 2027 scenarios carry history's build-out trend up to 2027 (Step 6, section 4); continued for one more year at the same forward it would move the capture rate by solar park −5.3 pp, wind park +0.3 pp. After that the base case follows: solar park the central build-out scenario (section 8); wind park +0 pp a year; the build-out rows show the other scenarios, and the trend rows move the capture rate by whole points a year on top.
 
 ## 5. Negative prices: curtail, and who keeps the value
 
@@ -91,16 +91,16 @@ In hours with negative prices output is worth less than nothing. A park that sel
 
 | EUR/MWh | Solar park | Wind park |
 |---|---|---|
-| Output at negative prices, 2027 | 17.5% | 4.4% |
-| Their output-weighted mean price | −17.70 | −15.63 |
-| Saved by curtailing, per MWh of output | 3.10 | 0.69 |
-| Plain PPA: fair price 2027; 10-year indicative | 77.53; 21.37 | 129.94; 78.60 |
-| Clause: fair price 2027 per delivered MWh | 97.76 | 136.66 |
-| Clause: buyer's premium after a baseload hedge | 14.56 (plain 10.54) | 5.93 (plain 5.49) |
-| Clause: 10-year fair; indicative, per delivered MWh | 57.08; 39.34 | 97.00; 88.52 |
-| Clause: 10-year indicative per MWh of output (delivered share) | 27.33 (69.5%) | 80.44 (90.9%) |
-| Deemed output: fair price 2027 | 80.63 | 130.63 |
-| Producer's CFaR95 2027: plain; clause (EUR m) | 0.70; 1.29 | 0.96; 0.98 |
+| Output at negative prices, 2027 | 14.6% | 3.6% |
+| Their output-weighted mean price | −17.58 | −15.53 |
+| Saved by curtailing, per MWh of output | 2.56 | 0.56 |
+| Plain PPA: fair price 2027; 10-year indicative | 87.82; 22.64 | 143.69; 81.51 |
+| Clause: fair price 2027 per delivered MWh | 105.83 | 149.67 |
+| Clause: buyer's premium after a baseload hedge | 15.03 (plain 11.42) | 6.15 (plain 5.64) |
+| Clause: 10-year fair; indicative, per delivered MWh | 59.25; 41.04 | 99.93; 91.24 |
+| Clause: 10-year indicative per MWh of output (delivered share) | 28.85 (70.3%) | 83.23 (91.2%) |
+| Deemed output: fair price 2027 | 90.39 | 144.25 |
+| Producer's CFaR95 2027: plain; clause (EUR m) | 0.79; 1.35 | 1.06; 1.09 |
 
 The clause's tenor price follows the curtailed output's capture rate and its delivered share at each year's forward (more negative hours at lower forwards), plus the capture-rate trend and the solar build-out scenario of section 8 (it leaves the delivered share unchanged); the first year's premium and costs apply to every year. In history the parks' output at negative prices grew with the build-out:
 
@@ -125,35 +125,35 @@ Per MWh of output (EUR/MWh):
 
 | Year | Forward | Merchant | Market premium | Under the EEG |
 |---|---|---|---|---|
-| 2027 | 141.1 | 130.6 | 0.49 | 131.1 |
-| 2028 | 104.8 | 95.9 | 4.11 | 100.0 |
-| 2029-2036 | 87.6 | 79.6 | 8.88 | 88.5 |
+| 2027 | 155.3 | 144.3 | 0.14 | 144.4 |
+| 2028 | 113.9 | 104.6 | 2.35 | 107.0 |
+| 2029-2036 | 87.9 | 79.9 | 8.44 | 88.4 |
 
-Over 10 years (discounted, energy-weighted) the EEG pays 95.4 EUR/MWh, of which 7.23 premium; after the direct marketer's fee (1.6) **93.8**. A PPA pays 86.6 at its fair price and **78.6** at the indicative price: 15.2 EUR/MWh less than staying in the EEG. The put is worth little at the 2027 forward but much at the lower forwards of later years.
+Over 10 years (discounted, energy-weighted) the EEG pays 97.8 EUR/MWh, of which 6.64 premium; after the direct marketer's fee (1.6) **96.3**. A PPA pays 89.7 at its fair price and **81.5** at the indicative price: 14.7 EUR/MWh less than staying in the EEG. The put is worth little at the 2027 forward but much at the lower forwards of later years.
 
 Risk in one delivery year, at two price levels:
 
 | Price level | CFaR95, EUR m: merchant / EEG / PPA | 5% quantile, EUR/MWh: merchant / EEG / PPA |
 |---|---|---|
-| 2027 forward (140) | 2.10 / 2.03 / 0.96 | 97.8 / 99.4 / 114.9 |
-| lowest quoted forward (88) | 1.58 / 0.99 / 0.58 | 55.4 / 73.4 / 69.4 |
+| 2027 forward (154) | 2.24 / 2.22 / 1.06 | 109.2 / 109.6 / 127.1 |
+| lowest quoted forward (88) | 1.58 / 1.00 / 0.58 | 55.8 / 73.1 / 69.7 |
 
-The put cuts the merchant's risk most where prices are low, and a PPA removes more of it; but at the lowest forward the EEG's bad year is better than the PPA's (73.4 against 69.4 EUR/MWh): the put floors the price and the EEG keeps the upside. By award value:
+The put cuts the merchant's risk most where prices are low, and a PPA removes more of it; but at the lowest forward the EEG's bad year is better than the PPA's (73.1 against 69.7 EUR/MWh): the put floors the price and the EEG keeps the upside. By award value:
 
 | Award value AW (EUR/MWh) | Market premium, ten years | Under the EEG, after the fee |
 |---|---|---|
-| 60 | 2.30 | 88.9 |
-| 70 | 4.76 | 91.4 |
-| 77 (assumed) | 7.23 | 93.8 |
-| 85 | 10.77 | 97.4 |
-| 95 | 16.26 | 102.9 |
-| 77, yearly market value | 5.14 | 91.7 |
+| 60 | 2.05 | 91.7 |
+| 70 | 4.33 | 93.9 |
+| 77 (assumed) | 6.64 | 96.3 |
+| 85 | 10.03 | 99.6 |
+| 95 | 15.31 | 104.9 |
+| 77, yearly market value | 4.92 | 94.5 |
 
-For every award value in the range the EEG pays more than a PPA at the indicative price (by 10.3 EUR/MWh even at AW 60). Leaving the EEG for a PPA pays only at a price of at least about 94 EUR/MWh, less what the producer would pay to be rid of the remaining risk, plus the guarantees of origin it could then sell. The PPA price of section 4 is a what-if for this park.
+For every award value in the range the EEG pays more than a PPA at the indicative price (by 10.1 EUR/MWh even at AW 60). Leaving the EEG for a PPA pays only at a price of at least about 96 EUR/MWh, less what the producer would pay to be rid of the remaining risk, plus the guarantees of origin it could then sell. The PPA price of section 4 is a what-if for this park.
 
 ## 7. Does the capture rate rise with the price level?
 
-The price model shifts all hours together in arcsinh units, so a higher price level lifts the hours near zero and solar's capture rate rises with it. The usual shape-factor view scales all hours instead, and the capture rate stays put. The 2027 forward (141 EUR/MWh) lies above the recent level (105) and the curve falls to 88, so the answer moves the price.
+The price model shifts all hours together in arcsinh units, so a higher price level lifts the hours near zero and solar's capture rate rises with it. The usual shape-factor view scales all hours instead, and the capture rate stays put. The 2027 forward (155 EUR/MWh) lies above the recent level (105) and the curve falls to 88, so the answer moves the price.
 
 History decides: monthly capture rates regressed on ln(average price), with month effects and the technology's share of load (its build-out) held fixed; HC1 standard errors (`analysis/level_effect.py`). The model's slope comes from rebuilding the scenarios at each forward with the same random draws.
 
@@ -162,14 +162,14 @@ History decides: monthly capture rates regressed on ln(average price), with mont
 | History 2023-2026: slope (95% interval) | 0.27 (0.10 to 0.45) | 0.02 (−0.09 to 0.14) |
 | t-statistic; months | 3.1; 45 | 0.4; 45 |
 | History 2021-2026, all years | 0.10 (0.06 to 0.13) | 0.00 (−0.04 to 0.04) |
-| Model: recent level (105) to forward 2027 | 0.22 | 0.06 |
-| Model: over the tenor's forwards (88 to 141) | 0.24 | 0.07 |
+| Model: recent level (105) to forward 2027 | 0.21 | 0.05 |
+| Model: over the tenor's forwards (88 to 155) | 0.23 | 0.06 |
 
-**Solar park**: the capture rate rises with the price level (slope 0.27, t = 3.1), so the shape-factor view (slope 0) is rejected; the model's 0.22 lies inside the 95% interval. **Wind park**: history cannot tell the slope from zero (0.02, t = 0.4); the model's 0.06 lies inside the 95% interval.
+**Solar park**: the capture rate rises with the price level (slope 0.27, t = 3.1), so the shape-factor view (slope 0) is rejected; the model's 0.21 lies inside the 95% interval. **Wind park**: history cannot tell the slope from zero (0.02, t = 0.4); the model's 0.05 lies inside the 95% interval.
 
 Build-out, from the same regression at a fixed price level: solar park −2.90 per unit of its share of load, which grew 1.3 pp a year in 2022-2025: −3.7 pp of capture rate a year (base case: build-out scenarios, section 8); wind park −0.36 per unit of its share of load, which grew 0.8 pp a year in 2022-2025: −0.3 pp of capture rate a year (base-case trend +0 pp). Section 8 turns this into build-out scenarios, in which storage slows solar's fall.
 
-So the base case moves each year's capture rate along the model's response (chart below); holding the first year's capture rate over the tenor instead (as before v1.5) would give fair prices of solar park 41.0, wind park 88.9 EUR/MWh.
+So the base case moves each year's capture rate along the model's response (chart below); holding the first year's capture rate over the tenor instead (as before v1.5) would give fair prices of solar park 44.0, wind park 92.2 EUR/MWh.
 
 ![Capture rate vs price level](figures/step07_level_effect.png)
 
@@ -179,17 +179,17 @@ Until v1.10 solar's capture rate fell 1 percentage point a year after 2027, an a
 
 | Scenario | Solar (GW/yr) | Storage (GWh/yr) | Solar share of load (pp/yr) | Capture-rate factor 2030 / 2036 | Solar park: 10-year fair; indicative |
 |---|---|---|---|---|---|
-| Central (base case) | 17 | 12 | +1.07 | 0.79 / 0.50 | 35.09; 21.37 |
-| Recent pace | 16.5 | 6.5 | +1.26 | 0.76 / 0.43 | 33.73; 20.01 |
-| EEG solar target pace | 24 | 12 | +1.60 | 0.70 / 0.35 | 31.64; 17.92 |
-| Storage boom | 17 | 35 | +0.08 | 0.98 / 0.95 | 43.80; 30.08 |
-| Slowdown | 12 | 8 | +0.85 | 0.83 / 0.57 | 36.66; 22.94 |
+| Central (base case) | 17 | 12 | +1.07 | 0.79 / 0.50 | 37.24; 22.64 |
+| Recent pace | 16.5 | 6.5 | +1.26 | 0.76 / 0.43 | 35.87; 21.27 |
+| EEG solar target pace | 24 | 12 | +1.60 | 0.70 / 0.35 | 33.76; 19.16 |
+| Storage boom | 17 | 35 | +0.08 | 0.98 / 0.95 | 46.04; 31.43 |
+| Slowdown | 12 | 8 | +0.85 | 0.83 / 0.57 | 38.83; 24.23 |
 
-With the fixed −1 pp a year of v1.10 the 10-year fair price was 41.15 EUR/MWh (solar park). Storage is what decides: in the base case solar's capture rate falls by 8% a year, and only a storage build-out several times history's slows it much. The scenarios extrapolate a link measured on 45 months up to 2025, in which storage was small; flexible demand, exports and curtailment rules are not in it.
+With the fixed −1 pp a year of v1.10 the 10-year fair price was 43.36 EUR/MWh (solar park). Storage is what decides: in the base case solar's capture rate falls by 8% a year, and only a storage build-out several times history's slows it much. The scenarios extrapolate a link measured on 45 months up to 2025, in which storage was small; flexible demand, exports and curtailment rules are not in it.
 
 ## 9. The answer
 
-For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **35.1 EUR/MWh** (first year: forward 141.1 × expected capture rate 0.55 = 77.5). After a profile and volume risk premium of 10.5 EUR/MWh and balancing and credit costs of 3.2 EUR/MWh, the indicative price is **21.4 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.02 m (merchant) to EUR 0.70 m per year: only volume risk is left. After 2027 the capture rate follows the central build-out scenario (section 8); across the scenarios the indicative price ranges from 17.9 to 30.1 EUR/MWh, and storage decides where.
+For a 10-year pay-as-produced PPA (2027-2036) from the solar park, the fair price before risk premia is **37.2 EUR/MWh** (first year: forward 155.3 × expected capture rate 0.57 = 87.8). After a profile and volume risk premium of 11.4 EUR/MWh and balancing and credit costs of 3.2 EUR/MWh, the indicative price is **22.6 EUR/MWh**. Expected annual energy is 120.9 GWh (P50; one-year P90 113.4 GWh). Under the PPA the producer's 95% cash flow at risk falls from EUR 3.24 m (merchant) to EUR 0.79 m per year: only volume risk is left. After 2027 the capture rate follows the central build-out scenario (section 8); across the scenarios the indicative price ranges from 19.2 to 31.4 EUR/MWh, and storage decides where.
 
 ## 10. Charts
 

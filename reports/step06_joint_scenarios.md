@@ -1,6 +1,6 @@
 # Step 6 report: joint weather and price scenarios
 
-Generated 2026-10-15 20:43 UTC by `ppa-lab scenarios`.
+Generated 2026-11-03 14:24 UTC by `ppa-lab scenarios`.
 
 Data: CC BY 4.0 - Bundesnetzagentur | SMARD.de, via Energy-Charts (Fraunhofer ISE); ERA5 via Open-Meteo (CC BY 4.0 - Open-Meteo.com; contains modified Copernicus Climate Change Service information (ERA5)).
 
@@ -13,15 +13,15 @@ from one of the 10 historical days within ±30 days of the date whose
 weather was closest (analog days). Calibration: 2024-01-01 to
 2026-09-30, with the real weather of those days.
 
-Response of the daily price level, in EUR/MWh at 140 EUR/MWh
+Response of the daily price level, in EUR/MWh at 154 EUR/MWh
 (capacity factor CF: mean output / capacity):
 
 | Season   |   R² |   +0.1 solar CF |   +0.1 wind CF |   +1 °C |
 |:---------|-----:|----------------:|---------------:|--------:|
-| autumn   | 0.69 |            -1.2 |          -16   |    -1.3 |
-| spring   | 0.49 |           -17.1 |          -13.9 |    -1.7 |
-| summer   | 0.47 |            -9.5 |          -14.3 |     1.5 |
-| winter   | 0.64 |            -6.2 |          -12.3 |    -2.4 |
+| autumn   | 0.69 |            -1.3 |          -16.9 |    -1.3 |
+| spring   | 0.49 |           -18.1 |          -14.7 |    -1.8 |
+| summer   | 0.47 |           -10.1 |          -15.2 |     1.6 |
+| winter   | 0.64 |            -6.5 |          -13.1 |    -2.6 |
 
 What weather does not explain still reverts with phi = 0.374 per day (half-life
 0.70 days). Analog pool: 998 historical days.
@@ -100,23 +100,23 @@ Out of sample the model's capture-rate error averages +0.066 for the solar park 
 ## 5. Delivery year 2027: 496 scenarios
 
 31 weather years (1995-2025) x 16 price paths
-= 496 scenarios; forward 140.2 EUR/MWh with each quarter at the market's seasonal shape (Q1-Q4: 185.3 / 117.7 / 124.3 / 134.3 EUR/MWh, quotes of 2026-09-14), level uncertainty
+= 496 scenarios; forward 154.4 EUR/MWh with each quarter at the market's seasonal shape (Q1-Q4: 198.4 / 128.8 / 137.9 / 153.2 EUR/MWh, quotes of 2026-10-04), level uncertainty
 0.12. The same scenarios with prices independent of the weather
 (Step 5 model) for comparison.
 
 | Park       | Prices      |   Fair PaP price (EUR/MWh) | Capture rate 5/50/95%   | Revenue P10/P50/P90 (EUR m)   |   Corr(energy, baseload price) |
 |:-----------|:------------|---------------------------:|:------------------------|:------------------------------|-------------------------------:|
-| Solar park | independent |                      79.78 | 0.501 / 0.563 / 0.615   | 6.98 / 9.49 / 12.32           |                           0.01 |
-| Solar park | linked      |                      77.47 | 0.481 / 0.546 / 0.602   | 6.88 / 9.26 / 12.16           |                           0.02 |
-| Wind park  | independent |                     149.51 | 1.023 / 1.059 / 1.099   | 7.54 / 9.49 / 11.74           |                          -0.01 |
-| Wind park  | linked      |                     130.56 | 0.882 / 0.930 / 0.962   | 6.60 / 8.27 / 10.31           |                          -0.16 |
+| Solar park | independent |                      90.13 | 0.523 / 0.578 / 0.624   | 8.07 / 10.71 / 13.72          |                           0.01 |
+| Solar park | linked      |                      87.75 | 0.504 / 0.562 / 0.613   | 7.98 / 10.49 / 13.55          |                           0.02 |
+| Wind park  | independent |                     164.43 | 1.025 / 1.058 / 1.094   | 8.36 / 10.42 / 12.86          |                          -0.01 |
+| Wind park  | linked      |                     144.31 | 0.890 / 0.933 / 0.962   | 7.40 / 9.15 / 11.32           |                          -0.16 |
 
 - Ignoring the weather link overstates the fair pay-as-produced price by
-  2.31 EUR/MWh (solar park) and 18.95 EUR/MWh (wind park).
+  2.39 EUR/MWh (solar park) and 20.12 EUR/MWh (wind park).
 - Monte Carlo standard error of the linked fair prices:
-  solar park 0.77 EUR/MWh, wind park 1.00 EUR/MWh.
+  solar park 0.81 EUR/MWh, wind park 1.05 EUR/MWh.
 - Does the latest historical capture rate fall inside the linked range?
-  Solar park: 2025 history 0.542, linked 5-95% 0.481 to 0.602 (inside); Wind park: 2025 history 0.855, linked 5-95% 0.882 to 0.962 (outside). The comparison mixes in the price level: 2027 is simulated at 140 EUR/MWh, 2025 averaged 89, and in this model the capture rate rises with the level (Step 7 shows the sensitivity); the validation above is the test.
+  Solar park: 2025 history 0.542, linked 5-95% 0.504 to 0.613 (inside); Wind park: 2025 history 0.855, linked 5-95% 0.890 to 0.962 (outside). The comparison mixes in the price level: 2027 is simulated at 154 EUR/MWh, 2025 averaged 89, and in this model the capture rate rises with the level (Step 7 shows the sensitivity); the validation above is the test.
 
 Per-scenario results: `data/processed/scenarios_2027.parquet` (input for Step 7).
 
@@ -128,9 +128,9 @@ calibration window (as in the validation).
 
 | Analog days from            |   Days in pool |   Solar park: fair price |   Solar park: median capture rate |   Wind park: fair price |   Wind park: median capture rate |
 |:----------------------------|---------------:|-------------------------:|----------------------------------:|------------------------:|---------------------------------:|
-| 2024-01-01 (whole window)   |            998 |                    77.47 |                             0.546 |                  130.56 |                            0.93  |
-| 2025-01-01 (2025 onward)    |            635 |                    77.17 |                             0.545 |                  130.5  |                            0.931 |
-| 2025-10-01 (last 12 months) |            363 |                    77.53 |                             0.546 |                  129.94 |                            0.925 |
+| 2024-01-01 (whole window)   |            998 |                    87.75 |                             0.562 |                  144.31 |                            0.933 |
+| 2025-01-01 (2025 onward)    |            635 |                    87.44 |                             0.561 |                  144.27 |                            0.934 |
+| 2025-10-01 (last 12 months) |            363 |                    87.82 |                             0.563 |                  143.69 |                            0.929 |
 
 ## 6. Charts
 

@@ -3,7 +3,7 @@
 How `ppa-lab` values renewable power purchase agreements (PPAs): the definitions,
 formulas and conventions behind the code, and their limitations.
 
-**Version 1.11** (ticket PPA-8f): cash flows and fair prices of the standard structures,
+**Version 1.11** (ticket PPA-8f; numbers at the forward curve of 23 Oct 2026, v1.16): cash flows and fair prices of the standard structures,
 applied to history (PPA-3), site volumes from weather with P50/P90 (PPA-4, section 7), a
 stochastic hourly price model calibrated to a forward price (PPA-5, section 8), joint
 weather and price scenarios (PPA-6, section 9), prices, risk premia and cash flow at risk
@@ -341,7 +341,7 @@ deepening from March to June out of $\tau$; one year of data gives $\tau = 0$. T
 about zero over a day, so it moves the hourly shape, not the daily level. Both simulations
 (this section and section 9) use it. Fitted on 2024-2026, $\tau$ at 10-15 h is −0.08 to −0.17
 per year in spring, −0.04 to −0.07 in summer and autumn and close to zero in winter. Continued for one more year at the 2027 forward, it would lower
-the solar park's capture rate by 5.6 percentage points: for later contract years the trend is a
+the solar park's capture rate by 5.3 percentage points: for later contract years the trend is a
 stated view instead (section 10).
 
 **Calibration to a forward.** $\lambda$ solves, by bisection,
@@ -488,8 +488,8 @@ on the delivered output $q^c$. Its tenor price follows the curtailed output's ca
 $\gamma_c(F)$ and its delivered share $v_c(F) = E[\sum q^c] / E[\sum q]$ at each year's forward,
 both measured on the scenarios rebuilt at each forward (as $\gamma$, below):
 $E_i \propto (1 - g)^i\, v_c(F_i) / v_c(F_0)$. At lower forwards more hours are negative, so
-the clause delivers less and keeps more value: for the solar park 82.5% of the output is
-delivered at 141 EUR/MWh and 66.9% at 88.
+the clause delivers less and keeps more value: for the solar park 85.4% of the output is
+delivered at 155 EUR/MWh and 66.8% at 88.
 
 **The EEG market premium (v1.9).** A park under the EEG market premium model sells at spot and
 receives, per MWh delivered at a non-negative price,
@@ -570,8 +570,8 @@ with month effects $a$, the technology's share of load (its build-out) and HC1 s
 |---|---|---|
 | History 2023-2026, 45 months (95% interval) | 0.27 (0.10 to 0.45), t = 3.1 | 0.02 (−0.09 to 0.14) |
 | History 2021-2026, 69 months | 0.10 (0.06 to 0.13) | −0.00 (−0.04 to 0.04) |
-| Model, recent level (105) to Cal-27 (141) | 0.22 (v1.5: 0.25, v1.6: 0.19) | 0.06 |
-| Model, over the tenor's forwards (88 to 141) | 0.24 (v1.5: 0.28, v1.6: 0.20) | 0.07 |
+| Model, recent level (105) to Cal-27 (155) | 0.21 (v1.5: 0.25, v1.6: 0.19, v1.15: 0.22) | 0.05 |
+| Model, over the tenor's forwards (88 to 155) | 0.23 (v1.5: 0.28, v1.6: 0.20, v1.15: 0.24) | 0.06 |
 
 The model lies inside history's 95% interval for both technologies, and history rejects the
 shape-factor view for solar. The 2021-2026 slope is smaller, which fits the mechanism: the
@@ -607,14 +607,15 @@ others are Step 7 sensitivities, as are the $\pm 1$ and $-2$ pp trend rows on to
 
 | Scenario (per year) | Solar GW | Storage GWh | $\Delta s$ (pp) | $\phi$ 2030 / 2036 | Solar 10-year indicative (EUR/MWh) |
 |---|---|---|---|---|---|
-| Central (base case) | 17 | 12 | +1.07 | 0.79 / 0.50 | 21.4 |
-| Recent pace | 16.5 | 6.5 | +1.26 | 0.76 / 0.43 | 20.0 |
-| EEG solar target pace | 24 | 12 | +1.60 | 0.70 / 0.35 | 17.9 |
-| Storage boom | 17 | 35 | +0.08 | 0.98 / 0.95 | 30.1 |
-| Slowdown | 12 | 8 | +0.85 | 0.83 / 0.57 | 22.9 |
+| Central (base case) | 17 | 12 | +1.07 | 0.79 / 0.50 | 22.6 |
+| Recent pace | 16.5 | 6.5 | +1.26 | 0.76 / 0.43 | 21.3 |
+| EEG solar target pace | 24 | 12 | +1.60 | 0.70 / 0.35 | 19.2 |
+| Storage boom | 17 | 35 | +0.08 | 0.98 / 0.95 | 31.4 |
+| Slowdown | 12 | 8 | +0.85 | 0.83 / 0.57 | 24.2 |
 
-With the $-1$ pp trend of v1.10 the solar ten-year fair price was 41.1 EUR/MWh; the central
-scenario gives 35.1 (indicative 27.4 → 21.4). The fall is proportional, so unlike a straight
+At the v1.11 forward (Cal-27 140.21) the $-1$ pp trend of v1.10 gave a solar ten-year fair price of
+41.1 EUR/MWh and the central scenario 35.1 (indicative 27.4 → 21.4); at the v1.16 curve the
+central scenario gives 37.2 (indicative 22.6). The fall is proportional, so unlike a straight
 line it never reaches zero. The link is measured on solar shares up to about 15% of annual
 load with little storage; at the central pace the effective share reaches about 27% in 2036,
 so the scenarios extrapolate. Storage is a heuristic (fixed cycles, all of it moving solar output),
@@ -684,15 +685,15 @@ sources and stand in for EEX settlement prices.
 | Two sites stand in for national weather | National solar and wind, and weather abroad, are only proxied; weather explains about half of daily price moves | v2: national and neighbour weather |
 | Analog pool from one window (2024-2026) | Solar dips deepen year by year: 2024 too low in-sample; 2027 dips may be deeper than the pool's | Sensitivity reported; PPA-7 chooses the pool |
 | Linear daily response per season | No saturation (e.g. once prices hit zero, more wind changes little) | Analog patterns carry part of it; v2 |
-| Parks curtail at negative prices when they sell at spot or have the clause (v1.8); under a plain PPA they produce | 2027: 17.5% of the solar output (4.4% wind) at an average −17.7 EUR/MWh; curtailing saves 3.1 EUR/MWh of output, about 30% of the output over the tenor at lower forwards. Out of sample the model's share of solar output at negative prices was 3 pp below history | v1.8 (PPA-7b): Step 7 section 5; clause and deemed output priced |
+| Parks curtail at negative prices when they sell at spot or have the clause (v1.8); under a plain PPA they produce | 2027: 14.6% of the solar output (3.6% wind) at an average −17.6 EUR/MWh; curtailing saves 2.6 EUR/MWh of output, about 30% of the output over the tenor at lower forwards. Out of sample the model's share of solar output at negative prices was 3 pp below history | v1.8 (PPA-7b): Step 7 section 5; clause and deemed output priced |
 | One delivery year of scenarios; later years by the forward curve, the level response, drift and degradation | Later years' capture rates come from the first year's scenarios rebuilt at each year's forward (first year's calendar, quarter shape and analog days) | v1.5 (PPA-8d); v2: scenarios per contract year |
 | Premium from a one-year 5% quantile, applied to every year | Ignores averaging over ten weather years and the growing level uncertainty | v2: multi-year scenarios |
 | Buyer hedges with one baseload band at the model's average price | No transaction costs, no basis to the real forward | PPA-8: minimum-variance band (solar premium 5.4 instead of 8.4 EUR/MWh in v1.2); transaction costs v2 |
-| One calibration window (2024-2026); patterns from historical days moved forward by a linear build-out trend | Out of sample the solar capture-rate error fell from +0.13 / +0.09 to +0.05 / +0.01 (2025 / 2026); wind's grew from +0.02 / +0.05 to +0.03 / +0.06; the trend is extrapolated one to two years for 2027 | v1.6-1.7 (PPA-6b, PPA-8e): Step 6 section 4; Step 7 sensitivity for the remaining error (solar −2.1 EUR/MWh) |
-| Cal base forwards from published quotes (Cal-27 140.21, Cal-28 104.75, Cal-29 87.58), held flat after 2029; quarter shape from Q1-Q4/27 quotes of 14 Sep 2026; months and hours from history | Quotes are a month older than the Cal level and come from secondary sources; later years keep the first year's seasonal shape; 2030-2036 rest on the Cal-29 quote | v1.1-1.2 (PPA-8b, 8c); v2: monthly curve (HPFC) from EEX settlements |
-| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.44 at 88 EUR/MWh, 0.55 at 141. History 2023-2026 confirms it for solar (slope 0.27, 95% 0.10 to 0.45; model 0.22); for wind history cannot tell it from zero (model 0.06 inside). Holding the first year's capture rate instead would overstate the solar ten-year price by 6.0 EUR/MWh | v1.5 (PPA-8d): tested on monthly history; history's 95% range as a Step 7 sensitivity (solar −0.1 to +0.8 EUR/MWh) |
-| Solar capture rate after the delivery year from build-out scenarios (v1.11): share growth per GW from 2022-2025, storage as fixed cycles from solar, the log-form share effect of 2023-2026 | The scenarios extrapolate from shares up to about 15% of load to an effective 27% in 2036; storage, which decides the result (indicative 17.9 to 30.1 EUR/MWh across the scenarios, central 21.4), is a heuristic; flexible demand, exports and curtailment rules are left out | v1.11 (PPA-8f): Step 7 section 8; five scenarios and ±1 / −2 pp trend rows as sensitivities; v2: a dispatch model of storage and flexible demand |
-| The forward moves fast | Cal-27 base moved between 104 and 140 EUR/MWh from July to October 2026 | Refresh the quotes on the pricing day; forward ±10% sensitivity |
+| One calibration window (2024-2026); patterns from historical days moved forward by a linear build-out trend | Out of sample the solar capture-rate error fell from +0.13 / +0.09 to +0.05 / +0.01 (2025 / 2026); wind's grew from +0.02 / +0.05 to +0.03 / +0.06; the trend is extrapolated one to two years for 2027 | v1.6-1.7 (PPA-6b, PPA-8e): Step 6 section 4; Step 7 sensitivity for the remaining error (solar −2.2 EUR/MWh) |
+| Cal base forwards from published quotes (Cal-27 154.42 and Cal-28 113.94 of 23 Oct 2026, Cal-29 87.93 of 4 Oct), held flat after 2029; quarter shape from Q1-Q4/27 quotes of 4 Oct 2026; months and hours from history | The quarter and Cal-29 quotes are three weeks older than the Cal-27 level and all come from secondary sources; later years keep the first year's seasonal shape; 2030-2036 rest on the Cal-29 quote | v1.1-1.2 (PPA-8b, 8c); v2: monthly curve (HPFC) from EEX settlements |
+| Capture rate rises with the price level (arcsinh: hours near zero are lifted) | Solar capture rate 0.43 at 88 EUR/MWh, 0.57 at 155. History 2023-2026 confirms it for solar (slope 0.27, 95% 0.10 to 0.45; model 0.21); for wind history cannot tell it from zero (model 0.05 inside). Holding the first year's capture rate instead would overstate the solar ten-year price by 6.7 EUR/MWh | v1.5 (PPA-8d): tested on monthly history; history's 95% range as a Step 7 sensitivity (solar +0.4 to +0.8 EUR/MWh) |
+| Solar capture rate after the delivery year from build-out scenarios (v1.11): share growth per GW from 2022-2025, storage as fixed cycles from solar, the log-form share effect of 2023-2026 | The scenarios extrapolate from shares up to about 15% of load to an effective 27% in 2036; storage, which decides the result (indicative 19.2 to 31.4 EUR/MWh across the scenarios, central 22.6), is a heuristic; flexible demand, exports and curtailment rules are left out | v1.11 (PPA-8f): Step 7 section 8; five scenarios and ±1 / −2 pp trend rows as sensitivities; v2: a dispatch model of storage and flexible demand |
+| The forward moves fast | Cal-27 base moved between 104 and 154 EUR/MWh from July to October 2026 (140.21 on 9 Oct, 154.42 on 23 Oct) | Refresh the quotes on the pricing day; forward ±10% sensitivity |
 | Hedges at the model forward, no limits, no costs | Real hedges trade at market prices with bid-ask spreads, margining and position limits; unconstrained monthly hedges can be negative | v2: constraints (no negative sales), costs |
 | Hedge back-test with last year's average as forward | Not a market price; two years only, so it illustrates, not measures | v2: EEX settlement history |
 | Market quotes from secondary web sources | Not official EEX settlements; dates differ | Replace with EEX data |
@@ -739,3 +740,6 @@ sources and stand in for EEX settlement prices.
   balancing cost measured from forecast errors and reBAP (section 2); limitations updated.
 - **v1.11, PPA-8f:** solar's capture rate after the delivery year from solar and storage
   build-out scenarios, replacing the −1 pp trend (section 10); limitations updated.
+- **v1.11 (numbers of v1.16):** the forward re-anchored to the quotes of 23 Oct 2026 (Cal-27
+  154.42, Cal-28 113.94; Cal-29 87.93 and the quarter shape of 4 Oct); numbers updated, no change
+  to the method.

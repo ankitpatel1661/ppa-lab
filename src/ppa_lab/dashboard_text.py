@@ -934,10 +934,10 @@ HELP: dict[str, dict[str, str]] = {
         "drift": (
             "An extra change of the capture rate each year, in percentage points, on top of the "
             "build-out scenario. Use it to test a view the scenarios do not cover: −1 means the "
-            "capture rate falls one more point every year (0.55 → 0.54 → 0.53 …)."),
+            "capture rate falls one more point every year (0.57 → 0.56 → 0.55 …)."),
         "tenor": (
             "Contract length. The price is one fixed number for all years, so later years with "
-            "lower forwards (Cal-28 104.75, Cal-29 87.58 EUR/MWh, then held flat) and lower "
+            "lower forwards (Cal-28 113.94, Cal-29 87.93 EUR/MWh, then held flat) and lower "
             "capture rates pull it down. A shorter contract stays closer to the first year."),
         "rate": (
             "Discounts later years: a MWh in year t counts with weight (1 + r)^−(t + ½). A "
@@ -1071,10 +1071,10 @@ HELP: dict[str, dict[str, str]] = {
             "Eine zusätzliche jährliche Änderung der Capture Rate in Prozentpunkten, zusätzlich "
             "zum Zubauszenario. Damit lässt sich eine Sicht prüfen, die die Szenarien nicht "
             "abdecken: −1 bedeutet, dass die Capture Rate jedes Jahr um einen weiteren Punkt "
-            "fällt (0,55 → 0,54 → 0,53 …)."),
+            "fällt (0,57 → 0,56 → 0,55 …)."),
         "tenor": (
             "Vertragslaufzeit. Der Preis ist eine feste Zahl für alle Jahre; spätere Jahre mit "
-            "niedrigeren Terminpreisen (Cal-28 104,75, Cal-29 87,58 EUR/MWh, danach konstant) "
+            "niedrigeren Terminpreisen (Cal-28 113,94, Cal-29 87,93 EUR/MWh, danach konstant) "
             "und niedrigeren Capture Rates ziehen ihn nach unten. Ein kürzerer Vertrag bleibt "
             "näher am ersten Jahr."),
         "rate": (
@@ -1216,10 +1216,10 @@ HELP: dict[str, dict[str, str]] = {
             "Una variazione aggiuntiva del capture rate ogni anno, in punti percentuali, oltre "
             "allo scenario di crescita. Serve a provare una visione che gli scenari non coprono: "
             "−1 significa che il capture rate scende di un punto in più ogni anno "
-            "(0,55 → 0,54 → 0,53 …)."),
+            "(0,57 → 0,56 → 0,55 …)."),
         "tenor": (
             "Durata del contratto. Il prezzo è un unico numero fisso per tutti gli anni, quindi "
-            "gli anni successivi con forward più bassi (Cal-28 104,75, Cal-29 87,58 EUR/MWh, poi "
+            "gli anni successivi con forward più bassi (Cal-28 113,94, Cal-29 87,93 EUR/MWh, poi "
             "costante) e capture rate più bassi lo abbassano. Un contratto più breve resta più "
             "vicino al primo anno."),
         "rate": (
@@ -1360,10 +1360,10 @@ HELP: dict[str, dict[str, str]] = {
             "Un cambio adicional de la tasa de captura cada año, en puntos porcentuales, además "
             "del escenario de despliegue. Sirve para probar una visión que los escenarios no "
             "cubren: −1 significa que la tasa de captura baja un punto más cada año "
-            "(0,55 → 0,54 → 0,53 …)."),
+            "(0,57 → 0,56 → 0,55 …)."),
         "tenor": (
             "Duración del contrato. El precio es un único número fijo para todos los años, así "
-            "que los años posteriores con forwards más bajos (Cal-28 104,75, Cal-29 87,58 "
+            "que los años posteriores con forwards más bajos (Cal-28 113,94, Cal-29 87,93 "
             "EUR/MWh, después constante) y tasas de captura más bajas lo reducen. Un contrato más "
             "corto queda más cerca del primer año."),
         "rate": (

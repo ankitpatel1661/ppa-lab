@@ -141,7 +141,7 @@ def test_the_forward_names_its_source_and_the_curve_covers_later_years(tmp_path)
     assert pm.forward_date is not None and pm.forward_source.startswith("http")
     assert ppa.forward_curve and all(isinstance(y, int) for y in ppa.forward_curve)
     assert all(ppa.start_year < y < ppa.start_year + ppa.tenor_years for y in ppa.forward_curve)
-    bad = DEFAULT_CONFIG.read_text().replace("2028 = 104.75", "2027 = 104.75")
+    bad = DEFAULT_CONFIG.read_text().replace("2028 = 113.94", "2027 = 113.94")
     path = tmp_path / "bad.toml"
     path.write_text(bad)
     with pytest.raises(ValueError, match="forward_curve"):
@@ -151,7 +151,7 @@ def test_the_forward_names_its_source_and_the_curve_covers_later_years(tmp_path)
 def test_quarter_quotes_are_complete_and_average_to_their_cal(tmp_path):
     qq = load_settings().price_model.quarter_quotes
     assert qq is not None and set(qq.quarters) == {1, 2, 3, 4} and qq.source.startswith("http")
-    bad = DEFAULT_CONFIG.read_text().replace("Q1 = 179.47", "Q1 = 150.00")
+    bad = DEFAULT_CONFIG.read_text().replace("Q1 = 168.20", "Q1 = 150.00")
     path = tmp_path / "bad.toml"
     path.write_text(bad)
     with pytest.raises(ValueError, match="quarter_quotes"):

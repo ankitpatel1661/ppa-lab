@@ -162,6 +162,10 @@ At 113.45 the indicative prices would be 46.8 (solar) and 93.0 (wind) instead of
 - [x] `[price_model] forward_eur_mwh`, `forward_date`, `forward_source`, `[ppa.forward_curve]`;
       re-run `make prices scenarios pricing hedging memo`; README, memo, learning pages updated.
 - [x] Check the capture rate's dependence on the level (arcsinh lift); sensitivity added.
+- [x] v1.16 (decided 3 Nov 2026): re-anchored to the quotes of 23 Oct 2026, Cal-27 154.42 and
+      Cal-28 113.94 (tacto.ai); Cal-29 87.93 and Q1-Q4/27 168.20 / 109.22 / 116.93 / 129.92 of
+      4 Oct (power2market, the newest found). Solar indicative 21.4 → 22.6, wind 78.6 → 81.5
+      EUR/MWh: Cal-29, which prices 2029-2036, barely moved.
 
 ## PPA-8c: Quarterly forward curve and the capture rate vs the level
 

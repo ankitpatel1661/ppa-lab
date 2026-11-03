@@ -1,7 +1,7 @@
 # Step 5: A stochastic price model (ticket PPA-5)
 
-> **Numbers on this page.** Section 6 shows the current results (v1.11): the market forward
-> (EEX Cal-27 base 140.21 EUR/MWh, quote of 9 Oct 2026) and the Borrentin solar park (114 MWp)
+> **Numbers on this page.** Section 6 shows the current results (v1.16): the market forward
+> (EEX Cal-27 base 154.42 EUR/MWh, quote of 23 Oct 2026; 140.21 on 9 Oct until v1.15) and the Borrentin solar park (114 MWp)
 > for the solar teaser, from `reports/step05_price_model.md`. Section 4 tells how the model
 > was built and keeps the numbers of the version it describes (v1.0 unless stated).
 
@@ -175,7 +175,7 @@ season).
 ### 1.6 Calibrating to a forward price, and Jensen's inequality
 
 Say the market quotes 85 EUR/MWh for a year (the worked example of Exercise 3; Cal-27 base
-traded at 140.21 in October 2026). The model must reproduce that **average**. The obvious
+traded at 154.42 on 23 October 2026). The model must reproduce that **average**. The obvious
 guess, setting the level to arcsinh(85 / s), is wrong: sinh is convex for positive values,
 so the average of s · sinh(level + noise) is **higher** than s · sinh(level) (Jensen's
 inequality). With the 2025 pattern and s = 120 the naive level gives an average of about
@@ -439,19 +439,19 @@ still short (Step 6 adds the weather's).
 
 ![One June week: history and three simulated paths](../../reports/figures/step05_paths.png)
 
-### 6.3 Delivery year 2027 (Cal-27 base 140.21 EUR/MWh, 500 paths)
+### 6.3 Delivery year 2027 (Cal-27 base 154.42 EUR/MWh, 500 paths)
 
 | Item | Value |
 |---|---|
-| Average of all simulated hours | 140.4 EUR/MWh |
-| Annual average per path, 5% / 50% / 95% | 105.4 / 139.3 / 180.6 EUR/MWh |
-| Hourly prices, 1% / 99% quantile | −14.8 / 347.9 EUR/MWh |
-| Share of negative hours | 3.8% |
+| Average of all simulated hours | 154.7 EUR/MWh |
+| Annual average per path, 5% / 50% / 95% | 117.6 / 153.5 / 197.3 EUR/MWh |
+| Hourly prices, 1% / 99% quantile | −11.9 / 375.8 EUR/MWh |
+| Share of negative hours | 3.1% |
 
 ### 6.4 What solar earns under these prices (the Step 6 teaser)
 
 Borrentin's 2025 output, priced with the simulated 2027 paths, earns a capture rate of
-**0.580** (5-95%: 0.510 to 0.627). With the real 2025 prices it earned **0.542**. The
+**0.597** (5-95%: 0.537 to 0.639). With the real 2025 prices it earned **0.542**. The
 model knows the *average* midday dip, but not that **sunny days have cheaper middays**.
 Within a month, the correlation between the park's daily output and the 11:00-15:00 price
 is **−0.21** in reality and **+0.02** in the model (5-95% over 500 paths: −0.06 to +0.10).
@@ -627,7 +627,7 @@ rises with the level (Step 7, section 7).
 | In this project | In a company |
 |---|---|
 | arcsinh, monthly levels, daily AR(1), bootstrapped days | Fundamental models (merit order, scenarios) and statistical hourly models; vendor curves |
-| Published Cal and quarter quotes (Cal-27 140.21) | The full EEX forward curve by month and quarter, plus long-term fundamental curves beyond the liquid years |
+| Published Cal and quarter quotes (Cal-27 154.42) | The full EEX forward curve by month and quarter, plus long-term fundamental curves beyond the liquid years |
 | Level volatility | Scenario sets (low/base/high) and implied volatilities of forward options |
 | Validation table with 5-95% ranges | Model validation reports, back-testing, model risk sign-off |
 | Price paths as a matrix saved for Step 6 | Monte Carlo engines feeding PPA valuation, PFC shaping, risk reports |

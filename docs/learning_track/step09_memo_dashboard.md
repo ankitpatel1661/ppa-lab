@@ -1,9 +1,9 @@
 # Step 9: Telling the result: memo, dashboard, front page (ticket PPA-9)
 
 > **Numbers on this page.** The parks are the Borrentin solar park (114 MWp) and the
-> Everswinkel wind park (28.5 MW), priced at the market forward (EEX Cal-27 base 140.21
-> EUR/MWh). All numbers are those of the current memo, dashboard and `reports/results.json`
-> (v1.11).
+> Everswinkel wind park (28.5 MW), priced at the market forward (EEX Cal-27 base 154.42
+> EUR/MWh of 23 Oct 2026). All numbers are those of the current memo, dashboard and
+> `reports/results.json` (v1.16).
 
 > **Time needed:** about 4 hours. Concepts take 45 minutes, code tour and findings
 > 30 minutes, hands-on, deployment and exercises 2 hours, to-dos 45 minutes.
@@ -62,8 +62,8 @@ details: the *pyramid principle* (Minto), or BLUF ("bottom line up front") in mi
 writing. The memo's first paragraph therefore says: the price range, what it buys, what it
 costs. Everything else supports it.
 
-A good bottom line is **a decision, a number and a trade-off**: "negotiate between 21.4 and
-35.1 EUR/MWh; the PPA cuts our cash flow at risk by 77% for about 14.6 EUR/MWh."
+A good bottom line is **a decision, a number and a trade-off**: "negotiate between 22.6 and
+37.2 EUR/MWh; the PPA cuts our cash flow at risk by 76% for about 15.0 EUR/MWh."
 
 ### 1.2 Numbers that cannot drift
 
@@ -158,9 +158,9 @@ installed, so Streamlit Community Cloud needs only `app/requirements.txt`.
 ### 4.1 The cost of certainty, and what it buys
 
 Against selling at spot, the PPA costs Borrentin the buyer's premium, the credit charge and
-the value of stopping at negative prices, which a merchant keeps: **14.6 EUR/MWh** or **EUR
-1.77 m a year** on 121 GWh (balancing is paid either way). It removes **EUR 2.32 m** of cash flow
-at risk (from 3.02 to 0.70). That ratio, not the price alone, is what a CFO decides on.
+the value of stopping at negative prices, which a merchant keeps: **15.0 EUR/MWh** or **EUR
+1.81 m a year** on 121 GWh (balancing is paid either way). It removes **EUR 2.45 m** of cash flow
+at risk (from 3.24 to 0.79). That ratio, not the price alone, is what a CFO decides on.
 
 ### 4.2 A fair price wins only half the time
 
@@ -224,13 +224,13 @@ the app.
 - **The README** opens with the question, the answer, the price-stack chart, a table of the seven
   steps and how to run everything.
 - **The memo** ([`reports/step09_memo.md`](../../reports/step09_memo.md), PDF next to it) fits
-  one page: range 21.4-35.1 EUR/MWh, CFaR −77% for 14.6 EUR/MWh, the levers (solar and
+  one page: range 22.6-37.2 EUR/MWh, CFaR −76% for 15.0 EUR/MWh, the levers (solar and
   storage build-out, forward, the model's remaining error), three recommendations, method and
   limits.
 - **The dashboard** opens on the same numbers and lets the reader move the assumptions that
   matter: the forward curve, the build-out scenario, a capture-rate trend, tenor, discount
   rate, degradation, costs, the analog pool and the negative-price clause. The storage boom
-  scenario, for example, raises Borrentin's offer from 21.4 to 30.1 EUR/MWh.
+  scenario, for example, raises Borrentin's offer from 22.6 to 31.4 EUR/MWh.
 
 ---
 
@@ -252,15 +252,15 @@ the app.
 <details>
 <summary>Hints and solution sketches</summary>
 
-1. `fair_price − risk_premium − balancing − credit` from `stack_eur_mwh`: 63.80 for Borrentin with
-   its configured costs (2.18 and 1.0), 119.45 for Everswinkel with 3.0 and 2.0 (first year).
-2. Linked rows, `K = rev.sum() / mwh.sum()`, `(K * mwh > rev).mean()`: 0.528 (Borrentin), 0.506
+1. `fair_price − risk_premium − balancing − credit` from `stack_eur_mwh`: 73.22 for Borrentin with
+   its configured costs (2.18 and 1.0), 133.05 for Everswinkel with 3.0 and 2.0 (first year).
+2. Linked rows, `K = rev.sum() / mwh.sum()`, `(K * mwh > rev).mean()`: 0.528 (Borrentin), 0.508
    (Everswinkel).
 3. Lead with the price and the decision, then what it buys (a much more predictable income),
    then the one assumption that could move it (how much cheaper solar hours get). German, e.g.:
-   *"Wir empfehlen einen Festpreis zwischen 21 und 35 EUR/MWh für zehn Jahre."*
-4. The buyer's bottom line: "Pay at most 35.1 (fair) minus the premium we need for the risk we
-   take, 10.5, minus our costs."
+   *"Wir empfehlen einen Festpreis zwischen 23 und 37 EUR/MWh für zehn Jahre."*
+4. The buyer's bottom line: "Pay at most 37.2 (fair) minus the premium we need for the risk we
+   take, 11.4, minus our costs."
 5. The clause's revenue share is in `results.json` (`pay_as_produced_clause`).
 
 </details>
