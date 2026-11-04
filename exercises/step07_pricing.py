@@ -51,7 +51,24 @@ def cash_flow_at_risk(table: pd.DataFrame, park: str = "solar_park") -> dict[str
     CFaR95 = mean - 5% quantile (np.quantile(x, 0.05)).
     Return {"merchant": ..., "pay_as_produced": ...}.
     """
-    raise NotImplementedError("Exercise 1")
+    linked = table[table["prices"] == "linked"]
+    
+    rev = linked[f"{park}_revenue_eur"]
+    mwh = linked[f"{park}_mwh"]
+    
+    # K is the fair price (volume-weighted average price across scenarios)
+    K = rev.sum() / mwh.sum()
+    
+    merchant_rev = rev
+    ppa_rev = K * mwh
+    
+    cfar_merchant = merchant_rev.mean() - np.quantile(merchant_rev, 0.05)
+    cfar_ppa = ppa_rev.mean() - np.quantile(ppa_rev, 0.05)
+    
+    return {
+        "merchant": float(cfar_merchant),
+        "pay_as_produced": float(cfar_ppa),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -68,7 +85,14 @@ def tenor_price(fair_price: float, forward: float, energy_mwh: float, start_year
       discount     D_i = (1 + rate) ** -(i + 0.5)       (cash at mid-year)
     Tenor price = sum(D_i E_i K_i) / sum(D_i E_i).
     """
-    raise NotImplementedError("Exercise 2")
+    i = np.arange(years)
+    
+    c_i = (fair_price / forward) + drift * i
+    K_i = forward * c_i
+    E_i = energy_mwh * ((1 - degradation) ** i)
+    D_i = (1 + rate) ** -(i + 0.5)
+    
+    return float(np.sum(D_i * E_i * K_i) / np.sum(D_i * E_i))
 
 
 # --------------------------------------------------------------------------- #
@@ -84,7 +108,26 @@ def buyer_premium(prices: np.ndarray, volumes: np.ndarray, hedge: bool) -> float
       V += B * sum over hours of (F - prices).
     Premium = (mean(V) - 5% quantile of V) / mean total volume per scenario.
     """
-    raise NotImplementedError("Exercise 3")
+    # K is the overall volume-weighted average price
+    K = np.sum(prices * volumes) / np.sum(volumes)
+    
+    # Net value per scenario for the pay-as-produced PPA (summed across hours)
+    V = np.sum(volumes * (prices - K), axis=1)
+    
+    # Total volume generated per scenario
+    scenario_volumes = np.sum(volumes, axis=1)
+    mean_volume_per_scenario = np.mean(scenario_volumes)
+    
+    if hedge:
+        num_hours = prices.shape[1]
+        F = np.mean(prices)
+        B = mean_volume_per_scenario / num_hours
+        
+        # Add the return from selling a fixed baseload hedge B at forward price F
+        V += B * np.sum(F - prices, axis=1)
+        
+    premium = (np.mean(V) - np.quantile(V, 0.05)) / mean_volume_per_scenario
+    return float(premium)
 
 
 # --------------------------------------------------------------------------- #
