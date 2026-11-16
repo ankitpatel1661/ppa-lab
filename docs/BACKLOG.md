@@ -27,6 +27,34 @@ that step is written.
 | PPA-7c | 7c | Everswinkel's EEG market premium as a strip of puts, against a PPA | **Done** (v1.9) |
 | PPA-4b | 4b | Model two Encavis parks from public data: Borrentin solar (114 MWp), Everswinkel wind (28.5 MW) | **Done** (v1.3) |
 | PPA-9 | 9 | Streamlit page, management memo, CI badge, public MVP | **Done** |
+| PPA-10 | — | Configuration management: tagged baselines, CM plan, traceability matrix, baseline record, contribution process | **Done** |
+
+## PPA-10: Configuration management (no step)
+
+**Story:** As a reader of any published number I want to know which code, which
+method and which market inputs produced it, so that a result can be traced,
+re-retrieved and audited rather than taken on trust.
+
+**Acceptance criteria**
+- [x] Every release in `CHANGELOG.md` is an annotated git tag that can be checked
+      out (27 baselines, `v0.1.0` to `v1.16.0`), mapped to its commit via the
+      ticket IDs and cross-checked against the `pyproject.toml` and
+      `METHODOLOGY.md` versions committed at each point.
+- [x] `CONFIGURATION_MANAGEMENT.md`: the configuration item register (16 items),
+      the three version schemes, the change path, status accounting, the audit
+      procedure and a limitations section.
+- [x] `TRACEABILITY.md`: every acceptance criterion mapped to the test that
+      verifies it; 88 requirement rows, 284 validated test references, and a
+      reverse check for tests that trace to no requirement.
+- [x] `BASELINES.md`: per-baseline record of code version, methodology version,
+      forward curve and published prices, with three integrity checks (tag vs
+      `pyproject.toml`; `results.json` provenance vs code; `results.json`
+      forward vs configuration).
+- [x] `CONTRIBUTING.md`, plus a change-request template, a pull-request checklist
+      and an ADR template.
+- [x] README section linking the four documents.
+- [x] Limitations stated in each document, including the absence of an
+      independent approver and the retroactive tagging.
 
 ## PPA-2: Capture prices and capture rates (Step 2)
 

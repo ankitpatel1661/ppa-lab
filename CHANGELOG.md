@@ -6,6 +6,46 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Configuration management (ticket PPA-10). No code, no assumption and no
+  published number changed; this is documentation and release metadata only.
+- **27 annotated release baselines**, `v0.1.0` to `v1.16.0`, one per version in
+  this changelog. They were applied retroactively on 16 Nov 2026 and each tag
+  message says so; every tag's date is its original commit date. Versions were
+  mapped to commits through the `PPA-n` ticket IDs the commits already carried,
+  then cross-checked against the `pyproject.toml` and `METHODOLOGY.md` versions
+  committed at each point. There is no `v0.8.0`: Step 9 shipped before Step 8,
+  so the releases run 0.7.0 → 0.9.0 → 1.0.0.
+- `CONFIGURATION_MANAGEMENT.md`: the configuration item register (16 items), the
+  three version schemes (code, methodology, baseline tag), the change path,
+  status accounting, the audit procedure, and what the controls do not cover.
+- `TRACEABILITY.md`: 88 requirement rows from the backlog's acceptance criteria
+  mapped to 284 test references, all validated against the repository; 91% of
+  requirements are covered by a named automated test. The reverse check found
+  `tests/test_cli.py` traced to no requirement at all, which is why four
+  cross-cutting requirements (CLI, time/DST, configuration integrity, input
+  validation) now exist.
+- `BASELINES.md`: what each baseline was made of and what it published — code
+  version, methodology version, forward curve, scenario count and the indicative
+  prices. Three integrity checks pass across all 27: tag name vs
+  `pyproject.toml`, `ppa_lab_version` in `results.json` vs the code version, and
+  the forward in `results.json` vs `config/project.toml`.
+- `CONTRIBUTING.md`, `.github/ISSUE_TEMPLATE/change_request.md`,
+  `.github/pull_request_template.md` and `docs/decisions/TEMPLATE.md`.
+- README section "How the project is kept honest", linking the four documents.
+
+### Notes
+- The register makes two effects separable that were previously one number
+  drifting: the solar indicative price rose 33.3 → 78.6 EUR/MWh at v1.1.0 only
+  because the price level stopped being an assumption and became the market's,
+  then fell to 63.8 across v1.2.0–v1.10.0 with the forward held constant, which
+  was modelling work (largest single step: the build-out trend at v1.7.0,
+  74.6 → 64.5).
+- Every document ends with its limitations. The binding one: this is a
+  single-maintainer project, so approval means the maintainer reviewing their
+  own change with CI as the only impartial gate — no second approver, no change
+  control board.
+
 ## [1.16.0] (re-anchored to the forward curve of 23 October 2026)
 
 ### Changed

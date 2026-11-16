@@ -243,11 +243,42 @@ notebooks/                   ppa_lab_playground.ipynb: interactive, one section 
 data/reference/              small published reference data (official market values)
 exercises/                   hands-on exercises with automatic checks
 METHODOLOGY.md               the pricing maths, conventions, assumptions and limitations
-docs/decisions/              architecture decision records (ADRs)
+CONFIGURATION_MANAGEMENT.md  configuration items, change control, status accounting, audit
+TRACEABILITY.md              which test verifies which acceptance criterion
+BASELINES.md                 what each tagged release was made of, and what it published
+CONTRIBUTING.md              how a change gets in: request, verify, release
+docs/BACKLOG.md              tickets and acceptance criteria
+docs/decisions/              architecture decision records (ADRs), with TEMPLATE.md
 docs/learning_track/         step-by-step explanations of what was built and why
 reports/                     generated reports and figures
 scripts/build_docs.py        learning-track Markdown -> PDF (`make docs`)
 ```
+
+## How the project is kept honest
+
+The numbers above are only worth something if you can tell which code, which
+method and which market inputs produced them. Four documents make that
+answerable:
+
+| | |
+|---|---|
+| [CONFIGURATION_MANAGEMENT.md](CONFIGURATION_MANAGEMENT.md) | The 16 configuration items, the three version schemes, the change path and the audit procedure. Organised around the five configuration-management functions of EIA-649 and ISO 10007. |
+| [BASELINES.md](BASELINES.md) | All 27 tagged releases: code version, methodology version, forward curve, and the prices each one published. |
+| [TRACEABILITY.md](TRACEABILITY.md) | 88 requirements mapped to 284 test references; 91% covered by a named automated test. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to raise a change request, what to prove before merging, and the release checklist. |
+
+In short: every assumption lives in one file
+([`config/project.toml`](config/project.toml)) and nothing is hard-coded
+elsewhere; the methodology carries its own version, so a change of method is
+distinguishable from a change of inputs; each release is an annotated git tag you
+can check out; 310 offline tests run on every push; and 29 reconciliation
+entries check the model against officially published market values, with any
+deviation recorded and explained rather than smoothed over.
+
+Each of those documents ends with its limitations. The main one: this is a
+single-maintainer project, so "approval" means the maintainer reviewing their own
+change with CI as the only impartial gate. There is no second approver and no
+change control board.
 
 ## Results by step
 
