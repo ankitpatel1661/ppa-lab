@@ -138,8 +138,10 @@ A release is a new baseline. The checklist:
    public interface).
 2. **Methodology** — bump the version line in `METHODOLOGY.md` **only if the
    method changed.** A release that re-anchors the forward or rebuilds the
-   dashboard leaves it alone. Eight baselines deliberately carry a method
-   version older than their code; see [BASELINES.md](BASELINES.md) §2.1.
+   dashboard leaves it alone. Three baselines deliberately carry a method
+   version older than their code; six more (`v1.11.0` – `v1.15.0`) lag by mistake,
+   because `v1.11.0` changed the method without bumping the line. See
+   [BASELINES.md](BASELINES.md) §2.1.
 3. **Reports** — re-run the affected steps and commit the regenerated reports and
    `reports/results.json`. Check that `ppa_lab_version` in `results.json` matches
    the version you just set.

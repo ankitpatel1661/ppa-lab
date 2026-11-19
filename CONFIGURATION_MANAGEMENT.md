@@ -100,7 +100,10 @@ re-anchors the forward curve to newer market quotes changes every number without
 changing the method, so `METHODOLOGY.md` stays where it is. The v1.16.0 changelog
 entry records exactly this: *"the methodology's version stays 1.11 (no change to
 the method)."* Keeping the two apart means "did the method change?" and "did the
-numbers change?" are separate questions with separate answers.
+numbers change?" are separate questions with separate answers. The scheme only works when the
+line is bumped: `v1.11.0` changed the method without bumping it, and the six
+baselines `v1.11.0` – `v1.15.0` under-report the method by one version
+(see [BASELINES.md](BASELINES.md) §2.1).
 
 ---
 

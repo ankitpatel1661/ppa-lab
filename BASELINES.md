@@ -15,43 +15,48 @@ baselines and all pass.
 
 ## 1. The register
 
-| Baseline | Date | Commit | Code | Method | Forward EUR/MWh | Forward date | Scen. | Solar ind. | Wind ind. | Test files |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `v0.1.0` | 2026-10-07 | `31206ee` | 0.1.0 | — | — | — | — | — | — | 9 |
-| `v0.2.0` | 2026-10-08 | `a749eab` | 0.2.0 | — | — | — | — | — | — | 12 |
-| `v0.3.0` | 2026-10-13 | `f9c387b` | 0.3.0 | 0 | — | — | — | — | — | 15 |
-| `v0.4.0` | 2026-10-13 | `e2a5c41` | 0.4.0 | 0.1 | — | — | — | — | — | 21 |
-| `v0.5.0` | 2026-10-13 | `75c8521` | 0.5.0 | 0.2 | 85.00 | *assumed* | — | — | — | 24 |
-| `v0.6.0` | 2026-10-14 | `168043b` | 0.6.0 | 0.3 | 85.00 | *assumed* | — | — | — | 28 |
-| `v0.7.0` | 2026-10-14 | `af91a78` | 0.7.0 | 0.4 | 85.00 | *assumed* | — | — | — | 30 |
-| `v0.9.0` | 2026-10-14 | `e636b73` | 0.9.0 | 0.4 | 85.00 | *assumed* | 496 | 33.3 | 68.4 | 33 |
-| `v1.0.0` | 2026-10-14 | `ea366d0` | 1.0.0 | 1.0 | 85.00 | *assumed* | 496 | 33.3 | 68.4 | 35 |
-| `v1.1.0` | 2026-10-15 | `e43b8da` | 1.1.0 | 1.1 | 140.21 | 2026-10-09 | 496 | 78.6 | 120.5 | 36 |
-| `v1.2.0` | 2026-10-15 | `37b7980` | 1.2.0 | 1.2 | 140.21 | 2026-10-09 | 496 | 76.0 | 123.0 | 36 |
-| `v1.3.0` | 2026-10-15 | `f3251c5` | 1.3.0 | 1.3 | 140.21 | 2026-10-09 | 496 | 75.2 | 120.8 | 36 |
-| `v1.4.0` | 2026-10-15 | `59f1a73` | 1.4.0 | 1.3 | 140.21 | 2026-10-09 | 496 | 75.2 | 120.8 | 36 |
-| `v1.5.0` | 2026-10-15 | `de78522` | 1.5.0 | 1.5 | 140.21 | 2026-10-09 | 496 | 75.2 | 120.8 | 37 |
-| `v1.6.0` | 2026-10-15 | `651575f` | 1.6.0 | 1.6 | 140.21 | 2026-10-09 | 496 | 74.6 | 120.7 | 37 |
-| `v1.7.0` | 2026-10-15 | `e1b7a89` | 1.7.0 | 1.7 | 140.21 | 2026-10-09 | 496 | 64.5 | 121.4 | 37 |
-| `v1.8.0` | 2026-10-15 | `92ce664` | 1.8.0 | 1.8 | 140.21 | 2026-10-09 | 496 | 64.5 | 121.4 | 37 |
-| `v1.9.0` | 2026-10-16 | `871aebe` | 1.9.0 | 1.9 | 140.21 | 2026-10-09 | 496 | 64.5 | 121.4 | 38 |
-| `v1.10.0` | 2026-10-16 | `4481840` | 1.10.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 41 |
-| `v1.11.0` | 2026-10-16 | `343def2` | 1.11.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 42 |
-| `v1.11.1` | 2026-10-22 | `ac208a1` | 1.11.1 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 42 |
-| `v1.12.0` | 2026-10-23 | `e3bb8ce` | 1.12.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 42 |
-| `v1.13.0` | 2026-10-23 | `44b0307` | 1.13.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 43 |
-| `v1.14.0` | 2026-10-26 | `010de07` | 1.14.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 43 |
-| `v1.15.0` | 2026-10-26 | `5bad5a8` | 1.15.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 43 |
-| `v1.15.1` | 2026-11-03 | `7144b9e` | 1.15.1 | 1.11 | 140.21 | 2026-10-09 | 496 | 63.8 | 121.9 | 43 |
-| `v1.16.0` | 2026-11-04 | `62f4317` | 1.16.0 | 1.11 | **154.42** | **2026-10-23** | 496 | **73.2** | **135.5** | 43 |
+| Baseline | Date | Commit | Code | Method | Forward EUR/MWh | Forward date | Scen. | Solar 10 yr | Wind 10 yr | Solar 2027 | Wind 2027 | Test files |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `v0.1.0` | 2026-10-07 | `31206ee` | 0.1.0 | — | — | — | — | — | — | — | — | 9 |
+| `v0.2.0` | 2026-10-08 | `a749eab` | 0.2.0 | — | — | — | — | — | — | — | — | 12 |
+| `v0.3.0` | 2026-10-13 | `f9c387b` | 0.3.0 | 0 | — | — | — | — | — | — | — | 15 |
+| `v0.4.0` | 2026-10-13 | `e2a5c41` | 0.4.0 | 0.1 | — | — | — | — | — | — | — | 21 |
+| `v0.5.0` | 2026-10-13 | `75c8521` | 0.5.0 | 0.2 | 85.00 | *assumed* | — | — | — | — | — | 24 |
+| `v0.6.0` | 2026-10-14 | `168043b` | 0.6.0 | 0.3 | 85.00 | *assumed* | — | — | — | — | — | 28 |
+| `v0.7.0` | 2026-10-14 | `af91a78` | 0.7.0 | 0.4 | 85.00 | *assumed* | — | — | — | — | — | 30 |
+| `v0.9.0` | 2026-10-14 | `e636b73` | 0.9.0 | 0.4 | 85.00 | *assumed* | 496 | 33.3 | 68.4 | 33.3 | 68.4 | 33 |
+| `v1.0.0` | 2026-10-14 | `ea366d0` | 1.0.0 | 1.0 | 85.00 | *assumed* | 496 | 33.3 | 68.4 | 33.3 | 68.4 | 35 |
+| `v1.1.0` | 2026-10-15 | `e43b8da` | 1.1.0 | 1.1 | 140.21 | 2026-10-09 | 496 | 50.6 | 80.1 | 78.6 | 120.5 | 36 |
+| `v1.2.0` | 2026-10-15 | `37b7980` | 1.2.0 | 1.2 | 140.21 | 2026-10-09 | 496 | 45.2 | 81.8 | 76.0 | 123.0 | 36 |
+| `v1.3.0` | 2026-10-15 | `f3251c5` | 1.3.0 | 1.3 | 140.21 | 2026-10-09 | 496 | 44.7 | 80.0 | 75.2 | 120.8 | 36 |
+| `v1.4.0` | 2026-10-15 | `59f1a73` | 1.4.0 | 1.3 | 140.21 | 2026-10-09 | 496 | 44.7 | 80.0 | 75.2 | 120.8 | 36 |
+| `v1.5.0` | 2026-10-15 | `de78522` | 1.5.0 | 1.5 | 140.21 | 2026-10-09 | 496 | 34.9 | 77.3 | 75.2 | 120.8 | 37 |
+| `v1.6.0` | 2026-10-15 | `651575f` | 1.6.0 | 1.6 | 140.21 | 2026-10-09 | 496 | 36.8 | 77.5 | 74.6 | 120.7 | 37 |
+| `v1.7.0` | 2026-10-15 | `e1b7a89` | 1.7.0 | 1.7 | 140.21 | 2026-10-09 | 496 | 28.1 | 78.1 | 64.5 | 121.4 | 37 |
+| `v1.8.0` | 2026-10-15 | `92ce664` | 1.8.0 | 1.8 | 140.21 | 2026-10-09 | 496 | 28.1 | 78.1 | 64.5 | 121.4 | 37 |
+| `v1.9.0` | 2026-10-16 | `871aebe` | 1.9.0 | 1.9 | 140.21 | 2026-10-09 | 496 | 28.1 | 78.1 | 64.5 | 121.4 | 38 |
+| `v1.10.0` | 2026-10-16 | `4481840` | 1.10.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 27.4 | 78.6 | 63.8 | 121.9 | 41 |
+| `v1.11.0` | 2026-10-16 | `343def2` | 1.11.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 42 |
+| `v1.11.1` | 2026-10-22 | `ac208a1` | 1.11.1 | 1.10 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 42 |
+| `v1.12.0` | 2026-10-23 | `e3bb8ce` | 1.12.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 42 |
+| `v1.13.0` | 2026-10-23 | `44b0307` | 1.13.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 43 |
+| `v1.14.0` | 2026-10-26 | `010de07` | 1.14.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 43 |
+| `v1.15.0` | 2026-10-26 | `5bad5a8` | 1.15.0 | 1.10 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 43 |
+| `v1.15.1` | 2026-11-03 | `7144b9e` | 1.15.1 | 1.11 | 140.21 | 2026-10-09 | 496 | 21.4 | 78.6 | 63.8 | 121.9 | 43 |
+| `v1.16.0` | 2026-11-04 | `62f4317` | 1.16.0 | 1.11 | **154.42** | **2026-10-23** | 496 | **22.6** | **81.5** | **73.2** | **135.5** | 43 |
 
 **Columns.** *Code* is `version` in `pyproject.toml`. *Method* is the version
 line in `METHODOLOGY.md`. *Forward* and *Forward date* are `forward_eur_mwh` and
 `forward_date` in `config/project.toml`. *Scen.* is the joint weather–price
-scenario count. *Solar ind.* and *Wind ind.* are the indicative pay-as-produced
-prices in EUR/MWh from `reports/results.json`
-(`parks.<park>.stack_eur_mwh.indicative`), the headline numbers each baseline
-published. *Test files* is the count of `tests/test_*.py`.
+scenario count. *Solar 10 yr* and *Wind 10 yr* are the ten-year indicative
+pay-as-produced prices in EUR/MWh from `reports/results.json`
+(`parks.<park>.tenor.indicative`): the headline numbers each baseline published in
+the README, the memo and the dashboard. *Solar 2027* and *Wind 2027* are the
+first-year indicative prices (`parks.<park>.stack_eur_mwh.indicative`), the price
+stack of the delivery year alone. Until `v1.1.0` there was one flat assumed
+forward and no capture-rate trend, so the two coincide; from `v1.1.0` the forward
+curve falls after 2027 and they part. *Test files* is the count of
+`tests/test_*.py`.
 
 Em-dashes are absences, not failures: `METHODOLOGY.md` begins at `v0.3.0`, a
 forward assumption at `v0.5.0` (Step 5 is the price model), and published
@@ -62,47 +67,75 @@ published before there was something to publish.
 
 ## 2. What the register shows
 
-### 2.1 The methodology version lags the code version, deliberately
+### 2.1 The methodology version lags the code version: mostly by design, once by mistake
 
-Eight baselines carry a method version older than their code:
+Nine baselines carry a method version older than their code:
 
-| Baselines | Code | Method | Why |
-|---|---|---|---|
-| `v1.4.0` | 1.4.0 | 1.3 | history extended to 2021; no change to the method |
-| `v1.11.0` – `v1.15.0` | 1.11.0 – 1.15.0 | 1.10 | build-out scenarios, then four dashboard releases |
-| `v1.15.1` | 1.15.1 | 1.11 | — |
+| Baselines | Code | Method on record | Method in force | Why |
+|---|---|---|---|---|
+| `v1.4.0` | 1.4.0 | 1.3 | 1.3 | history extended to 2021; the method did not change |
+| `v1.11.0` | 1.11.0 | 1.10 | 1.11 | **lag by mistake:** the build-out scenarios changed the method (`METHODOLOGY.md`'s own changelog has its v1.11 entry at this tag), but the version line was not bumped |
+| `v1.11.1` – `v1.15.0` | 1.11.1 – 1.15.0 | 1.10 | 1.11 | the same stale line, carried through a documentation fix and four dashboard releases that did not change the method |
+| `v1.15.1` | 1.15.1 | 1.11 | 1.11 | version line corrected (commit `2546fc5`); dashboard fixes only |
+| `v1.16.0` | 1.16.0 | 1.11 | 1.11 | forward re-anchored to newer quotes; the method did not change |
 
-This is the design, not drift. A release that extends the data or rebuilds the
-dashboard changes code and numbers without changing the method, so
-`METHODOLOGY.md` stays put. It means "has the method changed since I last read
-it?" is answerable by comparing one number.
+*Method on record* is the version line as committed, which is what the register's
+*Method* column shows; *method in force* is what the methodology's own changelog
+says applied.
 
-The clearest case is `v1.12.0` through `v1.15.0`: four releases, the dashboard
-gaining explanations and then Italian and Spanish, and the published prices
-(63.8 and 121.9) identical throughout. Method 1.10 the whole way. The register
-shows at a glance that nothing analytical moved.
+The design holds for `v1.4.0`, `v1.15.1` and `v1.16.0`. A release that extends the
+data, fixes the dashboard or re-anchors the forward changes code and numbers
+without changing the method, so `METHODOLOGY.md` stays put, and "has the method
+changed since I last read it?" is answerable by comparing one number.
+
+The six baselines `v1.11.0` – `v1.15.0` are the exception: they under-report the
+method by one version, and the comparison gives the wrong answer for them. The
+register's price columns show what the version line missed: the ten-year solar
+price fell 27.4 → 21.4 at `v1.11.0`.
+
+Nothing analytical moved from `v1.12.0` through `v1.15.0`: four releases, the
+dashboard gaining explanations and then Italian and Spanish, and the published
+prices (21.4 and 78.6 over ten years) identical throughout.
 
 ### 2.2 Re-anchoring to the market is visible and attributable
 
-The forward moved three times, and every published price moved with it:
+The forward moved three times. The ten-year price, the headline the README, the
+memo and the dashboard publish, moved with it, and between the moves the model
+changed:
 
-| | Forward | Solar indicative | Wind indicative |
-|---|---|---|---|
-| `v0.9.0` – `v1.0.0` | 85.00 *assumed* | 33.3 | 68.4 |
-| `v1.1.0` – `v1.15.1` | 140.21 (9 Oct 2026) | 78.6 → 63.8 | 120.5 → 121.9 |
-| `v1.16.0` | 154.42 (23 Oct 2026) | 73.2 | 135.5 |
+| | Forward | Solar 10 yr | Wind 10 yr | Solar 2027 |
+|---|---|---|---|---|
+| `v0.9.0` – `v1.0.0` | 85.00 *assumed* | 33.3 | 68.4 | 33.3 |
+| `v1.1.0` – `v1.15.1` | 140.21 (9 Oct 2026) | 50.6 → 21.4 | 80.1 → 78.6 | 78.6 → 63.8 |
+| `v1.16.0` | 154.42 (23 Oct 2026) | 22.6 | 81.5 | 73.2 |
 
-Two things are separable here that would otherwise be confounded. At `v1.1.0`
-the solar indicative jumps 33.3 → 78.6 purely because the price level stopped
-being an assumption and became the market's. It then falls to 63.8 across
-`v1.2.0` – `v1.10.0` with the forward held constant — that decline is modelling
-work, not market movement: the quarterly shape (`v1.2.0`), the real parks
-(`v1.3.0`), the capture-rate response to the level (`v1.5.0`), the out-of-sample
-correction (`v1.6.0`) and the build-out trend (`v1.7.0`, the single largest step
-at 74.6 → 64.5). Only at `v1.16.0` does it rise again, to 73.2, on a 10% higher
-forward.
+Two things are separable here that would otherwise be confounded. At `v1.1.0` the
+solar ten-year price rises 33.3 → 50.6 purely because the price level stopped
+being an assumption and became the market's. It then falls to 21.4 across
+`v1.2.0` – `v1.11.0` with the forward held constant. That decline is modelling
+work, not market movement:
 
-Without the register those two effects are one number drifting. With it, each is
+| Baseline | What changed | Solar 10 yr |
+|---|---|---|
+| `v1.2.0` | the market's quarterly shape; a solar capture-rate trend of −1 pp a year | −5.4 |
+| `v1.3.0` | the two real parks, calibrated to their published yields | −0.5 |
+| `v1.5.0` | the capture rate's response to the price level | −9.8 |
+| `v1.6.0` | the out-of-sample test and the negative-price tail | +1.9 |
+| `v1.7.0` | the build-out trend of the intraday shape | −8.7 |
+| `v1.10.0` | the balancing cost, measured instead of assumed | −0.7 |
+| `v1.11.0` | solar and storage build-out scenarios after 2027 | −6.0 |
+
+The largest steps are the capture rate's response to the level (`v1.5.0`) and the
+build-out trend (`v1.7.0`). Only at `v1.16.0` does the price rise again, to 22.6,
+on a 10% higher Cal-27 forward: by 1.2 only, because Cal-29, which prices
+2029–2036, barely moved.
+
+The first-year price is kept as a second column, but it cannot stand in for the
+ten-year one. A change that acts only on later years, like the build-out scenarios
+at `v1.11.0`, leaves it unchanged (63.8 before and after). Until revision 1.1 this
+register showed only the first-year price and so missed that change.
+
+Without the register those effects are one number drifting. With it, each is
 attributable to a release and a ticket.
 
 ### 2.3 The test suite grew with the model
@@ -158,7 +191,7 @@ done
 
 2. **The indicative prices are headline numbers, not the whole result.** Each
    baseline's `results.json` holds far more — premia, CFaR, structures, hedging
-   — and the register shows two numbers per release. It is an index to the
+   — and the register shows four numbers per release. It is an index to the
    baselines, not a substitute for reading one.
 
 3. **"Reproduces" is not asserted here.** The register records what each
@@ -179,3 +212,4 @@ done
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-11-16 | First issue. 27 baselines, three integrity checks all passing. |
+| 1.1 | 2026-11-19 | Ten-year indicative prices added: the headline each baseline published. The register showed only the first-year price, labelled as that headline, which hid the `v1.11.0` change (27.4 → 21.4). §2.1 corrected: the method line of `v1.11.0` – `v1.15.0` lagged by mistake, not by design. §2.2 restated in the published prices. |

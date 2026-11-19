@@ -36,15 +36,24 @@ All notable changes to this project are documented here. The format follows
 
 ### Notes
 - The register makes two effects separable that were previously one number
-  drifting: the solar indicative price rose 33.3 → 78.6 EUR/MWh at v1.1.0 only
-  because the price level stopped being an assumption and became the market's,
-  then fell to 63.8 across v1.2.0–v1.10.0 with the forward held constant, which
-  was modelling work (largest single step: the build-out trend at v1.7.0,
-  74.6 → 64.5).
+  drifting: the solar ten-year indicative price rose 33.3 → 50.6 EUR/MWh at
+  v1.1.0 only because the price level stopped being an assumption and became the
+  market's, then fell to 21.4 across v1.2.0–v1.11.0 with the forward held
+  constant, which was modelling work (largest steps: the capture rate's response
+  to the level at v1.5.0, −9.8, and the build-out trend at v1.7.0, −8.7).
 - Every document ends with its limitations. The binding one: this is a
   single-maintainer project, so approval means the maintainer reviewing their
   own change with CI as the only impartial gate — no second approver, no change
   control board.
+
+### Fixed
+- `BASELINES.md` revision 1.1: the register listed the first-year indicative
+  price as the headline each baseline published; the published headline is the
+  ten-year price. Ten-year columns added, the first-year ones kept and labelled.
+  The first-year price missed the v1.11.0 change (ten-year 27.4 → 21.4), and the
+  methodology line of v1.11.0–v1.15.0 (1.10) lagged by mistake, not by design:
+  v1.11.0 changed the method without bumping it. §2.1, §2.2, `CONTRIBUTING.md`
+  and `CONFIGURATION_MANAGEMENT.md` §2.3 corrected.
 
 ## [1.16.0] (re-anchored to the forward curve of 23 October 2026)
 
